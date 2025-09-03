@@ -1,0 +1,6 @@
+@FA25_CP.CryoFert_BE_HostAddress = http://localhost:5174
+
+GET {{FA25_CP.CryoFert_BE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
