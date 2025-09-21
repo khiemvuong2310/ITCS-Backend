@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho thanh toán
+    /// Ghi lại thông tin thanh toán của bệnh nhân cho các dịch vụ
+    /// </summary>
     public class Payment : BaseEntity
     {
         public int PatientID { get; set; }

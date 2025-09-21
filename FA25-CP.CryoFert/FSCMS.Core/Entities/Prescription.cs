@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho đơn thuốc
+    /// Ghi lại thông tin đơn thuốc được bác sĩ kê cho bệnh nhân
+    /// </summary>
     public class Prescription : BaseEntity
     {
         public int EncounterID { get; set; }

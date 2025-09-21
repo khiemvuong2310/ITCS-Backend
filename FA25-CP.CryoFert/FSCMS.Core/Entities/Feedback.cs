@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho phản hồi của bệnh nhân
+    /// Ghi lại đánh giá và phản hồi của bệnh nhân về dịch vụ
+    /// </summary>
     public class Feedback : BaseEntity
     {
         public int PatientID { get; set; }

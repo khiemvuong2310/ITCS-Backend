@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FSCMS.Core.Enum
+﻿namespace FSCMS.Core.Enum
 {
     public enum Roles
     {
         Admin = 1,
-        Staff = 2,
-        Customer = 3,
+        Doctor = 2,
+        LaboratoryTechnician = 3,
+        Receptionist = 4,
+        ServiceManager = 5,
+        Patient = 6
     }
 }

@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho nội dung website
+    /// Quản lý các bài viết, thông báo, thông tin dịch vụ trên website
+    /// </summary>
     public class Content : BaseEntity
     {
         public string Title { get; set; }

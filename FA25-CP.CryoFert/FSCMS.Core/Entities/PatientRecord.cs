@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho hồ sơ bệnh nhân
+    /// Liên kết thông tin bệnh nhân với các cuộc khám, dịch vụ và thanh toán
+    /// </summary>
     public class PatientRecord : BaseEntity
     {
         public int PatientID { get; set; }

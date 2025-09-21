@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Lớp cơ sở cho tất cả các entity trong hệ thống
+    /// Chứa các thuộc tính chung như Id, thời gian tạo, cập nhật và trạng thái xóa
+    /// </summary>
     public class BaseEntity
     {
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

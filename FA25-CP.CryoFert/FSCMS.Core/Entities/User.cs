@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho người dùng trong hệ thống
+    /// Bao gồm thông tin cơ bản như tên, email, mật khẩu và các liên kết đến các role
+    /// </summary>
     public class User : BaseEntity
     {
         public string? UserName { get; set; }
