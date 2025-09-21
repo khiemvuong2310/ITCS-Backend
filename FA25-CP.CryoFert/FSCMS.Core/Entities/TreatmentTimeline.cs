@@ -1,17 +1,32 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho timeline điều trị
+    /// Theo dõi các bước và mốc thời gian trong quá trình điều trị
+    /// </summary>
     public class TreatmentTimeline : BaseEntity
     {
-        public int PatientID { get; set; }
-        public string Type { get; set; } // IUI/IVF/Cryo
-        public string Step { get; set; }
-        public string Status { get; set; }
-        public int UpdatedBy { get; set; }
+        public int? TreatmentCycleId { get; set; }
+        public int PatientId { get; set; }
+        public string ProcessType { get; set; } = string.Empty; // IVF, IUI, Cryopreservation
+        public string StepName { get; set; } = string.Empty;
+        public string? StepDescription { get; set; }
+        public TreatmentStatus Status { get; set; }
+        public DateTime? PlannedDate { get; set; }
+        public DateTime? ActualDate { get; set; }
+        public int? AssignedToUserId { get; set; }
+        public int UpdatedByUserId { get; set; }
+        public string? Results { get; set; }
+        public string? Notes { get; set; }
+        public int? SortOrder { get; set; }
+
+        // Navigation Properties
+        public virtual TreatmentCycle? TreatmentCycle { get; set; }
+        public virtual Patient? Patient { get; set; }
+        public virtual User? AssignedToUser { get; set; }
+        public virtual User? UpdatedByUser { get; set; }
     }
 }

@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho cấu hình hệ thống
+    /// Lưu trữ các thông số cấu hình và quy tắc hoạt động của hệ thống
+    /// </summary>
     public class SystemConfig : BaseEntity
     {
         public string CenterInfo { get; set; }

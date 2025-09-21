@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity liên kết giữa User và Role
+    /// Xác định người dùng nào có vai trò gì trong hệ thống
+    /// </summary>
     public class UserRole : BaseEntity
     {
         public int UserId { get; set; }

@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    /// <summary>
+    /// Entity đại diện cho dịch vụ y tế
+    /// Định nghĩa các dịch vụ mà phòng khám cung cấp với giá cả và đơn vị tính
+    /// </summary>
     public class Service : BaseEntity
     {
         public string Name { get; set; }
