@@ -44,8 +44,15 @@ nunit-*.xml
 
 # Environment & Secrets
 .env
+*.env
 *.local
 secrets.json
+
+# Firebase configs
+firebase.json
+google-services.json
+GoogleService-Info.plist
+/firebase*
 
 # Database files
 *.mdf
