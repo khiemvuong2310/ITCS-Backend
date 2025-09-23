@@ -41,6 +41,7 @@ namespace FSCMS.Core
         
         // Service Management
         public DbSet<Service> Services { get; set; }
+        public DbSet<ServiceProvider> ServiceProviders { get; set; }
         public DbSet<ServicePackage> ServicePackages { get; set; }
         public DbSet<ServicePackageItem> ServicePackageItems { get; set; }
         public DbSet<ServiceRequest> ServiceRequests { get; set; }
@@ -48,6 +49,8 @@ namespace FSCMS.Core
         // Appointment & Scheduling
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Encounter> Encounters { get; set; }
+        public DbSet<CheckIn> CheckIns { get; set; }
+        public DbSet<DoctorSchedule> DoctorSchedules { get; set; }
         
         // Communication & Feedback
         public DbSet<Notification> Notifications { get; set; }
@@ -62,10 +65,21 @@ namespace FSCMS.Core
         
         // System Management
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<SystemConfig> SystemConfigs { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
+        public DbSet<MedicalHistory> MedicalHistories { get; set; }
+        public DbSet<TestType> TestTypes { get; set; }
+        public DbSet<LabTest> LabTests { get; set; }
+        public DbSet<TestResult> TestResults { get; set; }
+        public DbSet<Commitment> Commitments { get; set; }
+        public DbSet<Contract> Contracts { get; set; }
+        public DbSet<EmbryoTransfer> EmbryoTransfers { get; set; }
+        public DbSet<Cryopreservation> Cryopreservations { get; set; }
+        public DbSet<Thawing> Thawings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -143,6 +157,13 @@ namespace FSCMS.Core
                 .HasForeignKey(s => s.CryobankPositionId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Service Provider Relationships
+            modelBuilder.Entity<Service>()
+                .HasOne(s => s.ServiceProvider)
+                .WithMany(p => p.Services)
+                .HasForeignKey(s => s.ServiceProviderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Quality Assessment Relationships
             modelBuilder.Entity<OocyteAssessment>()
                 .HasOne(oa => oa.Specimen)
@@ -207,6 +228,26 @@ namespace FSCMS.Core
                 .HasForeignKey(a => a.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // CheckIn Relationships
+            modelBuilder.Entity<CheckIn>()
+                .HasOne(ci => ci.Patient)
+                .WithMany()
+                .HasForeignKey(ci => ci.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CheckIn>()
+                .HasOne(ci => ci.Appointment)
+                .WithMany()
+                .HasForeignKey(ci => ci.AppointmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // DoctorSchedule Relationships
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasOne(ds => ds.Doctor)
+                .WithMany()
+                .HasForeignKey(ds => ds.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Encounter Relationships
             modelBuilder.Entity<Encounter>()
                 .HasOne(e => e.Patient)
@@ -255,11 +296,131 @@ namespace FSCMS.Core
                 .HasForeignKey(p => p.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Invoice Relationships
+            modelBuilder.Entity<Invoice>()
+                .HasOne(i => i.Patient)
+                .WithMany()
+                .HasForeignKey(i => i.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne(ii => ii.Invoice)
+                .WithMany(i => i.Items)
+                .HasForeignKey(ii => ii.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne(ii => ii.Service)
+                .WithMany()
+                .HasForeignKey(ii => ii.ServiceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Content Relationships
             modelBuilder.Entity<Content>()
                 .HasOne(c => c.CreatedByUser)
                 .WithMany(u => u.ContentsCreated)
                 .HasForeignKey(c => c.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Medical History
+            modelBuilder.Entity<MedicalHistory>()
+                .HasOne(mh => mh.Patient)
+                .WithMany()
+                .HasForeignKey(mh => mh.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Lab Tests
+            modelBuilder.Entity<LabTest>()
+                .HasOne(lt => lt.Patient)
+                .WithMany()
+                .HasForeignKey(lt => lt.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(lt => lt.TestType)
+                .WithMany()
+                .HasForeignKey(lt => lt.TestTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(lt => lt.OrderedByUser)
+                .WithMany()
+                .HasForeignKey(lt => lt.OrderedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(lt => lt.CollectedByUser)
+                .WithMany()
+                .HasForeignKey(lt => lt.CollectedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<TestResult>()
+                .HasOne(tr => tr.LabTest)
+                .WithOne(lt => lt.Result)
+                .HasForeignKey<TestResult>(tr => tr.LabTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TestResult>()
+                .HasOne(tr => tr.VerifiedByUser)
+                .WithMany()
+                .HasForeignKey(tr => tr.VerifiedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Commitment & Contract
+            modelBuilder.Entity<Contract>()
+                .HasOne(c => c.Patient)
+                .WithMany()
+                .HasForeignKey(c => c.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Embryo Transfer
+            modelBuilder.Entity<EmbryoTransfer>()
+                .HasOne(et => et.Patient)
+                .WithMany()
+                .HasForeignKey(et => et.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmbryoTransfer>()
+                .HasOne(et => et.Doctor)
+                .WithMany()
+                .HasForeignKey(et => et.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EmbryoTransfer>()
+                .HasOne(et => et.TreatmentTimeline)
+                .WithMany()
+                .HasForeignKey(et => et.TreatmentTimelineId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<EmbryoTransfer>()
+                .HasOne(et => et.Specimen)
+                .WithMany()
+                .HasForeignKey(et => et.SpecimenId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Cryopreservation & Thawing
+            modelBuilder.Entity<Cryopreservation>()
+                .HasOne(cr => cr.Specimen)
+                .WithMany()
+                .HasForeignKey(cr => cr.SpecimenId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Cryopreservation>()
+                .HasOne(cr => cr.WitnessUser)
+                .WithMany()
+                .HasForeignKey(cr => cr.WitnessUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Thawing>()
+                .HasOne(th => th.Specimen)
+                .WithMany()
+                .HasForeignKey(th => th.SpecimenId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Thawing>()
+                .HasOne(th => th.WitnessUser)
+                .WithMany()
+                .HasForeignKey(th => th.WitnessUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Audit Log Relationships
