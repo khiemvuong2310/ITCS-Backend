@@ -211,14 +211,14 @@ namespace FSCMS.Core
             modelBuilder.Entity<Encounter>()
                 .HasOne(e => e.Patient)
                 .WithMany(p => p.Encounters)
-                .HasForeignKey(e => e.PatientID)
+                .HasForeignKey(e => e.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Feedback Relationships
             modelBuilder.Entity<Feedback>()
                 .HasOne(f => f.Patient)
                 .WithMany(p => p.Feedbacks)
-                .HasForeignKey(f => f.PatientID)
+                .HasForeignKey(f => f.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Consent Form Relationships
@@ -252,7 +252,7 @@ namespace FSCMS.Core
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Patient)
                 .WithMany(pat => pat.Payments)
-                .HasForeignKey(p => p.PatientID)
+                .HasForeignKey(p => p.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Content Relationships
@@ -266,7 +266,7 @@ namespace FSCMS.Core
             modelBuilder.Entity<AuditLog>()
                 .HasOne(a => a.User)
                 .WithMany(u => u.AuditLogs)
-                .HasForeignKey(a => a.UserID)
+                .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

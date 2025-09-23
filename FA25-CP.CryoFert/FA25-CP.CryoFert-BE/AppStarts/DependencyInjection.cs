@@ -1,11 +1,4 @@
-﻿using Finamon.Repo.UnitOfWork;
-using Finamon.Repo.UnitOfWork.Repositories;
-using Finamon.Service.Interfaces;
-using Finamon.Service.Mapping;
-using Finamon.Service.RequestModel;
-using Finamon.Service.Services;
-using Finamon_Data;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;

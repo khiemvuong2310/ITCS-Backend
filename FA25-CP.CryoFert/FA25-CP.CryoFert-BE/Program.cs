@@ -1,25 +1,129 @@
-var builder = WebApplication.CreateBuilder(args);
+﻿using FSCMS.Core; // namespace chứa AppDbContext
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using DotNetEnv;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Features;
+using Pomelo.EntityFrameworkCore.MySql;
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+namespace FA25_CP.CryoFert_BE
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            // 1. Load environment variables từ .env
+            Env.Load();
+
+            var builder = WebApplication.CreateBuilder(args);
+
+            // 2. Add services to the container
+            builder.Services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = null;
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
+            builder.Services.AddHttpContextAccessor();
+
+            // Exception handler (nếu bạn có GlobalExceptionHandler thì đăng ký thêm ở đây)
+            builder.Services.AddProblemDetails();
+
+            // 3. DbContext config (MySQL)
+            builder.Services.AddDbContext<AppDbContext>(options =>
+            {
+                var connectionString =
+                    Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+                    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+                    ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
+                    ?? builder.Configuration["DB_CONNECTION_STRING"];
+
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
+
+                var serverVersion = ServerVersion.AutoDetect(connectionString);
+                options.UseMySql(connectionString, serverVersion,
+                    mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
+            });
+
+
+            // 4. CORS config
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowReactApp", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173", "https://fscms.pages.dev")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                });
+            });
+
+            // 5. Upload config (giới hạn 100 MB)
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.MultipartBodyLengthLimit = 104857600; // 100 MB
+            });
+
+            // 6. Swagger & OpenAPI + JWT Auth
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "FSCMS API",
+                    Version = "v1"
+                });
+
+                var securitySchema = new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                };
+
+                c.AddSecurityDefinition("Bearer", securitySchema);
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    { securitySchema, new[] { "Bearer" } }
+                });
+            });
+
+            // 7. Build application
+            var app = builder.Build();
+
+            // 8. Configure middleware
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "FSCMS API v1");
+                });
+            }
+            else
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.UseExceptionHandler();
+
+            app.UseHttpsRedirection();
+            app.UseCors("AllowReactApp");
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapControllers();
+
+            // 9. Run application
+            app.Run();
+        }
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();

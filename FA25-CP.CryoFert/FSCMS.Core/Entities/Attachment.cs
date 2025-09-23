@@ -12,7 +12,7 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class Attachment : BaseEntity
     {
-        public int RelatedID { get; set; }
+        public int RelatedId { get; set; }
         public string FilePath { get; set; }
         public string FileType { get; set; }
         public string UploadedBy { get; set; }

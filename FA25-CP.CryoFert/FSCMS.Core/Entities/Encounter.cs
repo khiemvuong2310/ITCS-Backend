@@ -12,9 +12,9 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class Encounter : BaseEntity
     {
-        public int PatientID { get; set; }
+        public int PatientId { get; set; }
         public DateTime VisitDate { get; set; }
-        public int ProviderID { get; set; }
+        public int ProviderId { get; set; }
         public string ChiefComplaint { get; set; }
         public string History { get; set; }
         public string Vitals { get; set; }
@@ -25,7 +25,7 @@ namespace FSCMS.Core.Entities
         public string ReferralTo { get; set; }
         public string Status { get; set; }
 
-        public virtual User? Patient { get; set; }
+        public virtual Patient? Patient { get; set; }
         public virtual User? Provider { get; set; }
     }
 }

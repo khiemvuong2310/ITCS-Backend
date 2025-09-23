@@ -12,7 +12,7 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class AuditLog : BaseEntity
     {
-        public int UserID { get; set; }
+        public int UserId { get; set; }
         public string Action { get; set; }
         public DateTime Timestamp { get; set; }
         public string Details { get; set; }

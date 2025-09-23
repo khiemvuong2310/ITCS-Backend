@@ -12,11 +12,11 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class Payment : BaseEntity
     {
-        public int PatientID { get; set; }
+        public int PatientId { get; set; }
         public decimal Amount { get; set; }
         public string Method { get; set; }
         public string Status { get; set; }
 
-        public virtual User? Patient { get; set; }
+        public virtual Patient? Patient { get; set; }
     }
 }

@@ -12,10 +12,15 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class PatientRecord : BaseEntity
     {
-        public int PatientID { get; set; }
-        public int EncounterID { get; set; }
-        public int ServiceID { get; set; }
-        public int PaymentID { get; set; }
+        public int PatientId { get; set; }
+        public int EncounterId { get; set; }
+        public int ServiceId { get; set; }
+        public int PaymentId { get; set; }
         public string Notes { get; set; }
+
+        public virtual Patient? Patient { get; set; }
+        public virtual Encounter? Encounter { get; set; }
+        public virtual Service? Service { get; set; }
+        public virtual Payment? Payment { get; set; }
     }
 }

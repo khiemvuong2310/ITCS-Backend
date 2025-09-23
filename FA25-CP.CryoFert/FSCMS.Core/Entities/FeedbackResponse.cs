@@ -12,9 +12,12 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class FeedbackResponse : BaseEntity
     {
-        public int FeedbackID { get; set; }
-        public int AdminID { get; set; }
+        public int FeedbackId { get; set; }
+        public int AdminId { get; set; }
         public string Notes { get; set; }
         public string Status { get; set; }
+
+        public virtual Feedback? Feedback { get; set; }
+        public virtual User? Admin { get; set; }
     }
 }
