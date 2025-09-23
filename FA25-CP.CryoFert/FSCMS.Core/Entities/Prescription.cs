@@ -12,12 +12,15 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class Prescription : BaseEntity
     {
-        public int EncounterID { get; set; }
-        public int PatientID { get; set; }
+        public int EncounterId { get; set; }
+        public int PatientId { get; set; }
         public string Medicine { get; set; }
         public string Dosage { get; set; }
         public string Route { get; set; }
         public string Duration { get; set; }
         public string Notes { get; set; }
+
+        public virtual Encounter? Encounter { get; set; }
+        public virtual Patient? Patient { get; set; }
     }
 }
