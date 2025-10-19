@@ -1,26 +1,28 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
     /// <summary>
     /// Entity đại diện cho đơn thuốc
-    /// Ghi lại thông tin đơn thuốc được bác sĩ kê cho bệnh nhân
+    /// Many-to-One với MedicalRecord
+    /// One-to-Many với PrescriptionDetail
     /// </summary>
     public class Prescription : BaseEntity
     {
-        public int EncounterId { get; set; }
-        public int PatientId { get; set; }
-        public string Medicine { get; set; }
-        public string Dosage { get; set; }
-        public string Route { get; set; }
-        public string Duration { get; set; }
-        public string Notes { get; set; }
+        public int MedicalRecordId { get; set; }
+        
+        public DateTime PrescriptionDate { get; set; }
+        public string? Diagnosis { get; set; }
+        public string? Instructions { get; set; }
+        public string? Notes { get; set; }
+        public bool IsFilled { get; set; } = false;
+        public DateTime? FilledDate { get; set; }
 
-        public virtual Encounter? Encounter { get; set; }
-        public virtual Patient? Patient { get; set; }
+        // Navigation Properties
+        public virtual MedicalRecord? MedicalRecord { get; set; }
+        
+        // One-to-Many với PrescriptionDetail
+        public virtual ICollection<PrescriptionDetail>? PrescriptionDetails { get; set; } = new List<PrescriptionDetail>();
     }
 }

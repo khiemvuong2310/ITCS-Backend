@@ -5,26 +5,27 @@ using FSCMS.Core.Enum;
 namespace FSCMS.Core.Entities
 {
     /// <summary>
-    /// Entity đại diện cho chu trình điều trị
-    /// Quản lý toàn bộ quá trình điều trị của bệnh nhân (IVF, IUI, FET)
+    /// Entity đại diện cho chu kỳ điều trị
+    /// Many-to-One với Treatment
+    /// One-to-Many với Appointment
     /// </summary>
     public class TreatmentCycle : BaseEntity
     {
-        public int PatientId { get; set; }
-        public int DoctorId { get; set; }
-        public string TreatmentType { get; set; } = string.Empty; // IVF, IUI, FET
-        public string Protocol { get; set; } = string.Empty;
-        public TreatmentStatus Status { get; set; }
+        public int TreatmentId { get; set; }
+        
+        public string CycleName { get; set; } = string.Empty;
+        public int CycleNumber { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public TreatmentStatus Status { get; set; }
+        public string? Protocol { get; set; }
         public string? Notes { get; set; }
+        public decimal? Cost { get; set; }
 
         // Navigation Properties
-        public virtual Patient? Patient { get; set; }
-        public virtual Doctor? Doctor { get; set; }
-        public virtual ICollection<CycleMonitoring>? Monitorings { get; set; } = new List<CycleMonitoring>();
-        public virtual ICollection<TreatmentTimeline>? Timelines { get; set; } = new List<TreatmentTimeline>();
-        public virtual IVFCycle? IVFCycle { get; set; }
-        public virtual IUICycle? IUICycle { get; set; }
+        public virtual Treatment? Treatment { get; set; }
+        
+        // One-to-Many với Appointment
+        public virtual ICollection<Appointment>? Appointments { get; set; } = new List<Appointment>();
     }
 }

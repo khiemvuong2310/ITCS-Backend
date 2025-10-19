@@ -14,421 +14,308 @@ namespace FSCMS.Core
         {
         }
 
-        // Core Entities
-        public DbSet<User> Users { get; set; }
+        // ========== Nhóm 1: Core Entities - Quản lý Người dùng & Bệnh nhân ==========
+        public DbSet<Account> Accounts { get; set; }
         public DbSet<Role> Roles { get; set; }
-        public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
-        
-        // Treatment Management
-        public DbSet<TreatmentCycle> TreatmentCycles { get; set; }
-        public DbSet<IVFCycle> IVFCycles { get; set; }
-        public DbSet<IUICycle> IUICycles { get; set; }
-        public DbSet<TreatmentTimeline> TreatmentTimelines { get; set; }
-        public DbSet<CycleMonitoring> CycleMonitorings { get; set; }
-        
-        // Cryobank Management
-        public DbSet<CryobankTank> CryobankTanks { get; set; }
-        public DbSet<CryobankPosition> CryobankPositions { get; set; }
-        public DbSet<Specimen> Specimens { get; set; }
-        
-        // Quality Assessments
-        public DbSet<OocyteAssessment> OocyteAssessments { get; set; }
-        public DbSet<SpermAnalysis> SpermAnalyses { get; set; }
-        public DbSet<EmbryoAssessment> EmbryoAssessments { get; set; }
-        public DbSet<PGTResult> PGTResults { get; set; }
-        
-        // Service Management
-        public DbSet<Service> Services { get; set; }
-        public DbSet<ServiceProvider> ServiceProviders { get; set; }
-        public DbSet<ServicePackage> ServicePackages { get; set; }
-        public DbSet<ServicePackageItem> ServicePackageItems { get; set; }
-        public DbSet<ServiceRequest> ServiceRequests { get; set; }
-        
-        // Appointment & Scheduling
-        public DbSet<Appointment> Appointments { get; set; }
-        public DbSet<Encounter> Encounters { get; set; }
-        public DbSet<CheckIn> CheckIns { get; set; }
+        public DbSet<Relationship> Relationships { get; set; }
+
+        // ========== Nhóm 2: Lịch hẹn & Dịch vụ ==========
         public DbSet<DoctorSchedule> DoctorSchedules { get; set; }
-        
-        // Communication & Feedback
-        public DbSet<Notification> Notifications { get; set; }
-        public DbSet<Feedback> Feedbacks { get; set; }
-        public DbSet<FeedbackResponse> FeedbackResponses { get; set; }
-        
-        // Documentation & Legal
-        public DbSet<ConsentForm> ConsentForms { get; set; }
-        public DbSet<PatientRecord> PatientRecords { get; set; }
+        public DbSet<Slot> Slots { get; set; }
+        public DbSet<ServiceRequest> ServiceRequests { get; set; }
+        public DbSet<ServiceRequestDetails> ServiceRequestDetails { get; set; }
+        public DbSet<Service> Services { get; set; }
+        public DbSet<ServiceCategory> ServiceCategories { get; set; }
+
+        // ========== Nhóm 3: Điều trị & Bệnh án ==========
+        public DbSet<Treatment> Treatments { get; set; }
+        public DbSet<TreatmentIVF> TreatmentIVFs { get; set; }
+        public DbSet<TreatmentCycle> TreatmentCycles { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<MedicalRecord> MedicalRecords { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
-        public DbSet<Content> Contents { get; set; }
-        
-        // System Management
-        public DbSet<Payment> Payments { get; set; }
-        public DbSet<Invoice> Invoices { get; set; }
-        public DbSet<InvoiceItem> InvoiceItems { get; set; }
-        public DbSet<Report> Reports { get; set; }
-        public DbSet<SystemConfig> SystemConfigs { get; set; }
-        public DbSet<AuditLog> AuditLogs { get; set; }
-        public DbSet<Attachment> Attachments { get; set; }
-        public DbSet<MedicalHistory> MedicalHistories { get; set; }
-        public DbSet<TestType> TestTypes { get; set; }
-        public DbSet<LabTest> LabTests { get; set; }
-        public DbSet<TestResult> TestResults { get; set; }
-        public DbSet<Commitment> Commitments { get; set; }
-        public DbSet<Contract> Contracts { get; set; }
-        public DbSet<EmbryoTransfer> EmbryoTransfers { get; set; }
-        public DbSet<Cryopreservation> Cryopreservations { get; set; }
-        public DbSet<Thawing> Thawings { get; set; }
+        public DbSet<PrescriptionDetail> PrescriptionDetails { get; set; }
+        public DbSet<Medicine> Medicines { get; set; }
+
+        // ========== Nhóm 4: Lab & Kho lưu trữ ==========
+        public DbSet<LabSample> LabSamples { get; set; }
+        public DbSet<LabSampleEmbryo> LabSampleEmbryos { get; set; }
+        public DbSet<LabSampleSperm> LabSampleSperms { get; set; }
+        public DbSet<LabSampleOocyte> LabSampleOocytes { get; set; }
+        public DbSet<CryoLocation> CryoLocations { get; set; }
+        public DbSet<CryoImport> CryoImports { get; set; }
+        public DbSet<CryoExport> CryoExports { get; set; }
+
+        // ========== Nhóm 5: Hợp đồng & Gói dịch vụ ==========
+        public DbSet<CryoPackage> CryoPackages { get; set; }
+        public DbSet<CryoStorageContract> CryoStorageContracts { get; set; }
+        public DbSet<CPSDetail> CPSDetails { get; set; }
+
+        // ========== Nhóm 6: Bảng Phụ trợ ==========
+        public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<Media> Medias { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // User & Role Relationships
-            modelBuilder.Entity<UserRole>()
-                .HasOne(ur => ur.User)
-                .WithMany(u => u.UserRoles)
-                .HasForeignKey(ur => ur.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // ========================================
+            // Nhóm 1: Account, Patient, Doctor, Relationship
+            // ========================================
 
-            modelBuilder.Entity<UserRole>()
-                .HasOne(ur => ur.Role)
-                .WithMany(r => r.UserRoles)
-                .HasForeignKey(ur => ur.RoleId)
+            // Account & Role Relationship
+            modelBuilder.Entity<Account>()
+                .HasOne(a => a.Role)
+                .WithMany(r => r.Users)
+                .HasForeignKey(a => a.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Patient & User Relationship
-            modelBuilder.Entity<Patient>()
-                .HasOne(p => p.User)
-                .WithOne()
-                .HasForeignKey<Patient>(p => p.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Doctor & User Relationship
-            modelBuilder.Entity<Doctor>()
-                .HasOne(d => d.User)
-                .WithOne(u => u.DoctorProfile)
-                .HasForeignKey<Doctor>(d => d.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Treatment Cycle Relationships
-            modelBuilder.Entity<TreatmentCycle>()
-                .HasOne(tc => tc.Patient)
-                .WithMany(p => p.TreatmentCycles)
-                .HasForeignKey(tc => tc.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<TreatmentCycle>()
-                .HasOne(tc => tc.Doctor)
-                .WithMany()
-                .HasForeignKey(tc => tc.DoctorId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // IVF & IUI Cycle Relationships
-            modelBuilder.Entity<IVFCycle>()
-                .HasOne(ivc => ivc.TreatmentCycle)
-                .WithOne(tc => tc.IVFCycle)
-                .HasForeignKey<IVFCycle>(ivc => ivc.TreatmentCycleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<IUICycle>()
-                .HasOne(iuc => iuc.TreatmentCycle)
-                .WithOne(tc => tc.IUICycle)
-                .HasForeignKey<IUICycle>(iuc => iuc.TreatmentCycleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Cryobank Relationships
-            modelBuilder.Entity<CryobankPosition>()
-                .HasOne(cp => cp.Tank)
-                .WithMany(ct => ct.Positions)
-                .HasForeignKey(cp => cp.TankId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Specimen>()
-                .HasOne(s => s.Patient)
-                .WithMany(p => p.Specimens)
-                .HasForeignKey(s => s.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Specimen>()
-                .HasOne(s => s.CryobankPosition)
-                .WithMany(cp => cp.Specimens)
-                .HasForeignKey(s => s.CryobankPositionId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Service Provider Relationships
-            modelBuilder.Entity<Service>()
-                .HasOne(s => s.ServiceProvider)
-                .WithMany(p => p.Services)
-                .HasForeignKey(s => s.ServiceProviderId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Quality Assessment Relationships
-            modelBuilder.Entity<OocyteAssessment>()
-                .HasOne(oa => oa.Specimen)
-                .WithMany(s => s.OocyteAssessments)
-                .HasForeignKey(oa => oa.SpecimenId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<SpermAnalysis>()
-                .HasOne(sa => sa.Specimen)
-                .WithMany(s => s.SpermAnalyses)
-                .HasForeignKey(sa => sa.SpecimenId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<EmbryoAssessment>()
-                .HasOne(ea => ea.Specimen)
-                .WithMany(s => s.EmbryoAssessments)
-                .HasForeignKey(ea => ea.SpecimenId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<PGTResult>()
-                .HasOne(pgt => pgt.Specimen)
-                .WithMany(s => s.PGTResults)
-                .HasForeignKey(pgt => pgt.SpecimenId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Service Package Relationships
-            modelBuilder.Entity<ServicePackageItem>()
-                .HasOne(spi => spi.ServicePackage)
-                .WithMany(sp => sp.PackageItems)
-                .HasForeignKey(spi => spi.ServicePackageId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<ServicePackageItem>()
-                .HasOne(spi => spi.Service)
-                .WithMany()
-                .HasForeignKey(spi => spi.ServiceId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Service Request Relationships
-            modelBuilder.Entity<ServiceRequest>()
-                .HasOne(sr => sr.Patient)
-                .WithMany(p => p.ServiceRequests)
-                .HasForeignKey(sr => sr.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<ServiceRequest>()
-                .HasOne(sr => sr.ServicePackage)
-                .WithMany(sp => sp.ServiceRequests)
-                .HasForeignKey(sr => sr.ServicePackageId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Appointment Relationships
-            modelBuilder.Entity<Appointment>()
+            // Account & Patient Relationship (One-to-One)
+            modelBuilder.Entity<Account>()
                 .HasOne(a => a.Patient)
-                .WithMany(p => p.Appointments)
-                .HasForeignKey(a => a.PatientId)
+                .WithOne(p => p.Account)
+                .HasForeignKey<Patient>(p => p.AccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Appointment>()
+            // Account & Doctor Relationship (One-to-One)
+            modelBuilder.Entity<Account>()
                 .HasOne(a => a.Doctor)
-                .WithMany()
-                .HasForeignKey(a => a.DoctorId)
+                .WithOne(d => d.Account)
+                .HasForeignKey<Doctor>(d => d.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relationship (Patient to Patient Many-to-Many)
+            modelBuilder.Entity<Relationship>()
+                .HasOne(r => r.Patient1)
+                .WithMany(p => p.RelationshipsAsPatient1)
+                .HasForeignKey(r => r.Patient1Id)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // CheckIn Relationships
-            modelBuilder.Entity<CheckIn>()
-                .HasOne(ci => ci.Patient)
-                .WithMany()
-                .HasForeignKey(ci => ci.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Relationship>()
+                .HasOne(r => r.Patient2)
+                .WithMany(p => p.RelationshipsAsPatient2)
+                .HasForeignKey(r => r.Patient2Id)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<CheckIn>()
-                .HasOne(ci => ci.Appointment)
-                .WithMany()
-                .HasForeignKey(ci => ci.AppointmentId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // ========================================
+            // Nhóm 2: DoctorSchedule, Slot, Service, ServiceCategory
+            // ========================================
 
-            // DoctorSchedule Relationships
+            // DoctorSchedule & Doctor Relationship
             modelBuilder.Entity<DoctorSchedule>()
                 .HasOne(ds => ds.Doctor)
-                .WithMany()
+                .WithMany(d => d.DoctorSchedules)
                 .HasForeignKey(ds => ds.DoctorId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Encounter Relationships
-            modelBuilder.Entity<Encounter>()
-                .HasOne(e => e.Patient)
-                .WithMany(p => p.Encounters)
-                .HasForeignKey(e => e.PatientId)
+            // Slot & DoctorSchedule Relationship
+            modelBuilder.Entity<Slot>()
+                .HasOne(s => s.DoctorSchedule)
+                .WithMany(ds => ds.Slots)
+                .HasForeignKey(s => s.DoctorScheduleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Feedback Relationships
-            modelBuilder.Entity<Feedback>()
-                .HasOne(f => f.Patient)
-                .WithMany(p => p.Feedbacks)
-                .HasForeignKey(f => f.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // Slot & Appointment Relationship (One-to-One)
+            modelBuilder.Entity<Slot>()
+                .HasOne(s => s.Appointment)
+                .WithOne(a => a.Slot)
+                .HasForeignKey<Appointment>(a => a.SlotId)
+                .OnDelete(DeleteBehavior.SetNull);
 
-            // Consent Form Relationships
-            modelBuilder.Entity<ConsentForm>()
-                .HasOne(cf => cf.Patient)
-                .WithMany(p => p.ConsentForms)
-                .HasForeignKey(cf => cf.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Treatment Timeline Relationships
-            modelBuilder.Entity<TreatmentTimeline>()
-                .HasOne(tt => tt.TreatmentCycle)
-                .WithMany(tc => tc.Timelines)
-                .HasForeignKey(tt => tt.TreatmentCycleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<TreatmentTimeline>()
-                .HasOne(tt => tt.Patient)
-                .WithMany()
-                .HasForeignKey(tt => tt.PatientId)
+            // Service & ServiceCategory Relationship
+            modelBuilder.Entity<Service>()
+                .HasOne(s => s.ServiceCategory)
+                .WithMany(sc => sc.Services)
+                .HasForeignKey(s => s.ServiceCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Cycle Monitoring Relationships
-            modelBuilder.Entity<CycleMonitoring>()
-                .HasOne(cm => cm.TreatmentCycle)
-                .WithMany(tc => tc.Monitorings)
-                .HasForeignKey(cm => cm.TreatmentCycleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Payment Relationships
-            modelBuilder.Entity<Payment>()
-                .HasOne(p => p.Patient)
-                .WithMany(pat => pat.Payments)
-                .HasForeignKey(p => p.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Invoice Relationships
-            modelBuilder.Entity<Invoice>()
-                .HasOne(i => i.Patient)
+            // ServiceRequest & Appointment Relationship
+            modelBuilder.Entity<ServiceRequest>()
+                .HasOne(sr => sr.Appointment)
                 .WithMany()
-                .HasForeignKey(i => i.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<InvoiceItem>()
-                .HasOne(ii => ii.Invoice)
-                .WithMany(i => i.Items)
-                .HasForeignKey(ii => ii.InvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<InvoiceItem>()
-                .HasOne(ii => ii.Service)
-                .WithMany()
-                .HasForeignKey(ii => ii.ServiceId)
+                .HasForeignKey(sr => sr.AppointmentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Content Relationships
-            modelBuilder.Entity<Content>()
-                .HasOne(c => c.CreatedByUser)
-                .WithMany(u => u.ContentsCreated)
-                .HasForeignKey(c => c.CreatedByUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Medical History
-            modelBuilder.Entity<MedicalHistory>()
-                .HasOne(mh => mh.Patient)
-                .WithMany()
-                .HasForeignKey(mh => mh.PatientId)
+            // ServiceRequestDetails Relationships
+            modelBuilder.Entity<ServiceRequestDetails>()
+                .HasOne(srd => srd.ServiceRequest)
+                .WithMany(sr => sr.ServiceRequestDetails)
+                .HasForeignKey(srd => srd.ServiceRequestId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Lab Tests
-            modelBuilder.Entity<LabTest>()
-                .HasOne(lt => lt.Patient)
-                .WithMany()
-                .HasForeignKey(lt => lt.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<LabTest>()
-                .HasOne(lt => lt.TestType)
-                .WithMany()
-                .HasForeignKey(lt => lt.TestTypeId)
+            modelBuilder.Entity<ServiceRequestDetails>()
+                .HasOne(srd => srd.Service)
+                .WithMany(s => s.ServiceRequestDetails)
+                .HasForeignKey(srd => srd.ServiceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<LabTest>()
-                .HasOne(lt => lt.OrderedByUser)
-                .WithMany()
-                .HasForeignKey(lt => lt.OrderedByUserId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // ========================================
+            // Nhóm 3: Treatment, TreatmentCycle, Appointment, MedicalRecord, Prescription
+            // ========================================
 
-            modelBuilder.Entity<LabTest>()
-                .HasOne(lt => lt.CollectedByUser)
-                .WithMany()
-                .HasForeignKey(lt => lt.CollectedByUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<TestResult>()
-                .HasOne(tr => tr.LabTest)
-                .WithOne(lt => lt.Result)
-                .HasForeignKey<TestResult>(tr => tr.LabTestId)
+            // Treatment & Patient Relationship
+            modelBuilder.Entity<Treatment>()
+                .HasOne(t => t.Patient)
+                .WithMany(p => p.Treatments)
+                .HasForeignKey(t => t.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<TestResult>()
-                .HasOne(tr => tr.VerifiedByUser)
-                .WithMany()
-                .HasForeignKey(tr => tr.VerifiedByUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Commitment & Contract
-            modelBuilder.Entity<Contract>()
-                .HasOne(c => c.Patient)
-                .WithMany()
-                .HasForeignKey(c => c.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Embryo Transfer
-            modelBuilder.Entity<EmbryoTransfer>()
-                .HasOne(et => et.Patient)
-                .WithMany()
-                .HasForeignKey(et => et.PatientId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<EmbryoTransfer>()
-                .HasOne(et => et.Doctor)
-                .WithMany()
-                .HasForeignKey(et => et.DoctorId)
+            // Treatment & Doctor Relationship
+            modelBuilder.Entity<Treatment>()
+                .HasOne(t => t.Doctor)
+                .WithMany(d => d.Treatments)
+                .HasForeignKey(t => t.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<EmbryoTransfer>()
-                .HasOne(et => et.TreatmentTimeline)
-                .WithMany()
-                .HasForeignKey(et => et.TreatmentTimelineId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<EmbryoTransfer>()
-                .HasOne(et => et.Specimen)
-                .WithMany()
-                .HasForeignKey(et => et.SpecimenId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Cryopreservation & Thawing
-            modelBuilder.Entity<Cryopreservation>()
-                .HasOne(cr => cr.Specimen)
-                .WithMany()
-                .HasForeignKey(cr => cr.SpecimenId)
+            // TreatmentIVF & Treatment Relationship (One-to-One)
+            modelBuilder.Entity<TreatmentIVF>()
+                .HasOne(tivf => tivf.Treatment)
+                .WithOne(t => t.TreatmentIVF)
+                .HasForeignKey<TreatmentIVF>(tivf => tivf.TreatmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Cryopreservation>()
-                .HasOne(cr => cr.WitnessUser)
-                .WithMany()
-                .HasForeignKey(cr => cr.WitnessUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Thawing>()
-                .HasOne(th => th.Specimen)
-                .WithMany()
-                .HasForeignKey(th => th.SpecimenId)
+            // TreatmentCycle & Treatment Relationship
+            modelBuilder.Entity<TreatmentCycle>()
+                .HasOne(tc => tc.Treatment)
+                .WithMany(t => t.TreatmentCycles)
+                .HasForeignKey(tc => tc.TreatmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Thawing>()
-                .HasOne(th => th.WitnessUser)
-                .WithMany()
-                .HasForeignKey(th => th.WitnessUserId)
+            // Appointment & TreatmentCycle Relationship
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.TreatmentCycle)
+                .WithMany(tc => tc.Appointments)
+                .HasForeignKey(a => a.TreatmentCycleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // MedicalRecord & Appointment Relationship (One-to-One)
+            modelBuilder.Entity<MedicalRecord>()
+                .HasOne(mr => mr.Appointment)
+                .WithOne(a => a.MedicalRecord)
+                .HasForeignKey<MedicalRecord>(mr => mr.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Prescription & MedicalRecord Relationship
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.MedicalRecord)
+                .WithMany(mr => mr.Prescriptions)
+                .HasForeignKey(p => p.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // PrescriptionDetail Relationships
+            modelBuilder.Entity<PrescriptionDetail>()
+                .HasOne(pd => pd.Prescription)
+                .WithMany(p => p.PrescriptionDetails)
+                .HasForeignKey(pd => pd.PrescriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PrescriptionDetail>()
+                .HasOne(pd => pd.Medicine)
+                .WithMany(m => m.PrescriptionDetails)
+                .HasForeignKey(pd => pd.MedicineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ========================================
+            // Nhóm 4: LabSample, CryoLocation, CryoImport, CryoExport
+            // ========================================
+
+            // LabSample & Patient Relationship
+            modelBuilder.Entity<LabSample>()
+                .HasOne(ls => ls.Patient)
+                .WithMany(p => p.LabSamples)
+                .HasForeignKey(ls => ls.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // LabSample & CryoLocation Relationship
+            modelBuilder.Entity<LabSample>()
+                .HasOne(ls => ls.CryoLocation)
+                .WithMany(cl => cl.LabSamples)
+                .HasForeignKey(ls => ls.CryoLocationId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Audit Log Relationships
-            modelBuilder.Entity<AuditLog>()
-                .HasOne(a => a.User)
-                .WithMany(u => u.AuditLogs)
-                .HasForeignKey(a => a.UserId)
+            // LabSample inheritance relationships (One-to-One)
+            modelBuilder.Entity<LabSampleEmbryo>()
+                .HasOne(lse => lse.LabSample)
+                .WithOne(ls => ls.LabSampleEmbryo)
+                .HasForeignKey<LabSampleEmbryo>(lse => lse.LabSampleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LabSampleSperm>()
+                .HasOne(lss => lss.LabSample)
+                .WithOne(ls => ls.LabSampleSperm)
+                .HasForeignKey<LabSampleSperm>(lss => lss.LabSampleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LabSampleOocyte>()
+                .HasOne(lso => lso.LabSample)
+                .WithOne(ls => ls.LabSampleOocyte)
+                .HasForeignKey<LabSampleOocyte>(lso => lso.LabSampleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // CryoImport Relationships
+            modelBuilder.Entity<CryoImport>()
+                .HasOne(ci => ci.LabSample)
+                .WithMany()
+                .HasForeignKey(ci => ci.LabSampleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CryoImport>()
+                .HasOne(ci => ci.CryoLocation)
+                .WithMany()
+                .HasForeignKey(ci => ci.CryoLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // CryoExport Relationships
+            modelBuilder.Entity<CryoExport>()
+                .HasOne(ce => ce.LabSample)
+                .WithMany()
+                .HasForeignKey(ce => ce.LabSampleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CryoExport>()
+                .HasOne(ce => ce.CryoLocation)
+                .WithMany()
+                .HasForeignKey(ce => ce.CryoLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ========================================
+            // Nhóm 5: CryoPackage, CryoStorageContract, CPSDetail
+            // ========================================
+
+            // CryoStorageContract & Patient Relationship
+            modelBuilder.Entity<CryoStorageContract>()
+                .HasOne(csc => csc.Patient)
+                .WithMany(p => p.CryoStorageContracts)
+                .HasForeignKey(csc => csc.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // CryoStorageContract & CryoPackage Relationship
+            modelBuilder.Entity<CryoStorageContract>()
+                .HasOne(csc => csc.CryoPackage)
+                .WithMany(cp => cp.CryoStorageContracts)
+                .HasForeignKey(csc => csc.CryoPackageId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // CPSDetail Relationships (Many-to-Many bridge)
+            modelBuilder.Entity<CPSDetail>()
+                .HasOne(cpsd => cpsd.CryoStorageContract)
+                .WithMany(csc => csc.CPSDetails)
+                .HasForeignKey(cpsd => cpsd.CryoStorageContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CPSDetail>()
+                .HasOne(cpsd => cpsd.LabSample)
+                .WithMany(ls => ls.CPSDetails)
+                .HasForeignKey(cpsd => cpsd.LabSampleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ========================================
+            // Nhóm 6: Transaction & Media
+            // ========================================
+            // These are independent tables with logical relationships only
+            // No foreign key constraints needed
         }
     }
 }
