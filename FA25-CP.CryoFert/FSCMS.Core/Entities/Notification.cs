@@ -26,6 +26,6 @@ namespace FSCMS.Core.Entities
 
         // Navigation Properties
         public virtual Patient? Patient { get; set; }
-        public virtual User? User { get; set; }
+        public virtual Account? User { get; set; }
     }
 }

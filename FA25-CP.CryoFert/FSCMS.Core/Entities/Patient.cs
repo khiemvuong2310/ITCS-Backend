@@ -7,10 +7,11 @@ namespace FSCMS.Core.Entities
     /// <summary>
     /// Entity đại diện cho bệnh nhân trong hệ thống
     /// Chứa thông tin cá nhân, y tế và các liên kết đến các chu trình điều trị
+    /// One-to-One với Account
     /// </summary>
     public class Patient : BaseEntity
     {
-        public int UserId { get; set; }
+        public int AccountId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
         public Gender Gender { get; set; }
@@ -30,15 +31,19 @@ namespace FSCMS.Core.Entities
         public string? Notes { get; set; }
 
         // Navigation Properties
-        public virtual User? User { get; set; }
-        public virtual ICollection<TreatmentCycle>? TreatmentCycles { get; set; } = new List<TreatmentCycle>();
-        public virtual ICollection<Appointment>? Appointments { get; set; } = new List<Appointment>();
-        public virtual ICollection<Encounter>? Encounters { get; set; } = new List<Encounter>();
-        public virtual ICollection<ServiceRequest>? ServiceRequests { get; set; } = new List<ServiceRequest>();
-        public virtual ICollection<Feedback>? Feedbacks { get; set; } = new List<Feedback>();
-        public virtual ICollection<Payment>? Payments { get; set; } = new List<Payment>();
-        public virtual ICollection<Specimen>? Specimens { get; set; } = new List<Specimen>();
-        public virtual ICollection<ConsentForm>? ConsentForms { get; set; } = new List<ConsentForm>();
-        public virtual ICollection<PatientRecord>? PatientRecords { get; set; } = new List<PatientRecord>();
+        public virtual Account? Account { get; set; }
+        
+        // One-to-Many với Treatment
+        public virtual ICollection<Treatment>? Treatments { get; set; } = new List<Treatment>();
+        
+        // One-to-Many với LabSample
+        public virtual ICollection<LabSample>? LabSamples { get; set; } = new List<LabSample>();
+        
+        // One-to-Many với CryoStorageContract
+        public virtual ICollection<CryoStorageContract>? CryoStorageContracts { get; set; } = new List<CryoStorageContract>();
+        
+        // Many-to-Many với chính nó (thông qua Relationship)
+        public virtual ICollection<Relationship>? RelationshipsAsPatient1 { get; set; } = new List<Relationship>();
+        public virtual ICollection<Relationship>? RelationshipsAsPatient2 { get; set; } = new List<Relationship>();
     }
 }

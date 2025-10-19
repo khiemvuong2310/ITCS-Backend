@@ -17,6 +17,6 @@ namespace FSCMS.Core.Entities
         public DateTime Timestamp { get; set; }
         public string Details { get; set; }
 
-        public virtual User? User { get; set; }
+        public virtual Account? User { get; set; }
     }
 }

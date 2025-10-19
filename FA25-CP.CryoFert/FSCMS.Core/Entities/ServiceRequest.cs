@@ -1,33 +1,30 @@
 using System;
+using System.Collections.Generic;
 
 namespace FSCMS.Core.Entities
 {
     /// <summary>
     /// Entity đại diện cho yêu cầu dịch vụ
-    /// Quản lý các yêu cầu của bệnh nhân về dịch vụ hoặc gói dịch vụ
+    /// Many-to-One với Appointment
+    /// One-to-Many với ServiceRequestDetails
     /// </summary>
     public class ServiceRequest : BaseEntity
     {
-        public int PatientId { get; set; }
-        public int? ServiceId { get; set; }
-        public int? ServicePackageId { get; set; }
-        public int? DoctorId { get; set; }
+        public int? AppointmentId { get; set; }
+        
         public DateTime RequestDate { get; set; }
-        public string RequestType { get; set; } = string.Empty; // IVF, IUI, Cryopreservation, etc.
-        public string Status { get; set; } = string.Empty; // Pending, Confirmed, Rejected, Cancelled
-        public string? PreferredTime { get; set; }
-        public string? SpecialRequests { get; set; }
-        public decimal? EstimatedCost { get; set; }
-        public string? ApprovalNotes { get; set; }
-        public DateTime? ApprovedDate { get; set; }
-        public int? ApprovedByUserId { get; set; }
+        public string RequestType { get; set; } = string.Empty; // "Treatment", "Lab Test", "Consultation", etc.
+        public string Status { get; set; } = string.Empty; // "Pending", "Approved", "Rejected", "Completed", "Cancelled"
+        public string? Priority { get; set; } // "Normal", "Urgent", "Emergency"
+        public decimal? TotalAmount { get; set; }
         public string? Notes { get; set; }
+        public DateTime? ApprovedDate { get; set; }
+        public string? ApprovedBy { get; set; }
 
         // Navigation Properties
-        public virtual Patient? Patient { get; set; }
-        public virtual Doctor? Doctor { get; set; }
-        public virtual Service? Service { get; set; }
-        public virtual ServicePackage? ServicePackage { get; set; }
-        public virtual User? ApprovedByUser { get; set; }
+        public virtual Appointment? Appointment { get; set; }
+        
+        // One-to-Many với ServiceRequestDetails
+        public virtual ICollection<ServiceRequestDetails>? ServiceRequestDetails { get; set; } = new List<ServiceRequestDetails>();
     }
 }

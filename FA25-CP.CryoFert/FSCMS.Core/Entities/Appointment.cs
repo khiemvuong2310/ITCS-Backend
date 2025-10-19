@@ -4,19 +4,19 @@ using FSCMS.Core.Enum;
 namespace FSCMS.Core.Entities
 {
     /// <summary>
-    /// Entity đại diện cho lịch hẹn khám bệnh
-    /// Quản lý thông tin lịch hẹn giữa bệnh nhân và bác sĩ
+    /// Entity đại diện cho cuộc hẹn
+    /// Many-to-One với TreatmentCycle
+    /// One-to-One với Slot
+    /// One-to-One với MedicalRecord
     /// </summary>
     public class Appointment : BaseEntity
     {
-        public int PatientId { get; set; }
-        public int DoctorId { get; set; }
+        public int TreatmentCycleId { get; set; }
+        public int? SlotId { get; set; }
+        
         public AppointmentType Type { get; set; }
         public AppointmentStatus Status { get; set; }
         public DateTime AppointmentDate { get; set; }
-        public TimeSpan StartTime { get; set; }
-        public TimeSpan? EndTime { get; set; }
-        public int? TreatmentCycleId { get; set; }
         public string? Reason { get; set; }
         public string? Instructions { get; set; }
         public string? Notes { get; set; }
@@ -25,8 +25,10 @@ namespace FSCMS.Core.Entities
         public bool IsReminderSent { get; set; } = false;
 
         // Navigation Properties
-        public virtual Patient? Patient { get; set; }
-        public virtual Doctor? Doctor { get; set; }
         public virtual TreatmentCycle? TreatmentCycle { get; set; }
+        public virtual Slot? Slot { get; set; }
+        
+        // One-to-One với MedicalRecord
+        public virtual MedicalRecord? MedicalRecord { get; set; }
     }
 }
