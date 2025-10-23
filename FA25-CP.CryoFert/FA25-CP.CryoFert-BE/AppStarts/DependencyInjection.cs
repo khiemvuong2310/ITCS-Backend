@@ -6,6 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Twilio.Clients;
+using FSCMS.Data.UnitOfWork;
+using FSCMS.Service.Services;
+using FSCMS.Service.Interfaces;
+using AutoMapper;
+using FSCMS.Service.Mapping;
 
 namespace FA25_CP.CryoFert_BE.AppStarts
 {
@@ -19,9 +24,19 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 options.LowercaseQueryStrings = true;
             });
 
+            // Twilio Client (optional)
             services.AddSingleton<ITwilioRestClient>(new TwilioRestClient("ACCOUNT_SID", "AUTH_TOKEN"));
 
-            //Add Scoped
+            // Add AutoMapper
+            services.AddAutoMapper(typeof(UserMappingProfile));
+
+            // Add UnitOfWork and Repository Pattern
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            // Add Service Layer
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+            services.AddScoped<IAuthService, AuthService>();
         }
     }
 }

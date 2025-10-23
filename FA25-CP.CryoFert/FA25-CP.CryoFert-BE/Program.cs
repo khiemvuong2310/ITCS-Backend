@@ -5,6 +5,7 @@ using DotNetEnv;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Features;
 using Pomelo.EntityFrameworkCore.MySql;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE
 {
@@ -65,7 +66,13 @@ namespace FA25_CP.CryoFert_BE
                 options.MultipartBodyLengthLimit = 104857600; // 100 MB
             });
 
-            // 6. Swagger & OpenAPI + JWT Auth
+            // 6. Install Dependency Injection Services
+            builder.Services.InstallService(builder.Configuration);
+
+            // 7. Configure Authentication & Authorization (JWT)
+            builder.Services.ConfigureAuthService(builder.Configuration);
+
+            // 8. Swagger & OpenAPI + JWT Auth
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -96,10 +103,10 @@ namespace FA25_CP.CryoFert_BE
                 });
             });
 
-            // 7. Build application
+            // 9. Build application
             var app = builder.Build();
 
-            // 8. Configure middleware
+            // 10. Configure middleware
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

@@ -37,4 +37,16 @@
 		<PackageReference Include="Twilio" Version="7.8.3" />
 		<PackageReference Include="Twilio.AspNet.Core" Version="8.1.1" />
 	</ItemGroup>
+
+
+	<ItemGroup>
+	  <Folder Include="Controllers\" />
+	</ItemGroup>
+
+	<!-- Copy Templates to output directory -->
+	<ItemGroup>
+		<None Update="Templates\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 </Project>
