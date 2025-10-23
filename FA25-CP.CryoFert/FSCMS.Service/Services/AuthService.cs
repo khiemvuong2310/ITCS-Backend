@@ -19,18 +19,19 @@ using FSCMS.Data.Utils;
 
 namespace FSCMS.Service.Services
 {
-    public class AuthService 
+    public class AuthService : IAuthService
     {
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IEmailTemplateService _emailTemplateService;
+        private readonly string _emailSender;
+        private readonly string _emailPassword;
+        private readonly string _emailSenderName;
         private const int TOKEN_EXPIRY_HOURS = 24;
         private const int TOKEN_Mobile_EXPIRY_HOURS = 336;
         private const int REFRESH_TOKEN_EXPIRY_DAYS = 7;
-        private const string EMAIL_SENDER = "studentexchangeweb@gmail.com";
-        private const string EMAIL_PASSWORD = "fwpl wpkw zhqe peyh";
         private static readonly Dictionary<string, (string Code, DateTime Expiry)> _verificationCodes = new();
 
         public AuthService(
@@ -46,6 +47,16 @@ namespace FSCMS.Service.Services
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
             _emailTemplateService = emailTemplateService;
+
+            // Load email configuration from appsettings.json or environment variables
+            _emailSender = configuration["Email:Sender"]
+                ?? Environment.GetEnvironmentVariable("EMAIL_SENDER")
+                ?? "studentexchangeweb@gmail.com";
+            _emailPassword = configuration["Email:Password"]
+                ?? Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
+                ?? throw new InvalidOperationException("Email password not configured. Please set Email:Password in appsettings.json or EMAIL_PASSWORD environment variable.");
+            _emailSenderName = configuration["Email:SenderName"]
+                ?? "CryoFert - Fertility Management System";
         }
 
         public async Task<BaseResponseForLogin<LoginResponseModel>> AuthenticateAsync(string email, string password, bool? mobile = false)
@@ -239,7 +250,7 @@ namespace FSCMS.Service.Services
 
                 var userDetailsResponse = await _userService.GetUserByIdAsync(account.Id);
                 var userDetails = userDetailsResponse.Data;
-                
+
                 if (userDetails == null)
                 {
                     return new BaseResponse<TokenModel>
@@ -248,7 +259,7 @@ namespace FSCMS.Service.Services
                         Message = "User details not found",
                     };
                 }
-                
+
                 var roleName = userDetails.RoleName ?? string.Empty;
 
                 string newToken = GenerateJwtToken(userDetails.Email, roleName, userDetails.Id, false);
@@ -304,7 +315,7 @@ namespace FSCMS.Service.Services
                     Password = PasswordTools.HashPassword(registerModel.Password),
                     IsActive = true,
                     EmailVerified = false, // Set EmailVerified to false by default
-                    RoleId = (int)Roles.Patient // Use Roles enum for Patient role
+                    RoleId = (int)Roles.User // Use Roles enum for User role
                 };
 
                 await _unitOfWork.Repository<Account>().InsertAsync(account);
@@ -529,17 +540,21 @@ namespace FSCMS.Service.Services
 
         private async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            var smtpClient = new SmtpClient("smtp.gmail.com")
+            // Get SMTP configuration from appsettings or use defaults
+            var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+            var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
+
+            var smtpClient = new SmtpClient(smtpHost)
             {
-                Port = 587,
+                Port = smtpPort,
                 EnableSsl = true,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(EMAIL_SENDER, EMAIL_PASSWORD)
+                Credentials = new NetworkCredential(_emailSender, _emailPassword)
             };
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(EMAIL_SENDER),
+                From = new MailAddress(_emailSender, _emailSenderName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true
@@ -666,7 +681,7 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.CommitAsync();
 
                 var userDetails = await _userService.GetUserByEmailAsync(account.Email);
-                
+
                 if (userDetails == null)
                 {
                     return new BaseResponse<TokenModel>
@@ -675,7 +690,7 @@ namespace FSCMS.Service.Services
                         Message = "User details not found"
                     };
                 }
-                
+
                 var roleName = userDetails.RoleName ?? string.Empty;
 
                 var token = GenerateJwtToken(userDetails.Email, roleName, userDetails.Id, false);
@@ -805,6 +820,46 @@ namespace FSCMS.Service.Services
                 {
                     Code = StatusCodes.Status500InternalServerError,
                     Message = "An error occurred while changing password: " + ex.Message
+                };
+            }
+        }
+
+        public async Task<BaseResponse> LogoutAsync(int userId)
+        {
+            try
+            {
+                var account = await _unitOfWork.Repository<Account>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDelete);
+
+                if (account == null)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "User not found"
+                    };
+                }
+
+                // Clear refresh token to invalidate it
+                account.Token = null;
+                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
+
+                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                await _unitOfWork.CommitAsync();
+
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Logged out successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while logging out: " + ex.Message
                 };
             }
         }

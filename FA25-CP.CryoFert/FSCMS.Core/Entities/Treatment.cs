@@ -16,6 +16,8 @@ namespace FSCMS.Core.Entities
         public int DoctorId { get; set; }
         
         public string TreatmentName { get; set; } = string.Empty;
+
+        //Sửa lại thành ENUM cho TreatmentType nếu cần
         public string? TreatmentType { get; set; } // "IVF", "IUI", "Consultation", etc.
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }

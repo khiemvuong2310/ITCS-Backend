@@ -479,7 +479,7 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 account.IsDelete = true;
-                account.UpdatedDate = DateTime.UtcNow;
+                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
 
                 _unitOfWork.Repository<Account>().UpdateAsync(account);
                 await _unitOfWork.SaveChangesAsync();
@@ -560,7 +560,7 @@ namespace FSCMS.Service.Services
                 }
 
                 account.EmailVerified = true;
-                account.UpdatedDate = DateTime.UtcNow;
+                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
 
                 _unitOfWork.Repository<Account>().UpdateAsync(account);
                 await _unitOfWork.SaveChangesAsync();
@@ -612,7 +612,7 @@ namespace FSCMS.Service.Services
                 }
 
                 account.IsActive = status;
-                account.UpdatedDate = DateTime.UtcNow;
+                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
 
                 _unitOfWork.Repository<Account>().UpdateAsync(account);
                 await _unitOfWork.SaveChangesAsync();
