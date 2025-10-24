@@ -27,7 +27,10 @@ namespace FA25_CP.CryoFert_BE
 
             builder.Services.AddHttpContextAccessor();
 
-            // Exception handler (nếu bạn có GlobalExceptionHandler thì đăng ký thêm ở đây)
+            // Memory Cache for performance optimization
+            builder.Services.AddMemoryCache();
+
+            // Exception handler 
             builder.Services.AddProblemDetails();
 
             // 3. DbContext config (MySQL)

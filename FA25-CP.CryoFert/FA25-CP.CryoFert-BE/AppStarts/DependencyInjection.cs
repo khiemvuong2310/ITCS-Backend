@@ -37,6 +37,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IEmailTemplateService, EmailTemplateService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IRoleService, RoleService>(); // Role service with memory cache
         }
     }
 }

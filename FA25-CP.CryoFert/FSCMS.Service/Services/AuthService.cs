@@ -15,6 +15,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.Utils;
+using Microsoft.Extensions.Caching.Memory;
 
 
 namespace FSCMS.Service.Services
@@ -26,20 +27,25 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IEmailTemplateService _emailTemplateService;
+        private readonly IMemoryCache _cache;
+        private readonly IRoleService _roleService;
         private readonly string _emailSender;
         private readonly string _emailPassword;
         private readonly string _emailSenderName;
         private const int TOKEN_EXPIRY_HOURS = 24;
         private const int TOKEN_Mobile_EXPIRY_HOURS = 336;
         private const int REFRESH_TOKEN_EXPIRY_DAYS = 7;
-        private static readonly Dictionary<string, (string Code, DateTime Expiry)> _verificationCodes = new();
+        private const int VERIFICATION_CODE_EXPIRY_MINUTES = 30;
+        private const string VERIFICATION_CODE_PREFIX = "verification_code_";
 
         public AuthService(
             IConfiguration configuration,
             IUserService userService,
             IUnitOfWork unitOfWork,
             IHttpContextAccessor httpContextAccessor,
-            IEmailTemplateService emailTemplateService
+            IEmailTemplateService emailTemplateService,
+            IMemoryCache cache,
+            IRoleService roleService
             )
         {
             _configuration = configuration;
@@ -47,6 +53,8 @@ namespace FSCMS.Service.Services
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
             _emailTemplateService = emailTemplateService;
+            _cache = cache;
+            _roleService = roleService;
 
             // Load email configuration from appsettings.json or environment variables
             _emailSender = configuration["Email:Sender"]
@@ -125,7 +133,10 @@ namespace FSCMS.Service.Services
                 {
                     // Generate new verification code and send email
                     var verificationCode = GenerateVerificationCode();
-                    _verificationCodes[account.Email] = (verificationCode, DateTime.UtcNow.AddMinutes(30));
+                    
+                    // Store in cache with expiration
+                    var cacheKey = $"{VERIFICATION_CODE_PREFIX}{account.Email}";
+                    _cache.Set(cacheKey, verificationCode, TimeSpan.FromMinutes(VERIFICATION_CODE_EXPIRY_MINUTES));
 
                     await SendEmailAsync(
                         account.Email,
@@ -315,7 +326,9 @@ namespace FSCMS.Service.Services
                     Password = PasswordTools.HashPassword(registerModel.Password),
                     IsActive = true,
                     EmailVerified = false, // Set EmailVerified to false by default
-                    RoleId = (int)Roles.User // Use Roles enum for User role
+                    RoleId = (int)Roles.User, // Use Roles enum for User role
+                    CreatedDate = DateTime.UtcNow.AddHours(7),
+                    UpdatedDate = DateTime.UtcNow.AddHours(7)
                 };
 
                 await _unitOfWork.Repository<Account>().InsertAsync(account);
@@ -323,7 +336,10 @@ namespace FSCMS.Service.Services
 
                 // Generate verification code and send email
                 var verificationCode = GenerateVerificationCode();
-                _verificationCodes[account.Email] = (verificationCode, DateTime.UtcNow.AddMinutes(30));
+                
+                // Store in cache with expiration
+                var cacheKey = $"{VERIFICATION_CODE_PREFIX}{account.Email}";
+                _cache.Set(cacheKey, verificationCode, TimeSpan.FromMinutes(VERIFICATION_CODE_EXPIRY_MINUTES));
 
                 await SendEmailAsync(
                     account.Email,
@@ -595,7 +611,10 @@ namespace FSCMS.Service.Services
                 }
 
                 var verificationCode = GenerateVerificationCode();
-                _verificationCodes[email] = (verificationCode, DateTime.UtcNow.AddMinutes(15));
+                
+                // Store in cache with expiration
+                var cacheKey = $"{VERIFICATION_CODE_PREFIX}{email}";
+                _cache.Set(cacheKey, verificationCode, TimeSpan.FromMinutes(15));
 
                 await SendEmailAsync(
                     email,
@@ -623,16 +642,18 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                if (!_verificationCodes.TryGetValue(model.Email, out var verificationData))
+                // Get verification code from cache
+                var cacheKey = $"{VERIFICATION_CODE_PREFIX}{model.Email}";
+                if (!_cache.TryGetValue(cacheKey, out string storedCode))
                 {
                     return new BaseResponse<TokenModel>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "No verification code found for this email"
+                        Message = "No verification code found for this email or code has expired"
                     };
                 }
 
-                if (string.IsNullOrWhiteSpace(verificationData.Code) || string.IsNullOrWhiteSpace(model.VerificationCode))
+                if (string.IsNullOrWhiteSpace(storedCode) || string.IsNullOrWhiteSpace(model.VerificationCode))
                 {
                     return new BaseResponse<TokenModel>
                     {
@@ -640,8 +661,9 @@ namespace FSCMS.Service.Services
                         Message = "Verification code is missing or invalid"
                     };
                 }
-                //Check verification code bỏ qua chữ hoa và thường
-                if (!verificationData.Code.Trim().ToUpper().Equals(model.VerificationCode.Trim().ToUpper()))
+                
+                // Check verification code (case insensitive)
+                if (!storedCode.Trim().Equals(model.VerificationCode.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
                     return new BaseResponse<TokenModel>
                     {
@@ -649,18 +671,9 @@ namespace FSCMS.Service.Services
                         Message = "Invalid verification code"
                     };
                 }
-                //Check DateTime 
-                if (DateTime.UtcNow > verificationData.Expiry)
-                {
-                    _verificationCodes.Remove(model.Email);
-                    return new BaseResponse<TokenModel>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "Verification code has expired"
-                    };
-                }
 
-                _verificationCodes.Remove(model.Email);
+                // Remove from cache after successful verification
+                _cache.Remove(cacheKey);
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
