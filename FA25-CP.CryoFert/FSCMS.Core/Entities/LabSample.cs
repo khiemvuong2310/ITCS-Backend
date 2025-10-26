@@ -14,7 +14,6 @@ namespace FSCMS.Core.Entities
     {
         public int PatientId { get; set; }
         public int? CryoLocationId { get; set; }
-        
         public string SampleCode { get; set; } = string.Empty;
         public SpecimenType SampleType { get; set; } // Embryo, Sperm, Oocyte
         public SpecimenStatus Status { get; set; }
