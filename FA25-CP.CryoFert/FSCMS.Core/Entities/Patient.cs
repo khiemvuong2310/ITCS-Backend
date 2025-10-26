@@ -13,10 +13,6 @@ namespace FSCMS.Core.Entities
     {
         public int AccountId { get; set; }
         public string FullName { get; set; } = string.Empty;
-        public DateTime DateOfBirth { get; set; }
-        public Gender Gender { get; set; }
-        public string Address { get; set; } = string.Empty;
-        public string Phone { get; set; } = string.Empty;
         public string? EmergencyContact { get; set; }
         public string? EmergencyPhone { get; set; }
         public string NationalID { get; set; } = string.Empty;

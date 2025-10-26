@@ -15,8 +15,6 @@ namespace FSCMS.Core.Entities
         public string Specialty { get; set; } = string.Empty;
         public string? Certificates { get; set; }
         public string? LicenseNumber { get; set; }
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
         public int YearsOfExperience { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Biography { get; set; }
