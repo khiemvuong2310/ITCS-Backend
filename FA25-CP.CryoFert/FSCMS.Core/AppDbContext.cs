@@ -320,56 +320,7 @@ namespace FSCMS.Core
             // ========================================
             // Seed Data: Roles
             // ========================================
-            modelBuilder.Entity<Role>().HasData(
-                new Role
-                {
-                    Id = 1,
-                    RoleName = "Admin",
-                    Description = "System Administrator with full access to all features",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
-                },
-                new Role
-                {
-                    Id = 2,
-                    RoleName = "Doctor",
-                    Description = "Medical Doctor - Can manage patients, treatments, and medical records",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
-                },
-                new Role
-                {
-                    Id = 3,
-                    RoleName = "LaboratoryTechnician",
-                    Description = "Laboratory Technician - Manages lab samples and cryopreservation",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
-                },
-                new Role
-                {
-                    Id = 4,
-                    RoleName = "Receptionist",
-                    Description = "Front Desk Receptionist - Manages appointments and customer service",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
-                },
-                new Role
-                {
-                    Id = 5,
-                    RoleName = "Patient",
-                    Description = "Patient/Customer - Can book appointments and view their records",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
-                },
-                new Role
-                {
-                    Id = 6,
-                    RoleName = "User",
-                    Description = "General User - Basic access to the system",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
-                }
-            );
+            
         }
     }
 }

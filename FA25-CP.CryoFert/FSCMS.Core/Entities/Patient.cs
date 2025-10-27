@@ -109,6 +109,7 @@ namespace FSCMS.Core.Entities
         /// <summary>
         /// The account linked to this patient (one-to-one relationship).
         /// </summary>
+        public Guid AccountId { get; set; }
         public virtual Account? Account { get; set; }
 
         /// <summary>
