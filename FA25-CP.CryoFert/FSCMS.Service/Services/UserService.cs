@@ -29,11 +29,11 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Get user by ID
         /// </summary>
-        public async Task<BaseResponse<UserResponse>> GetUserByIdAsync(int userId)
+        public async Task<BaseResponse<UserResponse>> GetUserByIdAsync(Guid userId)
         {
             try
             {
-                if (userId <= 0)
+                if (userId == null)
                 {
                     return new BaseResponse<UserResponse>
                     {
@@ -46,7 +46,7 @@ namespace FSCMS.Service.Services
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .Include(u => u.Role)
-                    .Where(u => u.Id == userId && !u.IsDelete)
+                    .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -92,7 +92,7 @@ namespace FSCMS.Service.Services
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .Include(u => u.Role)
-                    .Where(u => u.Email == email && !u.IsDelete)
+                    .Where(u => u.Email == email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 return _mapper.Map<UserResponse>(account);
@@ -124,7 +124,7 @@ namespace FSCMS.Service.Services
                 var accounts = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .Include(u => u.Role)
-                    .Where(u => u.Email.Contains(userName) && !u.IsDelete)
+                    .Where(u => u.Email.Contains(userName) && !u.IsDeleted)
                     .ToListAsync();
 
                 if (accounts == null || !accounts.Any())
@@ -158,11 +158,11 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Get detailed user information by ID
         /// </summary>
-        public async Task<BaseResponse<UserDetailResponse>> GetUserDetailByIdAsync(int userId)
+        public async Task<BaseResponse<UserDetailResponse>> GetUserDetailByIdAsync(Guid userId)
         {
             try
             {
-                if (userId <= 0)
+                if (userId == null)
                 {
                     return new BaseResponse<UserDetailResponse>
                     {
@@ -177,7 +177,7 @@ namespace FSCMS.Service.Services
                     .Include(u => u.Role)
                     .Include(u => u.Patient)
                     .Include(u => u.Doctor)
-                    .Where(u => u.Id == userId && !u.IsDelete)
+                    .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -218,7 +218,7 @@ namespace FSCMS.Service.Services
                 var query = _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .Include(u => u.Role)
-                    .Where(u => !u.IsDelete);
+                    .Where(u => !u.IsDeleted);
 
                 // Apply filters
                 if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -240,7 +240,7 @@ namespace FSCMS.Service.Services
 
                 if (request.EmailVerified.HasValue)
                 {
-                    query = query.Where(u => u.EmailVerified == request.EmailVerified.Value);
+                    query = query.Where(u => u.IsVerified == request.EmailVerified.Value);
                 }
 
                 // Get total count
@@ -254,13 +254,13 @@ namespace FSCMS.Service.Services
                     query = request.Sort.ToLower() switch
                     {
                         "email" => isDescending ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
-                        "createdat" => isDescending ? query.OrderByDescending(u => u.CreatedDate) : query.OrderBy(u => u.CreatedDate),
+                        "createdat" => isDescending ? query.OrderByDescending(u => u.CreatedAt) : query.OrderBy(u => u.CreatedAt),
                         _ => isDescending ? query.OrderByDescending(u => u.Id) : query.OrderBy(u => u.Id)
                     };
                 }
                 else
                 {
-                    query = query.OrderByDescending(u => u.CreatedDate);
+                    query = query.OrderByDescending(u => u.CreatedAt);
                 }
 
                 // Apply pagination
@@ -304,7 +304,7 @@ namespace FSCMS.Service.Services
                 // Check if email already exists
                 var existingAccount = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == request.Email && !u.IsDelete)
+                    .Where(u => u.Email == request.Email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (existingAccount != null)
@@ -320,7 +320,7 @@ namespace FSCMS.Service.Services
                 // Check if role exists
                 var roleExists = await _unitOfWork.Repository<Role>()
                     .AsQueryable()
-                    .AnyAsync(r => r.Id == request.RoleId && !r.IsDelete);
+                    .AnyAsync(r => r.Id == request.RoleId && !r.IsDeleted);
 
                 if (!roleExists)
                 {
@@ -336,7 +336,7 @@ namespace FSCMS.Service.Services
                 var newAccount = _mapper.Map<Account>(request);
                 
                 // Hash password
-                newAccount.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
                 // Save to database
                 await _unitOfWork.Repository<Account>().InsertAsync(newAccount);
@@ -369,11 +369,11 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Update existing user
         /// </summary>
-        public async Task<BaseResponse<UserResponse>> UpdateUserAsync(int userId, UpdateUserRequest request)
+        public async Task<BaseResponse<UserResponse>> UpdateUserAsync(Guid userId, UpdateUserRequest request)
         {
             try
             {
-                if (userId <= 0)
+                if (userId == null)
                 {
                     return new BaseResponse<UserResponse>
                     {
@@ -385,7 +385,7 @@ namespace FSCMS.Service.Services
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Id == userId && !u.IsDelete)
+                    .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -403,7 +403,7 @@ namespace FSCMS.Service.Services
                 {
                     var roleExists = await _unitOfWork.Repository<Role>()
                         .AsQueryable()
-                        .AnyAsync(r => r.Id == request.RoleId.Value && !r.IsDelete);
+                        .AnyAsync(r => r.Id == request.RoleId.Value && !r.IsDeleted);
 
                     if (!roleExists)
                     {
@@ -450,11 +450,11 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Delete user (soft delete)
         /// </summary>
-        public async Task<BaseResponse> DeleteUserAsync(int userId)
+        public async Task<BaseResponse> DeleteUserAsync(Guid userId)
         {
             try
             {
-                if (userId <= 0)
+                if (userId == null)
                 {
                     return new BaseResponse
                     {
@@ -465,7 +465,7 @@ namespace FSCMS.Service.Services
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Id == userId && !u.IsDelete)
+                    .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -478,8 +478,8 @@ namespace FSCMS.Service.Services
                 }
 
                 // Soft delete
-                account.IsDelete = true;
-                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
+                account.IsDeleted = true;
+                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
                 _unitOfWork.Repository<Account>().UpdateAsync(account);
                 await _unitOfWork.SaveChangesAsync();
@@ -512,7 +512,7 @@ namespace FSCMS.Service.Services
 
                 return await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .AnyAsync(u => u.Email == email && !u.IsDelete);
+                    .AnyAsync(u => u.Email == email && !u.IsDeleted);
             }
             catch (Exception)
             {
@@ -523,11 +523,11 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Verify user email
         /// </summary>
-        public async Task<BaseResponse> VerifyUserEmailAsync(int userId)
+        public async Task<BaseResponse> VerifyUserEmailAsync(Guid userId)
         {
             try
             {
-                if (userId <= 0)
+                if (userId == null)
                 {
                     return new BaseResponse
                     {
@@ -538,7 +538,7 @@ namespace FSCMS.Service.Services
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Id == userId && !u.IsDelete)
+                    .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -550,7 +550,7 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                if (account.EmailVerified)
+                if (account.IsVerified)
                 {
                     return new BaseResponse
                     {
@@ -559,8 +559,8 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                account.EmailVerified = true;
-                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
+                account.IsVerified = true;
+                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
                 _unitOfWork.Repository<Account>().UpdateAsync(account);
                 await _unitOfWork.SaveChangesAsync();
@@ -584,11 +584,11 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Update user status
         /// </summary>
-        public async Task<BaseResponse> UpdateUserStatusAsync(int userId, bool status)
+        public async Task<BaseResponse> UpdateUserStatusAsync(Guid userId, bool status)
         {
             try
             {
-                if (userId <= 0)
+                if (userId == null)
                 {
                     return new BaseResponse
                     {
@@ -599,7 +599,7 @@ namespace FSCMS.Service.Services
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Id == userId && !u.IsDelete)
+                    .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -612,7 +612,7 @@ namespace FSCMS.Service.Services
                 }
 
                 account.IsActive = status;
-                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
+                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
                 _unitOfWork.Repository<Account>().UpdateAsync(account);
                 await _unitOfWork.SaveChangesAsync();

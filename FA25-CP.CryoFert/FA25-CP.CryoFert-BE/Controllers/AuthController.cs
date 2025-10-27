@@ -182,7 +182,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return Unauthorized(new BaseResponse
                 {
@@ -207,7 +207,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         public async Task<IActionResult> Logout()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return Unauthorized(new BaseResponse
                 {
@@ -255,9 +255,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> SendAccount(int userId)
+        public async Task<IActionResult> SendAccount(Guid userId)
         {
-            if (userId <= 0)
+            if (userId == null)
             {
                 return BadRequest(new BaseResponse
                 {

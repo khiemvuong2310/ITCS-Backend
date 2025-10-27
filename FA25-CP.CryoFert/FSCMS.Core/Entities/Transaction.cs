@@ -4,21 +4,9 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Represents a financial transaction in the system.
-    /// Records payments, refunds, adjustments, etc.
-    /// This is a standalone entity (logical relationships, no physical foreign keys).
-    /// </summary>
     public class Transaction : BaseEntity<Guid>
     {
-        /// <summary>
-        /// Default constructor for EF Core.
-        /// </summary>
         protected Transaction() : base() { }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Transaction"/> class.
-        /// </summary>
         public Transaction(
             Guid id,
             string transactionCode,
@@ -37,11 +25,6 @@ namespace FSCMS.Core.Entities
             Status = status;
             TransactionDate = transactionDate;
         }
-
-        // ────────────────────────────────
-        // Transaction Information
-        // ────────────────────────────────
-
         public string TransactionCode { get; set; } = string.Empty;
 
         public TransactionType TransactionType { get; set; }
@@ -59,11 +42,6 @@ namespace FSCMS.Core.Entities
         public string? PaymentGateway { get; set; }
 
         public string? ReferenceNumber { get; set; }
-
-        // ────────────────────────────────
-        // Logical Relationships (no FK)
-        // ────────────────────────────────
-
         public int? RelatedEntityId { get; set; } // e.g., Invoice, Contract, ServiceRequest
         public string? RelatedEntityType { get; set; } // "Invoice", "Contract", "ServiceRequest"
 
@@ -72,11 +50,6 @@ namespace FSCMS.Core.Entities
 
         public string? Description { get; set; }
         public string? Notes { get; set; }
-
-        // ────────────────────────────────
-        // Payment Details
-        // ────────────────────────────────
-
         public string? CardNumber { get; set; } // Last 4 digits
         public string? CardType { get; set; }
         public string? BankName { get; set; }

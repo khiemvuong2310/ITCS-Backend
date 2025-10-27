@@ -36,9 +36,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetUserById(int userId)
+        public async Task<IActionResult> GetUserById(Guid userId)
         {
-            if (userId <= 0)
+            if (userId == null)
             {
                 return BadRequest(new BaseResponse<UserResponse>
                 {
@@ -51,7 +51,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
             
-            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !Guid.TryParse(currentUserIdClaim, out Guid currentUserId))
             {
                 return Unauthorized(new BaseResponse<UserResponse>
                 {
@@ -127,9 +127,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetUserDetailById(int userId)
+        public async Task<IActionResult> GetUserDetailById(Guid userId)
         {
-            if (userId <= 0)
+            if (userId == null)
             {
                 return BadRequest(new BaseResponse<UserDetailResponse>
                 {
@@ -225,7 +225,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateUser(int userId, [FromBody] UpdateUserRequest updateUserRequest)
+        public async Task<IActionResult> UpdateUser(Guid userId, [FromBody] UpdateUserRequest updateUserRequest)
         {
             if (!ModelState.IsValid)
             {
@@ -240,7 +240,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
             
-            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !Guid.TryParse(currentUserIdClaim, out Guid currentUserId))
             {
                 return Unauthorized(new BaseResponse<UserResponse>
                 {
@@ -272,9 +272,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteUser(int userId)
+        public async Task<IActionResult> DeleteUser(Guid userId)
         {
-            if (userId <= 0)
+            if (userId == null)
             {
                 return BadRequest(new BaseResponse
                 {
@@ -330,9 +330,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> VerifyUserEmail(int userId)
+        public async Task<IActionResult> VerifyUserEmail(Guid userId)
         {
-            if (userId <= 0)
+            if (userId == null)
             {
                 return BadRequest(new BaseResponse
                 {
@@ -359,9 +359,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateUserStatus(int userId, [FromBody] bool status)
+        public async Task<IActionResult> UpdateUserStatus(Guid userId, [FromBody] bool status)
         {
-            if (userId <= 0)
+            if (userId == null)
             {
                 return BadRequest(new BaseResponse
                 {
@@ -385,7 +385,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         public async Task<IActionResult> GetCurrentUserProfile()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return Unauthorized(new BaseResponse<UserResponse>
                 {
@@ -420,7 +420,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return Unauthorized(new BaseResponse<UserResponse>
                 {
