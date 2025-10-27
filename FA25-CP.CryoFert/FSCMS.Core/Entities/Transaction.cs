@@ -1,34 +1,82 @@
 using System;
+using FSCMS.Core.Enum;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
     /// <summary>
-    /// Entity đại diện cho giao dịch tài chính trong hệ thống
-    /// Ghi lại tất cả các giao dịch thanh toán, hoàn tiền, v.v.
-    /// Bảng độc lập (quan hệ logic, không có khóa ngoại vật lý)
+    /// Represents a financial transaction in the system.
+    /// Records payments, refunds, adjustments, etc.
+    /// This is a standalone entity (logical relationships, no physical foreign keys).
     /// </summary>
-    public class Transaction : BaseEntity
+    public class Transaction : BaseEntity<Guid>
     {
+        /// <summary>
+        /// Default constructor for EF Core.
+        /// </summary>
+        protected Transaction() : base() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Transaction"/> class.
+        /// </summary>
+        public Transaction(
+            Guid id,
+            string transactionCode,
+            TransactionType transactionType,
+            decimal amount,
+            string currency,
+            TransactionStatus status,
+            DateTime transactionDate
+        )
+        {
+            Id = id;
+            TransactionCode = transactionCode;
+            TransactionType = transactionType;
+            Amount = amount;
+            Currency = currency;
+            Status = status;
+            TransactionDate = transactionDate;
+        }
+
+        // ────────────────────────────────
+        // Transaction Information
+        // ────────────────────────────────
+
         public string TransactionCode { get; set; } = string.Empty;
-        public string TransactionType { get; set; } = string.Empty; // "Payment", "Refund", "Adjustment"
+
+        public TransactionType TransactionType { get; set; }
+
         public decimal Amount { get; set; }
+
         public string Currency { get; set; } = "VND";
+
         public DateTime TransactionDate { get; set; }
-        public string Status { get; set; } = string.Empty; // "Pending", "Completed", "Failed", "Cancelled"
+
+        public TransactionStatus Status { get; set; }
+
         public string? PaymentMethod { get; set; } // "Cash", "Card", "Transfer", "Insurance"
+
         public string? PaymentGateway { get; set; }
+
         public string? ReferenceNumber { get; set; }
-        
-        // Liên kết logic (không có FK vật lý)
-        public int? RelatedEntityId { get; set; } // ID của Invoice, Contract, ServiceRequest, etc.
+
+        // ────────────────────────────────
+        // Logical Relationships (no FK)
+        // ────────────────────────────────
+
+        public int? RelatedEntityId { get; set; } // e.g., Invoice, Contract, ServiceRequest
         public string? RelatedEntityType { get; set; } // "Invoice", "Contract", "ServiceRequest"
-        
+
         public int? PatientId { get; set; }
         public string? PatientName { get; set; }
+
         public string? Description { get; set; }
         public string? Notes { get; set; }
-        
-        // Payment details
+
+        // ────────────────────────────────
+        // Payment Details
+        // ────────────────────────────────
+
         public string? CardNumber { get; set; } // Last 4 digits
         public string? CardType { get; set; }
         public string? BankName { get; set; }
@@ -36,4 +84,3 @@ namespace FSCMS.Core.Entities
         public string? ProcessedBy { get; set; }
     }
 }
-
