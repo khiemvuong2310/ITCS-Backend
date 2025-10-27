@@ -98,6 +98,7 @@ namespace FSCMS.Core.Entities
         /// <summary>
         /// Gets or sets the associated account of the doctor (One-to-One).
         /// </summary>
+        public Guid AccountId { get; set; }
         public virtual Account? Account { get; set; }
 
         /// <summary>
