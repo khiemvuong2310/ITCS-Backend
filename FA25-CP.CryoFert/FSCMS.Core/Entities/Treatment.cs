@@ -5,22 +5,9 @@ using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Represents a treatment plan for a patient.
-    /// Many-to-One with Patient and Doctor.
-    /// One-to-Many with TreatmentCycle.
-    /// One-to-One with TreatmentIVF (if applicable).
-    /// </summary>
     public class Treatment : BaseEntity<Guid>
     {
-        /// <summary>
-        /// Default constructor for EF Core.
-        /// </summary>
         protected Treatment() : base() { }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Treatment"/> class.
-        /// </summary>
         public Treatment(
             Guid id,
             Guid patientId,
@@ -38,11 +25,6 @@ namespace FSCMS.Core.Entities
             StartDate = startDate;
             Status = TreatmentStatus.Planned;
         }
-
-        // ────────────────────────────────
-        // Treatment Information
-        // ────────────────────────────────
-
         public Guid PatientId { get; set; }
         public Guid DoctorId { get; set; }
 
@@ -61,11 +43,6 @@ namespace FSCMS.Core.Entities
 
         public decimal? EstimatedCost { get; set; }
         public decimal? ActualCost { get; set; }
-
-        // ────────────────────────────────
-        // Navigation Properties
-        // ────────────────────────────────
-
         public virtual Patient? Patient { get; set; }
         public virtual Doctor? Doctor { get; set; }
 
@@ -73,6 +50,4 @@ namespace FSCMS.Core.Entities
 
         public virtual TreatmentIVF? TreatmentIVF { get; set; }
     }
-
-    
 }

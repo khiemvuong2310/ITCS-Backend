@@ -17,7 +17,7 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Get role by ID from cache
         /// </summary>
-        Task<Role?> GetRoleByIdAsync(int roleId);
+        Task<Role?> GetRoleByIdAsync(Guid roleId);
 
         /// <summary>
         /// Get role by name from cache

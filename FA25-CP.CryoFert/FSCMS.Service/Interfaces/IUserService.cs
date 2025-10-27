@@ -13,7 +13,7 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Get user by ID
         /// </summary>
-        Task<BaseResponse<UserResponse>> GetUserByIdAsync(int userId);
+        Task<BaseResponse<UserResponse>> GetUserByIdAsync(Guid userId);
 
         /// <summary>
         /// Get user by email
@@ -28,7 +28,7 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Get detailed user information by ID
         /// </summary>
-        Task<BaseResponse<UserDetailResponse>> GetUserDetailByIdAsync(int userId);
+        Task<BaseResponse<UserDetailResponse>> GetUserDetailByIdAsync(Guid userId);
 
         /// <summary>
         /// Get all users with pagination and filtering
@@ -43,12 +43,12 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Update existing user
         /// </summary>
-        Task<BaseResponse<UserResponse>> UpdateUserAsync(int userId, UpdateUserRequest request);
+        Task<BaseResponse<UserResponse>> UpdateUserAsync(Guid userId, UpdateUserRequest request);
 
         /// <summary>
         /// Delete user (soft delete)
         /// </summary>
-        Task<BaseResponse> DeleteUserAsync(int userId);
+        Task<BaseResponse> DeleteUserAsync(Guid userId);
 
         /// <summary>
         /// Check if email exists
@@ -58,11 +58,11 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Verify user email
         /// </summary>
-        Task<BaseResponse> VerifyUserEmailAsync(int userId);
+        Task<BaseResponse> VerifyUserEmailAsync(Guid userId);
 
         /// <summary>
         /// Update user status
         /// </summary>
-        Task<BaseResponse> UpdateUserStatusAsync(int userId, bool status);
+        Task<BaseResponse> UpdateUserStatusAsync(Guid userId, bool status);
     }
 }

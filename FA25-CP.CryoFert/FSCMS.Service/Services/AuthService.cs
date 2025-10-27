@@ -85,7 +85,7 @@ namespace FSCMS.Service.Services
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == email && !u.IsDelete)
+                    .Where(u => u.Email == email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -99,7 +99,7 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                var isCorrect = BCrypt.Net.BCrypt.Verify(password, account.Password);
+                var isCorrect = BCrypt.Net.BCrypt.Verify(password, account.PasswordHash);
                 if (!isCorrect)
                 {
                     return new BaseResponseForLogin<LoginResponseModel>
@@ -129,7 +129,7 @@ namespace FSCMS.Service.Services
                 }
 
                 // Check if email is verified
-                if (!account.EmailVerified)
+                if (!account.IsVerified)
                 {
                     // Generate new verification code and send email
                     var verificationCode = GenerateVerificationCode();
@@ -165,9 +165,9 @@ namespace FSCMS.Service.Services
                 string token = GenerateJwtToken(userDetails.Email, roleName, userDetails.Id, mobile);
                 string refreshToken = GenerateRefreshToken();
 
-                // Store refresh token in account record
-                account.Token = refreshToken;
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                // Store refresh GenerateJwtTokentoken in account record
+                account.RefreshToken = refreshToken;
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponseForLogin<LoginResponseModel>
@@ -196,7 +196,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public string GenerateJwtToken(string email, string roleNames, int userId, bool? mobile)
+        public string GenerateJwtToken(string email, string roleNames, Guid userId, bool? mobile)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
@@ -247,7 +247,7 @@ namespace FSCMS.Service.Services
             {
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Token == refreshToken && !u.IsDelete)
+                    .Where(u => u.RefreshToken == refreshToken && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -277,8 +277,8 @@ namespace FSCMS.Service.Services
                 string newRefreshToken = GenerateRefreshToken();
 
                 // Update refresh token in database
-                account.Token = newRefreshToken;
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                account.RefreshToken = newRefreshToken;
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse<TokenModel>
@@ -308,7 +308,7 @@ namespace FSCMS.Service.Services
             {
                 var existingAccount = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == registerModel.Email && !u.IsDelete)
+                    .Where(u => u.Email == registerModel.Email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (existingAccount != null)
@@ -319,16 +319,17 @@ namespace FSCMS.Service.Services
                         Message = "Email already exists",
                     };
                 }
-
+                var role = await _unitOfWork.Repository<Role>()
+                    .AsQueryable()
+                    .Where(u => u.RoleName == "User")
+                    .FirstOrDefaultAsync();
                 var account = new Account()
                 {
                     Email = registerModel.Email,
-                    Password = PasswordTools.HashPassword(registerModel.Password),
+                    PasswordHash = PasswordTools.HashPassword(registerModel.Password),
                     IsActive = true,
-                    EmailVerified = false, // Set EmailVerified to false by default
-                    RoleId = (int)Roles.User, // Use Roles enum for User role
-                    CreatedDate = DateTime.UtcNow.AddHours(7),
-                    UpdatedDate = DateTime.UtcNow.AddHours(7)
+                    IsVerified = false, // Set EmailVerified to false by default
+                    RoleId = role.Id, // Use Roles enum for User role
                 };
 
                 await _unitOfWork.Repository<Account>().InsertAsync(account);
@@ -372,7 +373,7 @@ namespace FSCMS.Service.Services
                 // Kiểm tra account đã tồn tại chưa
                 var existingAccount = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == adminCreateAccountModel.Email && !u.IsDelete)
+                    .Where(u => u.Email == adminCreateAccountModel.Email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (existingAccount != null)
@@ -383,24 +384,24 @@ namespace FSCMS.Service.Services
                         Message = "Email already exists",
                     };
                 }
-
+                var role = await _unitOfWork.Repository<Role>()
+                    .AsQueryable()
+                    .Where(u => u.RoleName == "Admin")
+                    .FirstOrDefaultAsync();
                 // Tạo account mới
                 var account = new Account()
                 {
                     Email = adminCreateAccountModel.Email,
-                    Password = PasswordTools.HashPassword("12345678"),
+                    PasswordHash = PasswordTools.HashPassword("12345678"),
                     Phone = adminCreateAccountModel.Phone,
                     IsActive = true,
-                    EmailVerified = true,
-                    RoleId = (int)Roles.Admin // Use Roles enum for Admin role
+                    IsVerified = true,
+                    RoleId = role.Id // Use Roles enum for Admin role
                 };
 
                 // Thêm account vào database
                 await _unitOfWork.Repository<Account>().InsertAsync(account);
                 await _unitOfWork.CommitAsync();
-
-                // Lấy Id của account vừa tạo
-                int userId = account.Id;
 
                 // Gửi email trực tiếp
                 await SendEmailAsync(
@@ -412,12 +413,12 @@ namespace FSCMS.Service.Services
                 // Lấy thông tin account và tạo token
                 var userWithRole = await _userService.GetUserByEmailAsync(account.Email);
                 var roleName = userWithRole?.RoleName ?? string.Empty;
-                string token = GenerateJwtToken(account.Email, roleName, userId, false);
+                string token = GenerateJwtToken(account.Email, roleName, account.Id, false);
                 string refreshToken = GenerateRefreshToken();
 
                 // Save refresh token
-                account.Token = refreshToken;
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                account.RefreshToken = refreshToken;
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse<TokenModel>
@@ -441,11 +442,11 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse> SendAccount(int userId)
+        public async Task<BaseResponse> SendAccount(Guid userId)
         {
             try
             {
-                var account = await _unitOfWork.Repository<Account>().GetById(userId);
+                var account = await _unitOfWork.Repository<Account>().GetByIdGuid(userId);
                 if (account == null)
                 {
                     return new BaseResponse
@@ -456,8 +457,8 @@ namespace FSCMS.Service.Services
                 }
 
                 var providePassword = GeneratePassword();
-                account.Password = PasswordTools.HashPassword(providePassword);
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                account.PasswordHash = PasswordTools.HashPassword(providePassword);
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 await SendEmailAsync(
@@ -488,7 +489,7 @@ namespace FSCMS.Service.Services
             {
                 var account = await _unitOfWork.Repository<Account>()
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Email == request.Email && !x.IsDelete);
+                    .FirstOrDefaultAsync(x => x.Email == request.Email && !x.IsDeleted);
 
                 if (account == null)
                 {
@@ -500,7 +501,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var providePassword = GeneratePassword();
-                account.Password = PasswordTools.HashPassword(providePassword);
+                account.PasswordHash = PasswordTools.HashPassword(providePassword);
 
                 await SendEmailAsync(
                     account.Email,
@@ -508,7 +509,7 @@ namespace FSCMS.Service.Services
                     await GetPasswordResetEmailTemplate(account.Email, providePassword)
                 );
 
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
@@ -677,7 +678,7 @@ namespace FSCMS.Service.Services
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == model.Email && !u.IsDelete)
+                    .Where(u => u.Email == model.Email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -689,8 +690,8 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                account.EmailVerified = true;
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                account.IsVerified = true;
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 var userDetails = await _userService.GetUserByEmailAsync(account.Email);
@@ -709,8 +710,8 @@ namespace FSCMS.Service.Services
                 var token = GenerateJwtToken(userDetails.Email, roleName, userDetails.Id, false);
                 var refreshToken = GenerateRefreshToken();
 
-                account.Token = refreshToken;
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                account.RefreshToken = refreshToken;
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse<TokenModel>
@@ -747,7 +748,7 @@ namespace FSCMS.Service.Services
             {
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == email && !u.IsDelete)
+                    .Where(u => u.Email == email && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -759,8 +760,8 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                account.EmailVerified = true;
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                account.IsVerified = true;
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
@@ -779,13 +780,13 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse> ChangePasswordAsync(int userId, ChangePasswordRequest request)
+        public async Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
         {
             try
             {
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDelete);
+                    .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
 
                 if (account == null)
                 {
@@ -797,7 +798,7 @@ namespace FSCMS.Service.Services
                 }
 
                 // Verify current password
-                var isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.Password);
+                var isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash);
                 if (!isCurrentPasswordValid)
                 {
                     return new BaseResponse
@@ -808,10 +809,10 @@ namespace FSCMS.Service.Services
                 }
 
                 // Hash and save new password
-                account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
+                account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 // Send email notification
@@ -837,13 +838,13 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse> LogoutAsync(int userId)
+        public async Task<BaseResponse> LogoutAsync(Guid userId)
         {
             try
             {
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDelete);
+                    .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
 
                 if (account == null)
                 {
@@ -855,10 +856,10 @@ namespace FSCMS.Service.Services
                 }
 
                 // Clear refresh token to invalidate it
-                account.Token = null;
-                account.UpdatedDate = DateTime.UtcNow.AddHours(7);
+                account.RefreshToken = null;
+                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
-                await _unitOfWork.Repository<Account>().Update(account, account.Id);
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse

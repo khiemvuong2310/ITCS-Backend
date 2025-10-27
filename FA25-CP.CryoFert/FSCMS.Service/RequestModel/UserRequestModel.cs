@@ -36,7 +36,7 @@ namespace FSCMS.Service.RequestModel
         public string? Image { get; set; }
 
         [Required(ErrorMessage = "RoleId is required.")]
-        public int RoleId { get; set; }
+        public Guid RoleId { get; set; }
 
         public bool? Status { get; set; } = true;
     }
@@ -61,7 +61,7 @@ namespace FSCMS.Service.RequestModel
 
         public string? Image { get; set; }
 
-        public int? RoleId { get; set; }
+        public Guid? RoleId { get; set; }
 
         public bool? Status { get; set; }
     }
@@ -89,7 +89,7 @@ namespace FSCMS.Service.RequestModel
     public class GetUsersRequest : PagingModel
     {
         public string? SearchTerm { get; set; }
-        public int? RoleId { get; set; }
+        public Guid? RoleId { get; set; }
         public bool? Status { get; set; }
         public bool? EmailVerified { get; set; }
     }
