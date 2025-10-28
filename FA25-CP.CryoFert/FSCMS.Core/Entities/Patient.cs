@@ -5,6 +5,13 @@ using FSCMS.Core.Enums;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Patient: Thông tin hồ sơ bệnh nhân.
+    // Quan hệ:
+    // - 1-1 với Account (AccountId)
+    // - 1-n với Treatment (bệnh nhân có nhiều đợt điều trị)
+    // - 1-n với LabSample (nhiều mẫu xét nghiệm/lab)
+    // - 1-n với CryoStorageContract (nhiều hợp đồng lưu trữ cryo)
+    // - n-n tự thân thông qua Relationship (Patient1/Patient2)
     public class Patient : BaseEntity<Guid>
     {
         protected Patient() : base() { }

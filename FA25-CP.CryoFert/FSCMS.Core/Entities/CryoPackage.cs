@@ -5,6 +5,9 @@ using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng CryoPackage: Gói dịch vụ lưu trữ cryo (thời hạn, số mẫu tối đa...).
+    // Quan hệ:
+    // - 1-n tới CryoStorageContract (gói được chọn trong nhiều hợp đồng)
     public class CryoPackage : BaseEntity<Guid>
     {
         protected CryoPackage() : base() { }

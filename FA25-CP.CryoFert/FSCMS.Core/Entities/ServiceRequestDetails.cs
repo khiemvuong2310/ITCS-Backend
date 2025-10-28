@@ -3,6 +3,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng ServiceRequestDetails: Chi tiết dịch vụ trong một yêu cầu.
+    // Quan hệ:
+    // - n-1 tới ServiceRequest (ServiceRequestId)
+    // - n-1 tới Service (ServiceId)
     public class ServiceRequestDetails : BaseEntity<Guid>
     {
         protected ServiceRequestDetails() : base() { }

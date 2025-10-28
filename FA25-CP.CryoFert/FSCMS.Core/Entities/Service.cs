@@ -4,6 +4,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Service: Dịch vụ cung cấp (giá, đơn vị, thời lượng...).
+    // Quan hệ:
+    // - n-1 tới ServiceCategory (ServiceCategoryId)
+    // - 1-n tới ServiceRequestDetails (dịch vụ xuất hiện trong nhiều yêu cầu)
     public class Service : BaseEntity<Guid>
     {
         protected Service() : base() { }

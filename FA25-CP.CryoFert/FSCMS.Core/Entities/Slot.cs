@@ -3,6 +3,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Slot: Khung giờ hẹn thuộc một lịch làm việc cụ thể.
+    // Quan hệ:
+    // - n-1 tới DoctorSchedule (DoctorScheduleId)
+    // - 1-1 với Appointment (một slot gắn với tối đa 1 cuộc hẹn)
     public class Slot : BaseEntity<Guid>
     {
         protected Slot() : base() { }

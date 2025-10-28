@@ -160,9 +160,22 @@ namespace FSCMS.Service.Services
                 }
 
                 var userDetails = await _userService.GetUserByEmailAsync(email);
-                var roleName = userDetails.RoleName ?? string.Empty;
 
-                string token = GenerateJwtToken(userDetails.Email, roleName, userDetails.Id, mobile);
+                // Fallback if userDetails is null (avoid NullReference)
+                var roleName = userDetails?.RoleName;
+                if (string.IsNullOrEmpty(roleName))
+                {
+                    roleName = await _unitOfWork.Repository<Role>()
+                        .AsQueryable()
+                        .Where(r => r.Id == account.RoleId && !r.IsDeleted)
+                        .Select(r => r.RoleName)
+                        .FirstOrDefaultAsync() ?? string.Empty;
+                }
+
+                var emailForToken = userDetails?.Email ?? account.Email;
+                var userIdForToken = userDetails?.Id ?? account.Id;
+
+                string token = GenerateJwtToken(emailForToken, roleName, userIdForToken, mobile);
                 string refreshToken = GenerateRefreshToken();
 
                 // Store refresh GenerateJwtTokentoken in account record
@@ -174,13 +187,13 @@ namespace FSCMS.Service.Services
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "Login successful",
-                    Data = new LoginResponseModel
-                    {
-                        Token = token,
-                        RefreshToken = refreshToken,
-                        User = userDetails,
-                        EmailVerified = true
-                    },
+                        Data = new LoginResponseModel
+                        {
+                            Token = token,
+                            RefreshToken = refreshToken,
+                            User = userDetails ?? (await _userService.GetUserByIdAsync(account.Id)).Data,
+                            EmailVerified = true
+                        },
                     IsBanned = false
                 };
             }
@@ -696,18 +709,18 @@ namespace FSCMS.Service.Services
 
                 var userDetails = await _userService.GetUserByEmailAsync(account.Email);
 
-                if (userDetails == null)
+                // Dù userDetails null vẫn tiếp tục: lấy role trực tiếp và tạo token từ account
+                var roleName = userDetails?.RoleName;
+                if (string.IsNullOrEmpty(roleName))
                 {
-                    return new BaseResponse<TokenModel>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "User details not found"
-                    };
+                    roleName = await _unitOfWork.Repository<Role>()
+                        .AsQueryable()
+                        .Where(r => r.Id == account.RoleId && !r.IsDeleted)
+                        .Select(r => r.RoleName)
+                        .FirstOrDefaultAsync() ?? string.Empty;
                 }
 
-                var roleName = userDetails.RoleName ?? string.Empty;
-
-                var token = GenerateJwtToken(userDetails.Email, roleName, userDetails.Id, false);
+                var token = GenerateJwtToken(account.Email, roleName, account.Id, false);
                 var refreshToken = GenerateRefreshToken();
 
                 account.RefreshToken = refreshToken;

@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng AuditLog: Nhật ký thao tác người dùng trên dữ liệu (ai/lúc nào/làm gì).
+    // Quan hệ:
+    // - n-1 tới Account (UserId)
     public class AuditLog
     {
         protected AuditLog()

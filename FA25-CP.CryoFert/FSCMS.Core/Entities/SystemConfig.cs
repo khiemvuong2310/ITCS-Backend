@@ -3,6 +3,8 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng SystemConfig: Cấu hình hệ thống (thông tin trung tâm, quy tắc thông báo...).
+    // Không có quan hệ khoá ngoại trực tiếp.
     public class SystemConfig : BaseEntity<Guid>
     {
         protected SystemConfig() : base() { }

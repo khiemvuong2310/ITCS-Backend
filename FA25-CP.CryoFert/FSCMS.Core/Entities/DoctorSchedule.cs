@@ -4,6 +4,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng DoctorSchedule: Lịch làm việc theo ngày/giờ của bác sĩ.
+    // Quan hệ:
+    // - n-1 tới Doctor (DoctorId)
+    // - 1-n tới Slot (các khung giờ hẹn thuộc lịch này)
     public class DoctorSchedule : BaseEntity<Guid>
     {
         protected DoctorSchedule() : base() { }

@@ -5,6 +5,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng ServiceRequest: Yêu cầu dịch vụ gắn với cuộc hẹn (nếu có).
+    // Quan hệ:
+    // - 0..1 - n tới Appointment (AppointmentId có thể null)
+    // - 1-n tới ServiceRequestDetails (các dòng dịch vụ)
     public class ServiceRequest : BaseEntity<Guid>
     {
         protected ServiceRequest() : base() { }

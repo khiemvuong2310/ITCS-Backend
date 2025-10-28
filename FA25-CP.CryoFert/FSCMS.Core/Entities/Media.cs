@@ -4,9 +4,8 @@ using FSCMS.Core.Models.Bases;
 namespace FSCMS.Core.Entities
 {
     /// <summary>
-    /// Entity đại diện cho tài liệu đa phương tiện (Media/File)
-    /// Lưu trữ các tệp: ảnh, PDF, tài liệu xét nghiệm, v.v.
-    /// Bảng độc lập, sẽ được liên kết với các bảng khác khi cần
+    /// Bảng Media: Lưu thông tin tệp (ảnh/PDF/kết quả xét nghiệm...).
+    /// Bảng độc lập; liên kết logic qua RelatedEntityId/RelatedEntityType.
     /// </summary>
     public class Media : BaseEntity<Guid>
     {

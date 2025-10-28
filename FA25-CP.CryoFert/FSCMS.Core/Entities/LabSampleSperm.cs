@@ -3,6 +3,9 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng LabSampleSperm: Thông tin chi tiết cho mẫu tinh trùng.
+    // Quan hệ:
+    // - 1-1 tới LabSample (LabSampleId)
     public class LabSampleSperm : BaseEntity<Guid>
     {
         protected LabSampleSperm() : base() { }

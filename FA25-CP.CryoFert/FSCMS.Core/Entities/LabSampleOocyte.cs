@@ -3,6 +3,9 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng LabSampleOocyte: Thông tin chi tiết cho mẫu noãn.
+    // Quan hệ:
+    // - 1-1 tới LabSample (LabSampleId)
     public class LabSampleOocyte : BaseEntity<Guid>
     {
         protected LabSampleOocyte() : base() { }

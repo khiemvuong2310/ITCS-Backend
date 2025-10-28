@@ -4,6 +4,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng MedicalRecord: Bệnh án chi tiết gắn với một cuộc hẹn.
+    // Quan hệ:
+    // - 1-1 tới Appointment (AppointmentId)
+    // - 1-n tới Prescription (các đơn thuốc phát sinh từ bệnh án)
     public class MedicalRecord : BaseEntity<Guid>
     {
         protected MedicalRecord() : base() { }

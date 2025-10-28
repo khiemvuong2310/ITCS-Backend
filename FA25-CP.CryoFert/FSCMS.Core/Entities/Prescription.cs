@@ -4,6 +4,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Prescription: Đơn thuốc phát sinh từ bệnh án.
+    // Quan hệ:
+    // - n-1 tới MedicalRecord (MedicalRecordId)
+    // - 1-n tới PrescriptionDetail (các dòng thuốc trong đơn)
     public class Prescription : BaseEntity<Guid>
     {
         protected Prescription() : base() { }

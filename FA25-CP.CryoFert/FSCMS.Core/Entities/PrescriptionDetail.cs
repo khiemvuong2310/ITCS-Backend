@@ -3,6 +3,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng PrescriptionDetail: Chi tiết từng thuốc trong đơn.
+    // Quan hệ:
+    // - n-1 tới Prescription (PrescriptionId)
+    // - n-1 tới Medicine (MedicineId)
     public class PrescriptionDetail : BaseEntity<Guid>
     {
         protected PrescriptionDetail() : base() { }

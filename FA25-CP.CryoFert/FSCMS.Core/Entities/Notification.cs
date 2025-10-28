@@ -5,6 +5,10 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Notification: Thông báo gửi tới người dùng/bệnh nhân.
+    // Quan hệ:
+    // - 0..1 - n tới Patient (PatientId)
+    // - 0..1 - n tới Account (UserId)
     public class Notification : BaseEntity<Guid>
     {
         protected Notification() : base() { }

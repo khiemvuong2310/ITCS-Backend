@@ -89,11 +89,20 @@ namespace FSCMS.Service.Services
                     return null;
                 }
 
+                var input = email.Trim();
+                var inputLower = input.ToLower();
+
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
+                    .AsNoTracking()
                     .Include(u => u.Role)
-                    .Where(u => u.Email == email && !u.IsDeleted)
+                    .Where(u => !u.IsDeleted && (u.Email == input || u.Email.ToLower() == inputLower))
                     .FirstOrDefaultAsync();
+
+                if (account == null)
+                {
+                    return null;
+                }
 
                 return _mapper.Map<UserResponse>(account);
             }

@@ -1,5 +1,11 @@
 using FSCMS.Core.Models.Bases;
 
+// Bảng Account: Lưu thông tin tài khoản người dùng hệ thống (bệnh nhân/bác sĩ/nhân viên).
+// Quan hệ:
+// - Mỗi Account thuộc 1 Role (RoleId) => (Many-to-One) Role.Users
+// - Account - Patient: 1-1 (một tài khoản có thể gắn với hồ sơ bệnh nhân)
+// - Account - Doctor: 1-1 (một tài khoản có thể gắn với hồ sơ bác sĩ)
+
 namespace FSCMS.Core.Entities;
 
 public class Account : BaseEntity<Guid>

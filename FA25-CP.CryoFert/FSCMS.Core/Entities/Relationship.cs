@@ -4,6 +4,9 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Relationship: Quan hệ giữa hai bệnh nhân (vợ/chồng, người hiến, người thân...).
+    // Quan hệ:
+    // - Mỗi bản ghi liên kết 2 Patient (Patient1Id, Patient2Id) theo kiểu RelationshipType
     public class Relationship : BaseEntity<Guid>
     {
         protected Relationship() : base() { }

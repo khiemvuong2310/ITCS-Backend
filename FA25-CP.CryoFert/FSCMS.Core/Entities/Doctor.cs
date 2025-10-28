@@ -4,6 +4,11 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Doctor: Thông tin bác sĩ.
+    // Quan hệ:
+    // - 1-1 với Account (AccountId)
+    // - 1-n với DoctorSchedule (lịch làm việc của bác sĩ)
+    // - 1-n với Treatment (bác sĩ phụ trách nhiều đợt điều trị)
     public class Doctor : BaseEntity<Guid>
     {
         protected Doctor() : base() { }

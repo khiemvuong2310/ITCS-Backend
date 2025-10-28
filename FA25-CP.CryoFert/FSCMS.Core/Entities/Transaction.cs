@@ -4,6 +4,8 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Transaction: Giao dịch tài chính (thu/chi, cổng thanh toán...).
+    // Bảng độc lập; liên kết logic tới đối tượng liên quan qua RelatedEntity*
     public class Transaction : BaseEntity<Guid>
     {
         protected Transaction() : base() { }

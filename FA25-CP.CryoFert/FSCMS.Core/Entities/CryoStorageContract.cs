@@ -6,6 +6,11 @@ using FSCMS.Core.Enums;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng CryoStorageContract: Hợp đồng lưu trữ cryo giữa bệnh nhân và cơ sở.
+    // Quan hệ:
+    // - n-1 tới Patient (PatientId)
+    // - n-1 tới CryoPackage (CryoPackageId)
+    // - 1-n tới CPSDetail (liên kết hợp đồng-với-các mẫu lưu trữ)
     public class CryoStorageContract : BaseEntity<Guid>
     {
         protected CryoStorageContract() : base() { }

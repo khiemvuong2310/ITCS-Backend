@@ -4,6 +4,9 @@ using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng TreatmentIUI: Thông tin chuyên sâu cho phác đồ IUI.
+    // Quan hệ:
+    // - 1-1 tới Treatment (TreatmentId)
     public class TreatmentIUI : BaseEntity<Guid>
     {
         protected TreatmentIUI() : base() { }

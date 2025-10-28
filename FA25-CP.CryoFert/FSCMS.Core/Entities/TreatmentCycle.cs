@@ -5,6 +5,10 @@ using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng TreatmentCycle: Chu kỳ điều trị thuộc một đợt Treatment.
+    // Quan hệ:
+    // - n-1 tới Treatment (TreatmentId)
+    // - 1-n tới Appointment (các cuộc hẹn trong chu kỳ)
     public class TreatmentCycle : BaseEntity<Guid>
     {
         protected TreatmentCycle() : base() { }

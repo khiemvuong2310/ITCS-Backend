@@ -4,6 +4,9 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng ServiceCategory: Danh mục nhóm dịch vụ (khám, xét nghiệm, cryo...).
+    // Quan hệ:
+    // - 1-n tới Service (một nhóm chứa nhiều dịch vụ)
     public class ServiceCategory : BaseEntity<Guid>
     {
         protected ServiceCategory() : base() { }

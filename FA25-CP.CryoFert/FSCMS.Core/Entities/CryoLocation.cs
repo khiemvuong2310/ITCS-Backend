@@ -6,6 +6,11 @@ using FSCMS.Core.Enum;
 namespace FSCMS.Core.Entities;
 public class CryoLocation : BaseEntity<Guid>
 {
+    // Bảng CryoLocation: Cấu trúc kho lưu trữ cryo (kho/kệ/ngăn/vị trí...).
+    // Quan hệ:
+    // - Tự tham chiếu: Parent/Children (cây thư mục vị trí)
+    // - 1-n với LabSample (mẫu đang được lưu tại vị trí)
+    // - 1-n với CryoImport/CryoExport (các giao dịch nhập/xuất liên quan)
     protected CryoLocation() : base() { }
 
     public CryoLocation(

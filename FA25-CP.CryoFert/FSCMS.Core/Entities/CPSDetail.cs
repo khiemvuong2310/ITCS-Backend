@@ -5,6 +5,10 @@ namespace FSCMS.Core.Entities;
 
 public class CPSDetail : BaseEntity<Guid>
 {
+    // Bảng CPSDetail: Bảng nối giữa Hợp đồng lưu trữ và Mẫu (Contract - Sample).
+    // Quan hệ:
+    // - n-1 tới CryoStorageContract (CryoStorageContractId)
+    // - n-1 tới LabSample (LabSampleId)
     protected CPSDetail() : base() { }
 
     public CPSDetail(

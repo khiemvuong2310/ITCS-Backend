@@ -5,6 +5,10 @@ namespace FSCMS.Core.Entities;
 
 public class CryoImport : BaseEntity<Guid>
 {
+    // Bảng CryoImport: Giao dịch nhập mẫu vào kho cryo.
+    // Quan hệ:
+    // - n-1 tới LabSample (LabSampleId)
+    // - n-1 tới CryoLocation (CryoLocationId)
     protected CryoImport() : base()
     {
     }

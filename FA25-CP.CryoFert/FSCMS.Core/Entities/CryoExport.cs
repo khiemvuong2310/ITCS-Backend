@@ -4,6 +4,10 @@ using FSCMS.Core.Models.Bases;
 namespace FSCMS.Core.Entities;
 public class CryoExport : BaseEntity<Guid>
 {
+    // Bảng CryoExport: Giao dịch xuất mẫu khỏi kho cryo (chuyển viện/sử dụng...).
+    // Quan hệ:
+    // - n-1 tới LabSample (LabSampleId)
+    // - n-1 tới CryoLocation (CryoLocationId)
     protected CryoExport() : base()
     {
     }

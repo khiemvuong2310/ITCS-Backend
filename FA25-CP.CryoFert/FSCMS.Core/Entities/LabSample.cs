@@ -6,6 +6,12 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng LabSample: Mẫu xét nghiệm/lab cốt lõi (tinh trùng/noãn/phôi...).
+    // Quan hệ:
+    // - n-1 tới Patient (PatientId)
+    // - 0..1 - n tới CryoLocation (CryoLocationId có thể null nếu chưa lưu)
+    // - 1-1 tới các bảng chi tiết chuyên biệt: LabSampleEmbryo/LabSampleSperm/LabSampleOocyte
+    // - 1-n tới CPSDetail (mẫu được tham chiếu trong hợp đồng lưu trữ)
     public class LabSample : BaseEntity<Guid>
     {
         protected LabSample() : base() { }

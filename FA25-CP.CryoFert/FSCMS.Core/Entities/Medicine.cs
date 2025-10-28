@@ -4,6 +4,9 @@ using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Medicine: Danh mục thuốc/sản phẩm y tế.
+    // Quan hệ:
+    // - 1-n tới PrescriptionDetail (thuốc xuất hiện trong nhiều chi tiết đơn)
     public class Medicine : BaseEntity<Guid>
     {
         protected Medicine() : base() { }

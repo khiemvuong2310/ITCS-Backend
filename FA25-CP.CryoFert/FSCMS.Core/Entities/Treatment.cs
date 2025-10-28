@@ -5,6 +5,12 @@ using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
+    // Bảng Treatment: Đợt điều trị của bệnh nhân (IUI/IVF...).
+    // Quan hệ:
+    // - n-1 tới Patient (PatientId)
+    // - n-1 tới Doctor (DoctorId)
+    // - 1-n tới TreatmentCycle (các chu kỳ điều trị)
+    // - 1-1 tới TreatmentIVF (nếu loại điều trị là IVF)
     public class Treatment : BaseEntity<Guid>
     {
         protected Treatment() : base() { }
