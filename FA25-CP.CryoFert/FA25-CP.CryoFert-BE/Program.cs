@@ -50,16 +50,14 @@ namespace FA25_CP.CryoFert_BE
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
             });
 
-
-            // 4. CORS config
+            // 4. CORS config - PUBLIC (Development Only)
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowReactApp", policy =>
+                options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.WithOrigins("http://localhost:5173", "https://fscms.pages.dev")
+                    policy.AllowAnyOrigin()
                           .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials();
+                          .AllowAnyMethod();
                 });
             });
 
@@ -127,7 +125,7 @@ namespace FA25_CP.CryoFert_BE
             app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
-            app.UseCors("AllowReactApp");
+            app.UseCors("AllowAll"); // Thay "AllowReactApp" thành "AllowAll"
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
