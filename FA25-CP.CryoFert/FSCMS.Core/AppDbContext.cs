@@ -263,7 +263,7 @@ namespace FSCMS.Core
 
             modelBuilder.Entity<CryoImport>()
                 .HasOne(ci => ci.CryoLocation)
-                .WithMany()
+                .WithMany(cl => cl.CryoImports)
                 .HasForeignKey(ci => ci.CryoLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -276,7 +276,7 @@ namespace FSCMS.Core
 
             modelBuilder.Entity<CryoExport>()
                 .HasOne(ce => ce.CryoLocation)
-                .WithMany()
+                .WithMany(cl => cl.CryoExports)
                 .HasForeignKey(ce => ce.CryoLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
