@@ -329,10 +329,22 @@ namespace FSCMS.Core
 				new Role(new Guid("00000000-0000-0000-0000-000000000006"), "User", "USER") { Description = "General user" }
 			);
 
-			// ========================================
-			// Seed Data: Service Categories & Services
-			// ========================================
-			var catConsultation = new Guid("10000000-0000-0000-0000-000000000001");
+
+			// Seed Accounts: Admin, LaboratoryTechnician, Receptionist
+			var roleAdminId = new Guid("00000000-0000-0000-0000-000000000001");
+			var roleLabId = new Guid("00000000-0000-0000-0000-000000000003");
+			var roleReceptionistId = new Guid("00000000-0000-0000-0000-000000000004");
+			const string defaultPwdHash = "$2a$11$7EqJtq98hPqEX7fNZaFWo.eG8N.8ZZrVSu2Ce/Jb9rZrYh0/pY5eC"; // bcrypt("password")
+			modelBuilder.Entity<Account>().HasData(
+				new Account(new Guid("00000000-0000-0000-0000-000000010001"), "System", "Admin", null, "admin@cryo.com", "admin", defaultPwdHash, "+84900000001", null, null, true, true, null, null) { RoleId = roleAdminId },
+				new Account(new Guid("00000000-0000-0000-0000-000000010002"), "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "+84900000002", null, null, true, true, null, null) { RoleId = roleLabId },
+				new Account(new Guid("00000000-0000-0000-0000-000000010003"), "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "+84900000003", null, null, true, true, null, null) { RoleId = roleReceptionistId }
+			);
+
+            // ========================================
+            // Seed Data: Service Categories & Services
+            // ========================================
+            var catConsultation = new Guid("10000000-0000-0000-0000-000000000001");
 			var catDiagnostics   = new Guid("10000000-0000-0000-0000-000000000002");
 			var catLabProcedures = new Guid("10000000-0000-0000-0000-000000000003");
 			var catCryoStorage   = new Guid("10000000-0000-0000-0000-000000000004");
