@@ -334,7 +334,9 @@ namespace FSCMS.Core
 			var roleAdminId = new Guid("00000000-0000-0000-0000-000000000001");
 			var roleLabId = new Guid("00000000-0000-0000-0000-000000000003");
 			var roleReceptionistId = new Guid("00000000-0000-0000-0000-000000000004");
-			const string defaultPwdHash = "$2a$11$7EqJtq98hPqEX7fNZaFWo.eG8N.8ZZrVSu2Ce/Jb9rZrYh0/pY5eC"; // bcrypt("password")
+			// Password for all seed accounts: "12345678"
+			// Generated using: BCrypt.Net.BCrypt.HashPassword("12345678")
+			const string defaultPwdHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S";
 			modelBuilder.Entity<Account>().HasData(
 				new Account(new Guid("00000000-0000-0000-0000-000000010001"), "System", "Admin", null, "admin@cryo.com", "admin", defaultPwdHash, "+84900000001", null, null, true, true, null, null) { RoleId = roleAdminId },
 				new Account(new Guid("00000000-0000-0000-0000-000000010002"), "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "+84900000002", null, null, true, true, null, null) { RoleId = roleLabId },
