@@ -34,6 +34,8 @@ namespace FSCMS.Core.Entities
         public bool IsAvailable { get; set; } = true;
         public string? Location { get; set; }
         public string? Notes { get; set; }
+
+        //Navigation properties
         public virtual Doctor? Doctor { get; set; }
         public virtual ICollection<Slot> Slots { get; set; } = new List<Slot>();
     }

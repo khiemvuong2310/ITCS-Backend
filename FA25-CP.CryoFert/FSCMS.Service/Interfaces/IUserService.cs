@@ -18,7 +18,9 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Get user by email
         /// </summary>
-        Task<UserResponse> GetUserByEmailAsync(string email);
+        /// <param name="email">The email address of the user</param>
+        /// <returns>BaseResponse containing user information</returns>
+        Task<BaseResponse<UserResponse>> GetUserByEmailAsync(string email);
 
         /// <summary>
         /// Get users by username (search by name)

@@ -16,14 +16,16 @@ namespace FSCMS.Service.Mapping
         {
             // Map Account entity to UserResponse
             CreateMap<Account, UserResponse>()
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
                 .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : null))
+                .ForMember(dest => dest.EmailVerified, opt => opt.MapFrom(src => src.IsVerified))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.AvatarId))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.IsActive))
-                .ForMember(dest => dest.UserName, opt => opt.Ignore()) // Account doesn't have UserName
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username))
                 .ForMember(dest => dest.Age, opt => opt.Ignore()) // Account doesn't have Age
-                .ForMember(dest => dest.Location, opt => opt.Ignore()) // Account doesn't have Location
+                .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Address))
                 .ForMember(dest => dest.Country, opt => opt.Ignore()); // Account doesn't have Country
 
             // Map Account entity to UserDetailResponse (includes base mapping from UserResponse)

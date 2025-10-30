@@ -7,6 +7,7 @@ using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,59 +20,78 @@ namespace FSCMS.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger)
         {
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
+            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
         /// Get user by ID
         /// </summary>
+        /// <param name="userId">The unique identifier of the user</param>
+        /// <returns>BaseResponse containing user information</returns>
         public async Task<BaseResponse<UserResponse>> GetUserByIdAsync(Guid userId)
         {
+            const string methodName = nameof(GetUserByIdAsync);
+            _logger.LogInformation("{MethodName} called with userId: {UserId}", methodName, userId);
+
             try
             {
-                if (userId == null)
+                // Input validation
+                if (userId == Guid.Empty)
                 {
+                    _logger.LogWarning("{MethodName}: Invalid user ID provided - {UserId}", methodName, userId);
                     return new BaseResponse<UserResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "Invalid user ID",
+                        SystemCode = "INVALID_USER_ID",
+                        Message = "User ID cannot be empty or invalid",
                         Data = null
                     };
                 }
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
+                    .AsNoTracking()
                     .Include(u => u.Role)
                     .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
                 {
+                    _logger.LogWarning("{MethodName}: User not found with ID: {UserId}", methodName, userId);
                     return new BaseResponse<UserResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
+                        SystemCode = "USER_NOT_FOUND",
                         Message = "User not found",
                         Data = null
                     };
                 }
 
+                var userResponse = _mapper.Map<UserResponse>(account);
+                _logger.LogInformation("{MethodName}: Successfully retrieved user {UserId}", methodName, userId);
+
                 return new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
+                    SystemCode = "SUCCESS",
                     Message = "User retrieved successfully",
-                    Data = _mapper.Map<UserResponse>(account)
+                    Data = userResponse
                 };
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "{MethodName}: Error retrieving user {UserId}", methodName, userId);
                 return new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred: {ex.Message}",
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = "An internal error occurred while retrieving the user",
                     Data = null
                 };
             }
@@ -80,35 +100,70 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Get user by email
         /// </summary>
-        public async Task<UserResponse> GetUserByEmailAsync(string email)
+        /// <param name="email">The email address of the user</param>
+        /// <returns>BaseResponse containing user information</returns>
+        public async Task<BaseResponse<UserResponse>> GetUserByEmailAsync(string email)
         {
+            const string methodName = nameof(GetUserByEmailAsync);
+            _logger.LogInformation("{MethodName} called with email: {Email}", methodName, email);
+
             try
             {
+                // Input validation
                 if (string.IsNullOrWhiteSpace(email))
                 {
-                    return null;
+                    _logger.LogWarning("{MethodName}: Email is null or empty", methodName);
+                    return new BaseResponse<UserResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_EMAIL",
+                        Message = "Email address is required",
+                        Data = null
+                    };
                 }
 
-                var input = email.Trim();
-                var inputLower = input.ToLower();
+                var normalizedEmail = email.Trim().ToLowerInvariant();
 
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(u => u.Role)
-                    .Where(u => !u.IsDeleted && (u.Email == input || u.Email.ToLower() == inputLower))
+                    .Where(u => !u.IsDeleted && u.Email.ToLower() == normalizedEmail)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
                 {
-                    return null;
+                    _logger.LogWarning("{MethodName}: User not found with email: {Email}", methodName, email);
+                    return new BaseResponse<UserResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        SystemCode = "USER_NOT_FOUND",
+                        Message = "User not found",
+                        Data = null
+                    };
                 }
 
-                return _mapper.Map<UserResponse>(account);
+                var userResponse = _mapper.Map<UserResponse>(account);
+                _logger.LogInformation("{MethodName}: Successfully retrieved user by email", methodName);
+
+                return new BaseResponse<UserResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    SystemCode = "SUCCESS",
+                    Message = "User retrieved successfully",
+                    Data = userResponse
+                };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return null;
+                _logger.LogError(ex, "{MethodName}: Error retrieving user by email: {Email}", methodName, email);
+                return new BaseResponse<UserResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = "An internal error occurred while retrieving the user",
+                    Data = null
+                };
             }
         }
 
@@ -349,7 +404,7 @@ namespace FSCMS.Service.Services
 
                 // Save to database
                 await _unitOfWork.Repository<Account>().InsertAsync(newAccount);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
 
                 // Reload with role information
                 var createdAccount = await _unitOfWork.Repository<Account>()
@@ -429,8 +484,8 @@ namespace FSCMS.Service.Services
                 _mapper.Map(request, account);
 
                 // Save changes
-                _unitOfWork.Repository<Account>().UpdateAsync(account);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
+                await _unitOfWork.CommitAsync();
 
                 // Reload with role information
                 var updatedAccount = await _unitOfWork.Repository<Account>()
@@ -490,8 +545,8 @@ namespace FSCMS.Service.Services
                 account.IsDeleted = true;
                 account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
-                _unitOfWork.Repository<Account>().UpdateAsync(account);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
+                await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
                 {
@@ -571,8 +626,8 @@ namespace FSCMS.Service.Services
                 account.IsVerified = true;
                 account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
-                _unitOfWork.Repository<Account>().UpdateAsync(account);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
+                await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
                 {
@@ -623,8 +678,8 @@ namespace FSCMS.Service.Services
                 account.IsActive = status;
                 account.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
-                _unitOfWork.Repository<Account>().UpdateAsync(account);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
+                await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
                 {

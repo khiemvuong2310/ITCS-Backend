@@ -98,22 +98,8 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 });
             }
 
-            var user = await _userService.GetUserByEmailAsync(email);
-            if (user == null)
-            {
-                return NotFound(new BaseResponse<UserResponse>
-                {
-                    Code = StatusCodes.Status404NotFound,
-                    Message = "User not found"
-                });
-            }
-
-            return Ok(new BaseResponse<UserResponse>
-            {
-                Code = StatusCodes.Status200OK,
-                Message = "User retrieved successfully",
-                Data = user
-            });
+            var userResponse = await _userService.GetUserByEmailAsync(email);
+            return StatusCode(userResponse.Code ?? StatusCodes.Status500InternalServerError, userResponse);
         }
 
         /// <summary>
