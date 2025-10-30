@@ -38,6 +38,8 @@ namespace FSCMS.Core.Entities
         public DateTime JoinDate { get; set; }
         public DateTime? LeaveDate { get; set; }
         public Guid AccountId { get; set; }
+
+        //Navigation properties
         public virtual Account? Account { get; set; }
         public virtual ICollection<DoctorSchedule> DoctorSchedules { get; set; } = new List<DoctorSchedule>();
         public virtual ICollection<Treatment> Treatments { get; set; } = new List<Treatment>();

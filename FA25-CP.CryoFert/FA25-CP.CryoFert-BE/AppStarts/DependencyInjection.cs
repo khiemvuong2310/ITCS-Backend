@@ -28,7 +28,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddSingleton<ITwilioRestClient>(new TwilioRestClient("ACCOUNT_SID", "AUTH_TOKEN"));
 
             // Add AutoMapper
-            services.AddAutoMapper(typeof(UserMappingProfile));
+            services.AddAutoMapper(typeof(UserMappingProfile), typeof(DoctorMappingProfile));
 
             // Add UnitOfWork and Repository Pattern
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -38,6 +38,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IEmailTemplateService, EmailTemplateService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRoleService, RoleService>(); // Role service with memory cache
+            services.AddScoped<IDoctorService, DoctorService>(); 
         }
     }
 }

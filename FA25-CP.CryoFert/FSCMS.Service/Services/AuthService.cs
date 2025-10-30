@@ -114,7 +114,8 @@ namespace FSCMS.Service.Services
                 // Check if account is banned
                 if (account.IsActive == false)
                 {
-                    var bannedUserDetails = await _userService.GetUserByEmailAsync(email);
+                    var bannedUserDetailsResponse = await _userService.GetUserByEmailAsync(email);
+                    var bannedUserDetails = bannedUserDetailsResponse?.Data;
                     return new BaseResponseForLogin<LoginResponseModel>
                     {
                         Code = StatusCodes.Status403Forbidden,
@@ -144,7 +145,8 @@ namespace FSCMS.Service.Services
                         await GetVerificationEmailTemplate(verificationCode)
                     );
 
-                    var unverifiedUserDetails = await _userService.GetUserByEmailAsync(email);
+                    var unverifiedUserDetailsResponse = await _userService.GetUserByEmailAsync(email);
+                    var unverifiedUserDetails = unverifiedUserDetailsResponse?.Data;
                     return new BaseResponseForLogin<LoginResponseModel>
                     {
                         Code = StatusCodes.Status403Forbidden,
@@ -159,7 +161,8 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                var userDetails = await _userService.GetUserByEmailAsync(email);
+                var userDetailsResponse = await _userService.GetUserByEmailAsync(email);
+                var userDetails = userDetailsResponse?.Data;
 
                 // Fallback if userDetails is null (avoid NullReference)
                 var roleName = userDetails?.RoleName;
@@ -397,19 +400,32 @@ namespace FSCMS.Service.Services
                         Message = "Email already exists",
                     };
                 }
+                // Kiểm tra role có tồn tại không
                 var role = await _unitOfWork.Repository<Role>()
                     .AsQueryable()
-                    .Where(u => u.RoleName == "Admin")
+                    .Where(u => u.Id == adminCreateAccountModel.RoleId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
+
+                if (role == null)
+                {
+                    return new BaseResponse<TokenModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid role ID",
+                    };
+                }
+
                 // Tạo account mới
                 var account = new Account()
                 {
                     Email = adminCreateAccountModel.Email,
+                    Username = adminCreateAccountModel.Username,
+                    Address = adminCreateAccountModel.Location,
                     PasswordHash = PasswordTools.HashPassword("12345678"),
                     Phone = adminCreateAccountModel.Phone,
                     IsActive = true,
                     IsVerified = true,
-                    RoleId = role.Id // Use Roles enum for Admin role
+                    RoleId = adminCreateAccountModel.RoleId
                 };
 
                 // Thêm account vào database
@@ -424,7 +440,8 @@ namespace FSCMS.Service.Services
                 );
 
                 // Lấy thông tin account và tạo token
-                var userWithRole = await _userService.GetUserByEmailAsync(account.Email);
+                var userWithRoleResponse = await _userService.GetUserByEmailAsync(account.Email);
+                var userWithRole = userWithRoleResponse?.Data;
                 var roleName = userWithRole?.RoleName ?? string.Empty;
                 string token = GenerateJwtToken(account.Email, roleName, account.Id, false);
                 string refreshToken = GenerateRefreshToken();
@@ -707,7 +724,8 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
-                var userDetails = await _userService.GetUserByEmailAsync(account.Email);
+                var userDetailsResponse = await _userService.GetUserByEmailAsync(account.Email);
+                var userDetails = userDetailsResponse?.Data;
 
                 // Dù userDetails null vẫn tiếp tục: lấy role trực tiếp và tạo token từ account
                 var roleName = userDetails?.RoleName;

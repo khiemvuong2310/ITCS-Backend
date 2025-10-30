@@ -12,9 +12,6 @@ namespace FSCMS.Core.Models
     /// <typeparam name="T">The type of items in the result set.</typeparam>
     public class PagedResult<T>
     {
-        /// <summary>
-        /// Gets or sets the collection of items in the current page.
-        /// </summary>
         public List<T> Items { get; set; }
 
         /// <summary>

@@ -29,6 +29,8 @@ namespace FSCMS.Core.Entities
         public TimeSpan EndTime { get; set; }
         public bool IsBooked { get; set; } = false;
         public string? Notes { get; set; }
+
+        //Navigation properties
         public virtual DoctorSchedule? DoctorSchedule { get; set; }
         public virtual Appointment? Appointment { get; set; }
     }
