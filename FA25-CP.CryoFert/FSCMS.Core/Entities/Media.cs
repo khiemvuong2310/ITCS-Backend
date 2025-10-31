@@ -26,7 +26,6 @@ namespace FSCMS.Core.Entities
             FileType = fileType;
             FileSize = fileSize;
             IsPublic = isPublic;
-            UploadDate = DateTime.UtcNow;
         }
 
         public string FileName { get; set; } = default!;
@@ -35,7 +34,6 @@ namespace FSCMS.Core.Entities
         public string FileType { get; set; } = default!; // "image/png", "application/pdf", etc.
         public long FileSize { get; set; } // Bytes
         public string? FileExtension { get; set; } // ".jpg", ".pdf", etc.
-        public string? MimeType { get; set; }
 
         // Liên kết logic (không có FK vật lý)
         public Guid? RelatedEntityId { get; set; } // ID của MedicalRecord, Patient, Treatment, etc.
@@ -45,13 +43,11 @@ namespace FSCMS.Core.Entities
         public string? Description { get; set; }
         public string? Category { get; set; } // "Lab Result", "Medical Image", "Consent Form", "Report"
         public string? Tags { get; set; } // JSON array of tags
-        public DateTime? UploadDate { get; set; }
         public string? UploadedBy { get; set; }
         public Guid? UploadedByUserId { get; set; }
         public bool IsPublic { get; set; } = false;
         public string? ThumbnailPath { get; set; }
         public string? StorageLocation { get; set; } // "Local", "Cloud", "S3", etc.
-        public string? CloudUrl { get; set; }
         public string? Notes { get; set; }
     }
 }
