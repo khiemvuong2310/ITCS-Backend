@@ -35,6 +35,8 @@ namespace FSCMS.Core.Entities
         public bool IsActive { get; set; } = true;
         public string? Notes { get; set; }
         public Guid AccountId { get; set; }
+
+        //Navigate properties
         public virtual Account? Account { get; set; }
         public virtual ICollection<Treatment> Treatments { get; set; } = new List<Treatment>();
         public virtual ICollection<LabSample> LabSamples { get; set; } = new List<LabSample>();
