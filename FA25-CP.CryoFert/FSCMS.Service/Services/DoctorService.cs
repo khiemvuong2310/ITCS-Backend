@@ -15,9 +15,6 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
 {
-    /// <summary>
-    /// Service implementation for doctor management operations
-    /// </summary>
     public class DoctorService : IDoctorService
     {
         private readonly IUnitOfWork _unitOfWork;
