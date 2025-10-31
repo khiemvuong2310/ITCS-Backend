@@ -52,6 +52,8 @@ public class Appointment : BaseEntity<Guid>
     public DateTime? CheckInTime { get; set; }
     public DateTime? CheckOutTime { get; set; }
     public bool IsReminderSent { get; set; } = false;
+
+    //Navigate properties
     public virtual TreatmentCycle? TreatmentCycle { get; set; }
     public virtual Slot? Slot { get; set; }
     public virtual MedicalRecord? MedicalRecord { get; set; }

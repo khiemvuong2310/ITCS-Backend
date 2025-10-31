@@ -1,4 +1,4 @@
-using System;
+    using System;
 using System.Collections.Generic;
 using FSCMS.Core.Enum;
 using FSCMS.Core.Models.Bases;
@@ -24,6 +24,8 @@ namespace FSCMS.Core.Entities
         public string? Notes { get; set; }
         public DateTime? ApprovedDate { get; set; }
         public string? ApprovedBy { get; set; }
+
+        //Navigate properties
         public virtual Appointment? Appointment { get; set; }
         public virtual ICollection<ServiceRequestDetails> ServiceRequestDetails { get; set; } = new List<ServiceRequestDetails>();
     }

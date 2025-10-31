@@ -7,9 +7,6 @@ using System.Security.Claims;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
-    /// <summary>
-    /// Doctor Management Controller - Handles doctor CRUD operations
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
