@@ -9,6 +9,7 @@ namespace FSCMS.Core.Entities
     // - 1-1 với Account (AccountId)
     // - 1-n với DoctorSchedule (lịch làm việc của bác sĩ)
     // - 1-n với Treatment (bác sĩ phụ trách nhiều đợt điều trị)
+    // - n-n với Appointment (thông qua AppointmentDoctor) - một bác sĩ có thể phụ trách nhiều cuộc hẹn
     public class Doctor : BaseEntity<Guid>
     {
         protected Doctor() : base() { }
@@ -43,5 +44,6 @@ namespace FSCMS.Core.Entities
         public virtual Account? Account { get; set; }
         public virtual ICollection<DoctorSchedule> DoctorSchedules { get; set; } = new List<DoctorSchedule>();
         public virtual ICollection<Treatment> Treatments { get; set; } = new List<Treatment>();
+        public virtual ICollection<AppointmentDoctor> AppointmentDoctors { get; set; } = new List<AppointmentDoctor>();
     }
 }

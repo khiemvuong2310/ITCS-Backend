@@ -34,6 +34,7 @@ namespace FSCMS.Core
         public DbSet<TreatmentIVF> TreatmentIVFs { get; set; }
         public DbSet<TreatmentCycle> TreatmentCycles { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<AppointmentDoctor> AppointmentDoctors { get; set; }
         public DbSet<MedicalRecord> MedicalRecords { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionDetail> PrescriptionDetails { get; set; }
@@ -189,6 +190,24 @@ namespace FSCMS.Core
                 .WithMany(tc => tc.Appointments)
                 .HasForeignKey(a => a.TreatmentCycleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Appointment & Doctor Relationship (Many-to-Many through AppointmentDoctor)
+            modelBuilder.Entity<AppointmentDoctor>()
+                .HasOne(ad => ad.Appointment)
+                .WithMany(a => a.AppointmentDoctors)
+                .HasForeignKey(ad => ad.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AppointmentDoctor>()
+                .HasOne(ad => ad.Doctor)
+                .WithMany(d => d.AppointmentDoctors)
+                .HasForeignKey(ad => ad.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint: một Appointment không thể có cùng một Doctor nhiều lần
+            modelBuilder.Entity<AppointmentDoctor>()
+                .HasIndex(ad => new { ad.AppointmentId, ad.DoctorId })
+                .IsUnique();
 
             // MedicalRecord & Appointment Relationship (One-to-One)
             modelBuilder.Entity<MedicalRecord>()
