@@ -71,6 +71,11 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IServiceService, ServiceService>(); // Service management with category filtering
             services.AddScoped<IServiceRequestService, ServiceRequestService>(); // Service request workflow management
             services.AddScoped<IServiceRequestDetailsService, ServiceRequestDetailsService>(); // Service request details management 
+
+            // Treatment Servicess - Fertility Treatment Management
+            services.AddScoped<ITreatmentService, TreatmentService>();
+            services.AddScoped<ITreatmentIVFService, TreatmentIVFService>();
+            services.AddScoped<ITreatmentIUIService, TreatmentIUIService>();
         }
     }
 }

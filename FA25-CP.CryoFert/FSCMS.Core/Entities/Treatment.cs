@@ -49,6 +49,8 @@ namespace FSCMS.Core.Entities
 
         public decimal? EstimatedCost { get; set; }
         public decimal? ActualCost { get; set; }
+
+        // Navigation properties
         public virtual Patient? Patient { get; set; }
         public virtual Doctor? Doctor { get; set; }
 
