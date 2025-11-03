@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
+using FSCMS.Core.Interfaces;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,12 +23,24 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<PatientService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMailService _mailService;
+        private readonly IEmailTemplateService _emailTemplateService;
 
-        public PatientService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<PatientService> logger)
+        public PatientService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ILogger<PatientService> logger,
+            IHttpContextAccessor httpContextAccessor,
+            IMailService mailService,
+            IEmailTemplateService emailTemplateService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _mailService = mailService ?? throw new ArgumentNullException(nameof(mailService));
+            _emailTemplateService = emailTemplateService ?? throw new ArgumentNullException(nameof(emailTemplateService));
         }
 
         #region Patient CRUD Operations
@@ -660,7 +674,7 @@ namespace FSCMS.Service.Services
         #region Relationship CRUD Operations
 
         /// <summary>
-        /// Creates a new relationship between patients
+        /// Creates a new relationship between patients with email confirmation workflow
         /// </summary>
         public async Task<BaseResponse<RelationshipResponse>> CreateRelationshipAsync(CreateRelationshipRequest request)
         {
@@ -669,33 +683,78 @@ namespace FSCMS.Service.Services
 
             try
             {
+                // 1. Input validation
                 if (request == null)
                 {
+                    _logger.LogWarning("{MethodName}: Request is null", methodName);
                     return BaseResponse<RelationshipResponse>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "RELATIONSHIP_001");
                 }
 
                 if (request.Patient1Id == request.Patient2Id)
                 {
+                    _logger.LogWarning("{MethodName}: Patient cannot have relationship with themselves", methodName);
                     return BaseResponse<RelationshipResponse>.CreateError("Patient cannot have relationship with themselves", StatusCodes.Status400BadRequest, "RELATIONSHIP_002");
                 }
 
-                // Check if both patients exist
+                // 2. Authorization check - Only Patient can create their own relationship requests
+                var currentAccountId = GetCurrentAccountId();
+                if (currentAccountId == null)
+                {
+                    _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You must be logged in to create relationship requests", StatusCodes.Status401Unauthorized, "RELATIONSHIP_401");
+                }
+
+                // Get current patient by account ID
+                var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                {
+                    _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: Only patients can create relationship requests", StatusCodes.Status403Forbidden, "RELATIONSHIP_403");
+                }
+
+                var currentPatientId = currentPatientResult.Data.Id;
+
+                // Verify that Patient1Id matches current patient (only patients can create requests for themselves)
+                if (request.Patient1Id != currentPatientId)
+                {
+                    _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to create relationship for another patient {Patient1Id}", methodName, currentPatientId, request.Patient1Id);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You can only create relationship requests for yourself", StatusCodes.Status403Forbidden, "RELATIONSHIP_403_FORBIDDEN");
+                }
+
+                // 3. Verify both patients exist with account information
                 var patient1 = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
+                    .Include(p => p.Account)
                     .Where(p => p.Id == request.Patient1Id && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 var patient2 = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
+                    .Include(p => p.Account)
                     .Where(p => p.Id == request.Patient2Id && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (patient1 == null || patient2 == null)
                 {
+                    _logger.LogWarning("{MethodName}: One or both patients not found - Patient1: {Patient1Id}, Patient2: {Patient2Id}", methodName, request.Patient1Id, request.Patient2Id);
                     return BaseResponse<RelationshipResponse>.CreateError("One or both patients not found", StatusCodes.Status404NotFound, "RELATIONSHIP_003");
                 }
 
-                // Check if relationship already exists
+                if (patient1.Account == null || patient2.Account == null)
+                {
+                    _logger.LogWarning("{MethodName}: One or both patients do not have account information", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Patient account information is missing", StatusCodes.Status404NotFound, "RELATIONSHIP_003_ACCOUNT");
+                }
+
+                // 4. Business rules validation
+                var validationResult = await ValidateRelationshipBusinessRulesAsync(patient1, patient2, request.RelationshipType);
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogWarning("{MethodName}: Business rule validation failed - {Error}", methodName, validationResult.ErrorMessage);
+                    return BaseResponse<RelationshipResponse>.CreateError(validationResult.ErrorMessage, StatusCodes.Status400BadRequest, validationResult.ErrorCode);
+                }
+
+                // 5. Check for existing pending/approved relationship
                 var existingRelationship = await _unitOfWork.Repository<Relationship>()
                     .AsQueryable()
                     .Where(r => ((r.Patient1Id == request.Patient1Id && r.Patient2Id == request.Patient2Id) ||
@@ -705,25 +764,61 @@ namespace FSCMS.Service.Services
 
                 if (existingRelationship != null)
                 {
-                    return BaseResponse<RelationshipResponse>.CreateError("Relationship already exists", StatusCodes.Status409Conflict, "RELATIONSHIP_004");
+                    if (existingRelationship.Status == RelationshipStatus.Pending)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship request already pending", methodName);
+                        return BaseResponse<RelationshipResponse>.CreateError("A pending relationship request already exists", StatusCodes.Status409Conflict, "RELATIONSHIP_004_PENDING");
+                    }
+                    else if (existingRelationship.Status == RelationshipStatus.Approved)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship already approved", methodName);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship already exists and is approved", StatusCodes.Status409Conflict, "RELATIONSHIP_004_APPROVED");
+                    }
                 }
 
-                // Map and create relationship
-                var relationship = _mapper.Map<Relationship>(request);
+                // 6. Create relationship with Pending status
+                var relationship = new Relationship(
+                    Guid.NewGuid(),
+                    request.Patient1Id,
+                    request.Patient2Id,
+                    request.RelationshipType
+                )
+                {
+                    EstablishedDate = request.EstablishedDate,
+                    Notes = request.Notes,
+                    IsActive = request.IsActive,
+                    Status = RelationshipStatus.Pending,
+                    RequestedBy = currentPatientId,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7) // 7-day expiration for pending requests
+                };
+
                 await _unitOfWork.Repository<Relationship>().InsertAsync(relationship);
                 await _unitOfWork.CommitAsync();
 
-                _logger.LogInformation("{MethodName} - Relationship created successfully with ID: {RelationshipId}", methodName, relationship.Id);
+                _logger.LogInformation("{MethodName}: Relationship request created successfully with ID: {RelationshipId}", methodName, relationship.Id);
 
-                // Get created relationship with patient info
+                // 7. Send email confirmation to Patient2
+                try
+                {
+                    await SendRelationshipConfirmationEmailAsync(relationship, patient1, patient2);
+                    _logger.LogInformation("{MethodName}: Confirmation email sent to {Email}", methodName, patient2.Account.Email);
+                }
+                catch (Exception emailEx)
+                {
+                    // Log email error but don't fail the request
+                    _logger.LogError(emailEx, "{MethodName}: Failed to send confirmation email to {Email}", methodName, patient2.Account.Email);
+                    // Continue - relationship is created, email can be retried later
+                }
+
+                // 8. Return response
                 var createdRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
                 var response = _mapper.Map<RelationshipResponse>(createdRelationship);
 
-                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship created successfully", StatusCodes.Status201Created);
+                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship request created successfully. A confirmation email has been sent to the recipient.", StatusCodes.Status201Created);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName} - Error creating relationship: {ErrorMessage}", methodName, ex.Message);
+                _logger.LogError(ex, "{MethodName}: Error creating relationship: {ErrorMessage}", methodName, ex.Message);
                 return BaseResponse<RelationshipResponse>.CreateError($"An error occurred while creating relationship: {ex.Message}", StatusCodes.Status500InternalServerError, "RELATIONSHIP_500");
             }
         }
@@ -1517,6 +1612,427 @@ namespace FSCMS.Service.Services
                     .ThenInclude(p => p.Account)
                 .Where(r => r.Id == relationshipId && !r.IsDeleted)
                 .FirstOrDefaultAsync();
+        }
+
+        #endregion
+
+        #region Relationship Status Operations
+
+        /// <summary>
+        /// Approves a pending relationship request
+        /// </summary>
+        public async Task<BaseResponse<RelationshipResponse>> ApproveRelationshipAsync(ApproveRelationshipRequest request)
+        {
+            const string methodName = nameof(ApproveRelationshipAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                if (request == null || request.RelationshipId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid request or relationship ID", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Invalid request or relationship ID", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_001");
+                }
+
+                // Get relationship with patient information
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Include(r => r.Patient1)
+                        .ThenInclude(p => p.Account)
+                    .Include(r => r.Patient2)
+                        .ThenInclude(p => p.Account)
+                    .Where(r => r.Id == request.RelationshipId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (relationship == null)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship not found - {RelationshipId}", methodName, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship not found", StatusCodes.Status404NotFound, "RELATIONSHIP_APPROVE_002");
+                }
+
+                // Authorization check - Only Patient2 can approve the request
+                var currentAccountId = GetCurrentAccountId();
+                if (currentAccountId == null)
+                {
+                    _logger.LogWarning("{MethodName}: Unauthorized - No account ID found", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You must be logged in", StatusCodes.Status401Unauthorized, "RELATIONSHIP_APPROVE_401");
+                }
+
+                var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                {
+                    _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: Only patients can approve relationship requests", StatusCodes.Status403Forbidden, "RELATIONSHIP_APPROVE_403");
+                }
+
+                var currentPatientId = currentPatientResult.Data.Id;
+
+                // Verify that current patient is Patient2 (the recipient)
+                if (relationship.Patient2Id != currentPatientId)
+                {
+                    _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to approve relationship for another patient", methodName, currentPatientId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You can only approve relationship requests sent to you", StatusCodes.Status403Forbidden, "RELATIONSHIP_APPROVE_403_FORBIDDEN");
+                }
+
+                // Status validation
+                if (relationship.Status != RelationshipStatus.Pending)
+                {
+                    if (relationship.Status == RelationshipStatus.Approved)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship already approved - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship is already approved", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_003_APPROVED");
+                    }
+                    else if (relationship.Status == RelationshipStatus.Rejected)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship was rejected - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship request was already rejected", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_003_REJECTED");
+                    }
+                    else if (relationship.Status == RelationshipStatus.Expired)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship request expired - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship request has expired", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_003_EXPIRED");
+                    }
+                }
+
+                // Check expiration
+                if (relationship.ExpiresAt.HasValue && relationship.ExpiresAt.Value < DateTime.UtcNow)
+                {
+                    relationship.Status = RelationshipStatus.Expired;
+                    relationship.UpdatedAt = DateTime.UtcNow;
+                    await _unitOfWork.Repository<Relationship>().UpdateGuid(relationship, relationship.Id);
+                    await _unitOfWork.CommitAsync();
+
+                    _logger.LogWarning("{MethodName}: Relationship request expired - {RelationshipId}", methodName, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship request has expired", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_003_EXPIRED");
+                }
+
+                // Update relationship status
+                relationship.Status = RelationshipStatus.Approved;
+                relationship.RespondedBy = currentPatientId;
+                relationship.RespondedAt = DateTime.UtcNow;
+                relationship.IsActive = true;
+                relationship.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<Relationship>().UpdateGuid(relationship, relationship.Id);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Relationship approved successfully - {RelationshipId}", methodName, request.RelationshipId);
+
+                // Send notification email to Patient1
+                try
+                {
+                    if (relationship.Patient1?.Account != null)
+                    {
+                        await SendRelationshipApprovalEmailAsync(relationship, relationship.Patient1, relationship.Patient2!);
+                        _logger.LogInformation("{MethodName}: Approval notification email sent to {Email}", methodName, relationship.Patient1.Account.Email);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "{MethodName}: Failed to send approval notification email", methodName);
+                }
+
+                // Return response
+                var updatedRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
+                var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+
+                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship approved successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error approving relationship: {ErrorMessage}", methodName, ex.Message);
+                return BaseResponse<RelationshipResponse>.CreateError($"An error occurred while approving relationship: {ex.Message}", StatusCodes.Status500InternalServerError, "RELATIONSHIP_APPROVE_500");
+            }
+        }
+
+        /// <summary>
+        /// Rejects a pending relationship request
+        /// </summary>
+        public async Task<BaseResponse<RelationshipResponse>> RejectRelationshipAsync(RejectRelationshipRequest request)
+        {
+            const string methodName = nameof(RejectRelationshipAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                if (request == null || request.RelationshipId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid request or relationship ID", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Invalid request or relationship ID", StatusCodes.Status400BadRequest, "RELATIONSHIP_REJECT_001");
+                }
+
+                // Get relationship with patient information
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Include(r => r.Patient1)
+                        .ThenInclude(p => p.Account)
+                    .Include(r => r.Patient2)
+                        .ThenInclude(p => p.Account)
+                    .Where(r => r.Id == request.RelationshipId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (relationship == null)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship not found - {RelationshipId}", methodName, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship not found", StatusCodes.Status404NotFound, "RELATIONSHIP_REJECT_002");
+                }
+
+                // Authorization check - Only Patient2 can reject the request
+                var currentAccountId = GetCurrentAccountId();
+                if (currentAccountId == null)
+                {
+                    _logger.LogWarning("{MethodName}: Unauthorized - No account ID found", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You must be logged in", StatusCodes.Status401Unauthorized, "RELATIONSHIP_REJECT_401");
+                }
+
+                var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                {
+                    _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: Only patients can reject relationship requests", StatusCodes.Status403Forbidden, "RELATIONSHIP_REJECT_403");
+                }
+
+                var currentPatientId = currentPatientResult.Data.Id;
+
+                // Verify that current patient is Patient2 (the recipient)
+                if (relationship.Patient2Id != currentPatientId)
+                {
+                    _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to reject relationship for another patient", methodName, currentPatientId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You can only reject relationship requests sent to you", StatusCodes.Status403Forbidden, "RELATIONSHIP_REJECT_403_FORBIDDEN");
+                }
+
+                // Status validation
+                if (relationship.Status != RelationshipStatus.Pending)
+                {
+                    if (relationship.Status == RelationshipStatus.Approved)
+                    {
+                        _logger.LogWarning("{MethodName}: Cannot reject already approved relationship - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Cannot reject an already approved relationship", StatusCodes.Status400BadRequest, "RELATIONSHIP_REJECT_003_APPROVED");
+                    }
+                    else if (relationship.Status == RelationshipStatus.Rejected)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship already rejected - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship request was already rejected", StatusCodes.Status400BadRequest, "RELATIONSHIP_REJECT_003_REJECTED");
+                    }
+                    else if (relationship.Status == RelationshipStatus.Expired)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship request expired - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship request has expired", StatusCodes.Status400BadRequest, "RELATIONSHIP_REJECT_003_EXPIRED");
+                    }
+                }
+
+                // Update relationship status
+                relationship.Status = RelationshipStatus.Rejected;
+                relationship.RespondedBy = currentPatientId;
+                relationship.RespondedAt = DateTime.UtcNow;
+                relationship.RejectionReason = request.RejectionReason;
+                relationship.IsActive = false;
+                relationship.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<Relationship>().UpdateGuid(relationship, relationship.Id);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Relationship rejected successfully - {RelationshipId}", methodName, request.RelationshipId);
+
+                // Send notification email to Patient1 (optional - HIPAA compliance consideration)
+                try
+                {
+                    if (relationship.Patient1?.Account != null)
+                    {
+                        await SendRelationshipRejectionEmailAsync(relationship, relationship.Patient1, relationship.Patient2!, request.RejectionReason);
+                        _logger.LogInformation("{MethodName}: Rejection notification email sent to {Email}", methodName, relationship.Patient1.Account.Email);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "{MethodName}: Failed to send rejection notification email", methodName);
+                }
+
+                // Return response
+                var updatedRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
+                var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+
+                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship rejected successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error rejecting relationship: {ErrorMessage}", methodName, ex.Message);
+                return BaseResponse<RelationshipResponse>.CreateError($"An error occurred while rejecting relationship: {ex.Message}", StatusCodes.Status500InternalServerError, "RELATIONSHIP_REJECT_500");
+            }
+        }
+
+        #endregion
+
+        #region Private Helper Methods
+
+        /// <summary>
+        /// Gets current account ID from JWT token
+        /// </summary>
+        private Guid? GetCurrentAccountId()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return null;
+                }
+                return accountId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting current account ID from token");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Validates business rules for relationship creation
+        /// </summary>
+        private async Task<(bool IsValid, string ErrorMessage, string ErrorCode)> ValidateRelationshipBusinessRulesAsync(
+            Patient patient1, Patient patient2, RelationshipType relationshipType)
+        {
+            // Spouse relationship validation (1-1 rule)
+            if (relationshipType == RelationshipType.Wife || relationshipType == RelationshipType.Husband)
+            {
+                // Check if Patient1 already has an approved spouse
+                var existingSpouse1 = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Where(r => (r.Patient1Id == patient1.Id || r.Patient2Id == patient1.Id) &&
+                               (r.RelationshipType == RelationshipType.Wife || r.RelationshipType == RelationshipType.Husband) &&
+                               r.Status == RelationshipStatus.Approved &&
+                               !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (existingSpouse1 != null)
+                {
+                    return (false, "Patient already has an approved spouse relationship. Only one spouse relationship is allowed per patient.", "RELATIONSHIP_VALIDATION_001_SPOUSE_1");
+                }
+
+                // Check if Patient2 already has an approved spouse
+                var existingSpouse2 = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Where(r => (r.Patient1Id == patient2.Id || r.Patient2Id == patient2.Id) &&
+                               (r.RelationshipType == RelationshipType.Wife || r.RelationshipType == RelationshipType.Husband) &&
+                               r.Status == RelationshipStatus.Approved &&
+                               !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (existingSpouse2 != null)
+                {
+                    return (false, "The other patient already has an approved spouse relationship. Only one spouse relationship is allowed per patient.", "RELATIONSHIP_VALIDATION_001_SPOUSE_2");
+                }
+            }
+
+            // Age validation for parent-child relationships (if added in future)
+            // This is a placeholder for future implementation
+            // if (relationshipType == RelationshipType.Parent || relationshipType == RelationshipType.Child)
+            // {
+            //     var ageDifference = CalculateAgeDifference(patient1, patient2);
+            //     if (ageDifference < MIN_PARENT_CHILD_AGE_DIFFERENCE)
+            //     {
+            //         return (false, "Age difference is insufficient for parent-child relationship", "RELATIONSHIP_VALIDATION_002_AGE");
+            //     }
+            // }
+
+            return (true, string.Empty, string.Empty);
+        }
+
+        /// <summary>
+        /// Sends relationship confirmation email to Patient2
+        /// </summary>
+        private async Task SendRelationshipConfirmationEmailAsync(Relationship relationship, Patient patient1, Patient patient2)
+        {
+            if (patient2.Account == null || string.IsNullOrWhiteSpace(patient2.Account.Email))
+            {
+                _logger.LogWarning("Cannot send email: Patient2 does not have a valid email address");
+                return;
+            }
+
+            var patient1Name = $"{patient1.Account?.FirstName} {patient1.Account?.LastName}".Trim();
+            var patient2Name = $"{patient2.Account?.FirstName} {patient2.Account?.LastName}".Trim();
+            var relationshipTypeName = relationship.RelationshipType.ToString();
+
+            var subject = $"Relationship Request from {patient1Name}";
+            var baseUrl = _httpContextAccessor.HttpContext?.Request?.Scheme + "://" + _httpContextAccessor.HttpContext?.Request?.Host;
+            var approvalUrl = $"{baseUrl}/api/relationship/approve/{relationship.Id}";
+            var rejectionUrl = $"{baseUrl}/api/relationship/reject/{relationship.Id}";
+            var expiresAt = relationship.ExpiresAt?.ToString("yyyy-MM-dd HH:mm") ?? "N/A";
+
+            var body = await _emailTemplateService.GetRelationshipConfirmationTemplateAsync(
+                patient1Name,
+                patient2Name,
+                relationshipTypeName,
+                expiresAt,
+                approvalUrl,
+                rejectionUrl,
+                relationship.Notes
+            );
+
+            await _mailService.SendEmailAsync(
+                patient2.Account.Email,
+                subject,
+                body
+            );
+        }
+
+        /// <summary>
+        /// Sends relationship approval notification email to Patient1
+        /// </summary>
+        private async Task SendRelationshipApprovalEmailAsync(Relationship relationship, Patient patient1, Patient patient2)
+        {
+            if (patient1.Account == null || string.IsNullOrWhiteSpace(patient1.Account.Email))
+            {
+                _logger.LogWarning("Cannot send email: Patient1 does not have a valid email address");
+                return;
+            }
+
+            var patient1Name = $"{patient1.Account?.FirstName} {patient1.Account?.LastName}".Trim();
+            var patient2Name = $"{patient2.Account?.FirstName} {patient2.Account?.LastName}".Trim();
+            var relationshipTypeName = relationship.RelationshipType.ToString();
+
+            var subject = $"Relationship Request Approved";
+            var body = await _emailTemplateService.GetRelationshipApprovalTemplateAsync(
+                patient1Name,
+                patient2Name,
+                relationshipTypeName
+            );
+
+            await _mailService.SendEmailAsync(
+                patient1.Account.Email,
+                subject,
+                body
+            );
+        }
+
+        /// <summary>
+        /// Sends relationship rejection notification email to Patient1
+        /// </summary>
+        private async Task SendRelationshipRejectionEmailAsync(Relationship relationship, Patient patient1, Patient patient2, string? rejectionReason)
+        {
+            if (patient1.Account == null || string.IsNullOrWhiteSpace(patient1.Account.Email))
+            {
+                _logger.LogWarning("Cannot send email: Patient1 does not have a valid email address");
+                return;
+            }
+
+            var patient1Name = $"{patient1.Account?.FirstName} {patient1.Account?.LastName}".Trim();
+            var patient2Name = $"{patient2.Account?.FirstName} {patient2.Account?.LastName}".Trim();
+            var relationshipTypeName = relationship.RelationshipType.ToString();
+
+            var subject = $"Relationship Request Update";
+            var body = await _emailTemplateService.GetRelationshipRejectionTemplateAsync(
+                patient1Name,
+                patient2Name,
+                relationshipTypeName,
+                rejectionReason
+            );
+
+            await _mailService.SendEmailAsync(
+                patient1.Account.Email,
+                subject,
+                body
+            );
         }
 
         #endregion

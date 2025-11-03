@@ -133,6 +133,20 @@ namespace FSCMS.Service.Interfaces
         /// <returns>Operation result</returns>
         Task<BaseResponse> DeleteRelationshipAsync(Guid relationshipId);
 
+        /// <summary>
+        /// Approves a pending relationship request
+        /// </summary>
+        /// <param name="request">Approve relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> ApproveRelationshipAsync(ApproveRelationshipRequest request);
+
+        /// <summary>
+        /// Rejects a pending relationship request
+        /// </summary>
+        /// <param name="request">Reject relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> RejectRelationshipAsync(RejectRelationshipRequest request);
+
         #endregion
 
         #region Search and Utility Operations

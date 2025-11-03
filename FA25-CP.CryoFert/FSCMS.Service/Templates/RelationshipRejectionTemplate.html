@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        background-color: #f0f2f5;
+        padding: 0;
+        margin: 0;
+      }
+      .container {
+        padding: 30px;
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        max-width: 600px;
+        margin: 40px auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        color: #ffffff;
+        background-color: #f44336;
+        padding: 20px;
+        margin: -30px -30px 20px -30px;
+        border-radius: 10px 10px 0 0;
+      }
+      .content {
+        font-size: 16px;
+        color: #555;
+        line-height: 1.8;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+      .info-message {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin: 15px 0;
+        border-radius: 4px;
+      }
+      .rejection-reason {
+        background-color: #ffebee;
+        border-left: 4px solid #f44336;
+        padding: 12px;
+        margin: 15px 0;
+        border-radius: 4px;
+      }
+      .footer {
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">Relationship Request Update</div>
+      <div class="content">
+        <p>Dear {patient1Name},</p>
+        <div class="info-message">
+          <p>Your request to establish a <strong>{relationshipTypeName}</strong> relationship with <strong>{patient2Name}</strong> has not been approved.</p>
+        </div>
+        {rejectionReason}
+        <p>If you have any questions, please contact our support team.</p>
+      </div>
+
+      <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>&copy; {year} Healthcare/Fertility Management System. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>
+

@@ -249,6 +249,30 @@ namespace FSCMS.Service.RequestModel
     }
 
     /// <summary>
+    /// Request model for approving a relationship request
+    /// </summary>
+    public class ApproveRelationshipRequest
+    {
+        [JsonPropertyName("relationshipId")]
+        [Required(ErrorMessage = "Relationship ID is required.")]
+        public Guid RelationshipId { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for rejecting a relationship request
+    /// </summary>
+    public class RejectRelationshipRequest
+    {
+        [JsonPropertyName("relationshipId")]
+        [Required(ErrorMessage = "Relationship ID is required.")]
+        public Guid RelationshipId { get; set; }
+
+        [JsonPropertyName("rejectionReason")]
+        [StringLength(500, ErrorMessage = "Rejection reason cannot exceed 500 characters.")]
+        public string? RejectionReason { get; set; }
+    }
+
+    /// <summary>
     /// Request model for updating patient status
     /// </summary>
     public class UpdatePatientStatusRequest

@@ -23,6 +23,33 @@ namespace FSCMS.Core.Entities
         public DateTime? EstablishedDate { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
+        public RelationshipStatus Status { get; set; } = RelationshipStatus.Pending;
+
+        /// <summary>
+        /// Patient ID người tạo request
+        /// Note: CreatedAt từ BaseEntity = thời điểm request được gửi
+        /// </summary>
+        public Guid? RequestedBy { get; set; }
+
+        /// <summary>
+        /// Patient ID người phản hồi request
+        /// </summary>
+        public Guid? RespondedBy { get; set; }
+
+        /// <summary>
+        /// Thời điểm phản hồi (approve/reject)
+        /// </summary>
+        public DateTime? RespondedAt { get; set; }
+
+        /// <summary>
+        /// Thời điểm hết hạn của pending request
+        /// Tính từ CreatedAt + X ngày
+        /// </summary>
+        public DateTime? ExpiresAt { get; set; }
+        public string? RejectionReason { get; set; }
+
+
+        //Navigate properties
         public virtual Patient? Patient1 { get; set; }
         public virtual Patient? Patient2 { get; set; }
     }
