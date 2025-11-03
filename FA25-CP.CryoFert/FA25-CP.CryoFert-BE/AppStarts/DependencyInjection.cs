@@ -60,6 +60,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IEmailTemplateService, EmailTemplateService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ILabSampleService, LabSampleService>();
             services.AddScoped<IRoleService, RoleService>(); // Role service with memory cache
             services.AddScoped<IDoctorService, DoctorService>(); // Doctor service with comprehensive CRUD operations
             services.AddScoped<IPatientService, PatientService>(); // Patient service with comprehensive CRUD operations
