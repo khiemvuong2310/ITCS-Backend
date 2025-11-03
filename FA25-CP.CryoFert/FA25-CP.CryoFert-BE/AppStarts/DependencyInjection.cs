@@ -76,6 +76,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<ITreatmentService, TreatmentService>();
             services.AddScoped<ITreatmentIVFService, TreatmentIVFService>();
             services.AddScoped<ITreatmentIUIService, TreatmentIUIService>();
+            services.AddScoped<ITreatmentCycleService, TreatmentCycleService>();
         }
     }
 }
