@@ -1,15 +1,16 @@
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FSCMS.Core.Enum;
 
 namespace FSCMS.Service.Interfaces;
 
 public interface ICryoLocationService
 {
-    Task<CryoLocationResponse> CreateAsync(CryoLocationCreateRequest request);
-    Task<CryoLocationResponse> UpdateAsync(Guid id, CryoLocationUpdateRequest request);
-    Task<bool> DeleteAsync(Guid id);
-    Task<CryoLocationResponse?> GetByIdAsync(Guid id);
-    Task<List<CryoLocationResponse>> GetAllAsync();
-    Task<List<CryoLocationResponse>> GetHierarchyAsync();
-    Task<int> CheckAvailableCapacityAsync(Guid locationId);
+    Task<DynamicResponse<CryoLocationSummaryResponse>> CreateDefaultBankAsync();
+    Task<DynamicResponse<CryoLocationSummaryResponse>> GetInitialTreeAsync(SampleType? sampleType = null);
+    Task<BaseResponse<CryoLocationResponse?>> GetByIdAsync(Guid id);
+    Task<DynamicResponse<CryoLocationSummaryResponse>> GetChildrenAsync(Guid parentId, bool? isActive = null);
+    Task<BaseResponse<CryoLocationFullTreeResponse>> GetFullTreeByTankIdAsync(Guid tankId);
+    Task<BaseResponse<CryoLocationResponse>> UpdateAsync(Guid id, CryoLocationUpdateRequest request);
+    Task<BaseResponse> DeleteAsync(Guid id);
 }

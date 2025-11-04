@@ -7,21 +7,24 @@ namespace FSCMS.Service.RequestModel
 {
     public class CryoLocationCreateRequest
     {
-        public string Name { get; set; } = default!;
-        public FSCMS.Core.Enum.CryoLocationType Type { get; set; }
-        public FSCMS.Core.Enum.SampleType SampleType { get; set; } = FSCMS.Core.Enum.SampleType.None;
+        public CryoLocationType Type { get; set; }
+        public SampleType SampleType { get; set; }
         public Guid? ParentId { get; set; }
         public int? Capacity { get; set; }
         public bool IsActive { get; set; } = true;
+        public decimal? Temperature { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class CryoLocationUpdateRequest
     {
-        public string Name { get; set; } = default!;
-        public FSCMS.Core.Enum.CryoLocationType Type { get; set; }
-        public FSCMS.Core.Enum.SampleType SampleType { get; set; } = FSCMS.Core.Enum.SampleType.None;
+        public CryoLocationType Type { get; set; }
+        public SampleType SampleType { get; set; }
         public Guid? ParentId { get; set; }
         public int? Capacity { get; set; }
+        public int SampleCount { get; set; }
         public bool IsActive { get; set; }
+        public decimal? Temperature { get; set; }
+        public string? Notes { get; set; }
     }
 }

@@ -24,8 +24,23 @@ public class CryoLocationMapping : Profile
             .ForMember(dest => dest.CryoImports, opt => opt.Ignore())
             .ForMember(dest => dest.CryoExports, opt => opt.Ignore());
 
-        // Entity → Response
+        // CryoLocation -> CryoLocationResponse
         CreateMap<CryoLocation, CryoLocationResponse>()
-            .ForMember(dest => dest.Children, opt => opt.MapFrom(src => src.Children));
+            .ForMember(dest => dest.AvailableCapacity,
+                       opt => opt.MapFrom(src => (src.Capacity ?? 0) - src.SampleCount));
+
+        // CryoLocation -> CryoLocationSummaryResponse
+        CreateMap<CryoLocation, CryoLocationSummaryResponse>();
+
+
+        // CryoLocation -> CryoLocationFullTreeResponse (recursive)
+        CreateMap<CryoLocation, CryoLocationFullTreeResponse>()
+            .ForMember(dest => dest.AvailableCapacity,
+                       opt => opt.MapFrom(src => (src.Capacity ?? 0) - src.SampleCount))
+            .ForMember(dest => dest.Children,
+                       opt => opt.MapFrom(src => src.Children != null
+                                                 ? src.Children.Where(c => !c.IsDeleted).ToList()
+                                                 : new List<CryoLocation>()));
+
     }
 }

@@ -1,12 +1,14 @@
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
+using FSCMS.Core.Models;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -20,29 +22,38 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<CryoLocationService> _logger;
+        private readonly IConfiguration _configuration;
 
-        public CryoLocationService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CryoLocationService> logger)
+        public CryoLocationService(
+            IUnitOfWork unitOfWork, 
+            IMapper mapper, 
+            ILogger<CryoLocationService> logger,
+            IConfiguration configuration)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
-        public async Task<BaseResponse<List<CryoLocationResponse>>> CreateDefaultBankAsync()
+        /// <summary>
+        /// Create default CryoBank structure based on appsettings.json configuration
+        /// </summary>
+        public async Task<DynamicResponse<CryoLocationSummaryResponse>> CreateDefaultBankAsync()
         {
             const string methodName = nameof(CreateDefaultBankAsync);
             _logger.LogInformation("{MethodName} called", methodName);
 
             try
             {
-                // Check if CryoBank already exists
-                var existingTanks = await _unitOfWork.Repository<CryoLocation>()
+                // Check if already initialized
+                var exists = await _unitOfWork.Repository<CryoLocation>()
                     .AsQueryable()
-                    .AnyAsync(x => x.Type == CryoLocationType.Tank);
+                    .AnyAsync(x => x.Type == CryoLocationType.Tank && !x.IsDeleted);
 
-                if (existingTanks)
+                if (exists)
                 {
-                    return new BaseResponse<List<CryoLocationResponse>>
+                    return new DynamicResponse<CryoLocationSummaryResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
                         SystemCode = "BANK_ALREADY_EXISTS",
@@ -51,8 +62,11 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                // Load configuration
+                // Load CryoBankConfig from appsettings.json
                 var config = _configuration.GetSection("CryoBankConfig").Get<CryoBankConfig>();
+                if (config == null)
+                    throw new Exception("CryoBankConfig missing in configuration.");
+
                 var allNodes = new List<CryoLocation>();
 
                 foreach (var tankConfig in config.Tanks)
@@ -61,11 +75,16 @@ namespace FSCMS.Service.Services
                     {
                         var tank = new CryoLocation
                         {
-                            Id = Guid.NewGuid(),
-                            Name = $"{tankConfig.SampleType} Tank {t + 1}",
+                            Name = $"{tankConfig.SampleType} Tank{t + 1}",
+                            Capacity = config.CanisterPerTank * config.GobletPerCanister * config.SlotPerGoblet,
+                            Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}",
+                            SampleCount = 0,
+                            Temperature = -196,
+                            Notes = "Initial",
                             Type = CryoLocationType.Tank,
                             SampleType = tankConfig.SampleType,
-                            IsActive = true
+                            IsActive = true,
+                            Children = new List<CryoLocation>()
                         };
                         allNodes.Add(tank);
 
@@ -74,13 +93,18 @@ namespace FSCMS.Service.Services
                         {
                             var canister = new CryoLocation
                             {
-                                Id = Guid.NewGuid(),
-                                Name = $"Canister {c + 1} of {tank.Name}",
+                                Name = $"{tank.Name} Canister{c + 1}",
+                                Capacity = config.GobletPerCanister * config.SlotPerGoblet,
+                                Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}",
+                                SampleCount = 0,
+                                Temperature = -196,
+                                Notes = "Initial",
                                 Type = CryoLocationType.Canister,
                                 SampleType = tankConfig.SampleType,
                                 ParentId = tank.Id,
                                 Parent = tank,
-                                IsActive = true
+                                IsActive = true,
+                                Children = new List<CryoLocation>()
                             };
                             tank.Children.Add(canister);
                             allNodes.Add(canister);
@@ -90,13 +114,18 @@ namespace FSCMS.Service.Services
                             {
                                 var goblet = new CryoLocation
                                 {
-                                    Id = Guid.NewGuid(),
-                                    Name = $"Goblet {g + 1} of {canister.Name}",
+                                    Name = $"{canister.Name} Goblet{g + 1}",
+                                    Capacity = config.SlotPerGoblet,
+                                    Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}-G{g + 1}",
+                                    SampleCount = 0,
+                                    Temperature = -196,
+                                    Notes = "Initial",
                                     Type = CryoLocationType.Goblet,
                                     SampleType = tankConfig.SampleType,
                                     ParentId = canister.Id,
                                     Parent = canister,
-                                    IsActive = true
+                                    IsActive = true,
+                                    Children = new List<CryoLocation>()
                                 };
                                 canister.Children.Add(goblet);
                                 allNodes.Add(goblet);
@@ -106,8 +135,12 @@ namespace FSCMS.Service.Services
                                 {
                                     var slot = new CryoLocation
                                     {
-                                        Id = Guid.NewGuid(),
-                                        Name = $"Slot {s + 1} of {goblet.Name}",
+                                        Name = $"{goblet.Name} Slot {s + 1}",
+                                        Capacity = 1,
+                                        Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}-G{g + 1}-S{s + 1}",
+                                        SampleCount = 0,
+                                        Temperature = -196,
+                                        Notes = "Initial",
                                         Type = CryoLocationType.Slot,
                                         SampleType = tankConfig.SampleType,
                                         ParentId = goblet.Id,
@@ -122,376 +155,287 @@ namespace FSCMS.Service.Services
                     }
                 }
 
-                await _unitOfWork.Repository<CryoLocation>().InsertRangeAsync(allNodes);
+                await _unitOfWork.Repository<CryoLocation>().InsertRangeAsync(allNodes.AsQueryable());
                 await _unitOfWork.CommitAsync();
 
-                return new BaseResponse<List<CryoLocationResponse>>
+                return new DynamicResponse<CryoLocationSummaryResponse>
                 {
                     Code = StatusCodes.Status201Created,
                     SystemCode = "SUCCESS",
                     Message = "Default CryoBank created successfully",
-                    Data = _mapper.Map<List<CryoLocationResponse>>(allNodes.Where(x => x.Type == CryoLocationType.Tank).ToList())
+                    Data = _mapper.Map<List<CryoLocationSummaryResponse>>(allNodes.Where(x => x.Type == CryoLocationType.Tank))
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "{MethodName}: Error creating default CryoBank", methodName);
-                return new BaseResponse<List<CryoLocationResponse>>
+                return new DynamicResponse<CryoLocationSummaryResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
                     SystemCode = "INTERNAL_ERROR",
-                    Message = "An error occurred while creating the CryoBank",
+                    Message = ex.Message,
                     Data = null
                 };
             }
         }
 
-        // public async Task<BaseResponse<CryoLocationResponse>> UpdateAsync(Guid id, CryoLocationUpdateRequest request)
-        // {
-        //     const string methodName = nameof(UpdateAsync);
-        //     _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
+        public async Task<DynamicResponse<CryoLocationSummaryResponse>> GetInitialTreeAsync(SampleType? sampleType = null)
+        {
+            const string methodName = nameof(GetInitialTreeAsync);
+            _logger.LogInformation("{MethodName} called with sampleType: {SampleType}", methodName, sampleType);
 
-        //     try
-        //     {
-        //         var entity = await _unitOfWork.Repository<CryoLocation>().AsQueryable()
-        //             .Include(x => x.Children)
-        //             .Include(x => x.LabSamples)
-        //             .FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var query = _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .Where(c => c.ParentId == null && !c.IsDeleted);
 
-        //         if (entity == null)
-        //         {
-        //             return new BaseResponse<CryoLocationResponse>
-        //             {
-        //                 Code = StatusCodes.Status404NotFound,
-        //                 SystemCode = "NOT_FOUND",
-        //                 Message = "CryoLocation not found",
-        //                 Data = null
-        //             };
-        //         }
+                if (sampleType.HasValue)
+                    query = query.Where(c => c.SampleType == sampleType.Value);
 
-        //         _mapper.Map(request, entity);
-        //         await _unitOfWork.Repository<CryoLocation>().UpdateGuid(entity, entity.Id);
-        //         await _unitOfWork.CommitAsync();
+                var topNodes = await query.ToListAsync();
+                var response = _mapper.Map<List<CryoLocationSummaryResponse>>(topNodes);
 
-        //         return new BaseResponse<CryoLocationResponse>
-        //         {
-        //             Code = StatusCodes.Status200OK,
-        //             SystemCode = "SUCCESS",
-        //             Message = "CryoLocation updated successfully",
-        //             Data = _mapper.Map<CryoLocationResponse>(entity)
-        //         };
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "{MethodName}: Error updating CryoLocation", methodName);
-        //         return new BaseResponse<CryoLocationResponse>
-        //         {
-        //             Code = StatusCodes.Status500InternalServerError,
-        //             SystemCode = "INTERNAL_ERROR",
-        //             Message = "An error occurred while updating CryoLocation",
-        //             Data = null
-        //         };
-        //     }
-        // }
+                return new DynamicResponse<CryoLocationSummaryResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Top-level locations retrieved",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving initial tree", methodName);
+                return new DynamicResponse<CryoLocationSummaryResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error",
+                    Data = new List<CryoLocationSummaryResponse>()
+                };
+            }
+        }
 
-        // public async Task<BaseResponse> DeleteAsync(Guid id)
-        // {
-        //     const string methodName = nameof(DeleteAsync);
-        //     _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
-
-        //     try
-        //     {
-        //         var entity = await _unitOfWork.Repository<CryoLocation>().AsQueryable()
-        //             .Include(x => x.Children)
-        //             .Include(x => x.LabSamples)
-        //             .FirstOrDefaultAsync(x => x.Id == id);
-
-        //         if (entity == null)
-        //         {
-        //             return new BaseResponse
-        //             {
-        //                 Code = StatusCodes.Status404NotFound,
-        //                 SystemCode = "NOT_FOUND",
-        //                 Message = "CryoLocation not found"
-        //             };
-        //         }
-
-        //         if (entity.Children.Any() || entity.LabSamples.Any())
-        //         {
-        //             return new BaseResponse
-        //             {
-        //                 Code = StatusCodes.Status400BadRequest,
-        //                 SystemCode = "HAS_DEPENDENCIES",
-        //                 Message = "Cannot delete location with children or samples"
-        //             };
-        //         }
-
-        //         await _unitOfWork.Repository<CryoLocation>().DeleteAsync(entity);
-        //         await _unitOfWork.CommitAsync();
-
-        //         return new BaseResponse
-        //         {
-        //             Code = StatusCodes.Status200OK,
-        //             SystemCode = "SUCCESS",
-        //             Message = "CryoLocation deleted successfully"
-        //         };
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "{MethodName}: Error deleting CryoLocation", methodName);
-        //         return new BaseResponse
-        //         {
-        //             Code = StatusCodes.Status500InternalServerError,
-        //             SystemCode = "INTERNAL_ERROR",
-        //             Message = "An error occurred while deleting CryoLocation"
-        //         };
-        //     }
-        // }
-
-        public async Task<BaseResponse<CryoLocationResponse>> GetByIdAsync(Guid id)
+        public async Task<BaseResponse<CryoLocationResponse?>> GetByIdAsync(Guid id)
         {
             const string methodName = nameof(GetByIdAsync);
             _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
 
             try
             {
-                var entity = await _unitOfWork.Repository<CryoLocation>().AsQueryable()
-                    .Include(x => x.Children)
-                    .FirstOrDefaultAsync(x => x.Id == id);
+                var entity = await _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .Where(c => c.Id == id && !c.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (entity == null)
+                {
+                    return new BaseResponse<CryoLocationResponse?>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Location not found",
+                        Data = null
+                    };
+                }
+
+                var response = _mapper.Map<CryoLocationResponse>(entity);
+                return new BaseResponse<CryoLocationResponse?>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Location retrieved successfully",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving location", methodName);
+                return new BaseResponse<CryoLocationResponse?>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error",
+                    Data = null
+                };
+            }
+        }
+
+        public async Task<DynamicResponse<CryoLocationSummaryResponse>> GetChildrenAsync(Guid parentId, bool? isActive = null)
+        {
+            const string methodName = nameof(GetChildrenAsync);
+            _logger.LogInformation("{MethodName} called with parentId: {ParentId}, isActive: {IsActive}", methodName, parentId, isActive);
+
+            try
+            {
+                var query = _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .Where(c => c.ParentId == parentId && !c.IsDeleted);
+
+                if (isActive.HasValue)
+                    query = query.Where(c => c.IsActive == isActive.Value);
+
+                var children = await query.ToListAsync();
+                var response = _mapper.Map<List<CryoLocationSummaryResponse>>(children);
+
+                return new DynamicResponse<CryoLocationSummaryResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Children retrieved",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving children", methodName);
+                return new DynamicResponse<CryoLocationSummaryResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error",
+                    Data = new List<CryoLocationSummaryResponse>()
+                };
+            }
+        }
+
+        public async Task<BaseResponse<CryoLocationFullTreeResponse>> GetFullTreeByTankIdAsync(Guid tankId)
+        {
+            const string methodName = nameof(GetFullTreeByTankIdAsync);
+            _logger.LogInformation("{MethodName} called with tankId: {TankId}", methodName, tankId);
+
+            try
+            {
+                var root = await _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .Include(c => c.Children) // recursive load handled in memory
+                    .Where(c => c.Id == tankId && !c.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (root == null)
+                {
+                    return new BaseResponse<CryoLocationFullTreeResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Tank not found",
+                        Data = null
+                    };
+                }
+
+                // Recursively map tree
+                CryoLocationFullTreeResponse MapTree(CryoLocation node)
+                {
+                    var mapped = _mapper.Map<CryoLocationFullTreeResponse>(node);
+                    if (node.Children != null && node.Children.Any())
+                    {
+                        mapped.Children = node.Children
+                            .Where(c => !c.IsDeleted)
+                            .Select(MapTree)
+                            .ToList();
+                    }
+                    return mapped;
+                }
+
+                var fullTree = MapTree(root);
+
+                return new BaseResponse<CryoLocationFullTreeResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Full tree retrieved",
+                    Data = fullTree
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving full tree", methodName);
+                return new BaseResponse<CryoLocationFullTreeResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error",
+                    Data = null
+                };
+            }
+        }
+
+        public async Task<BaseResponse<CryoLocationResponse>> UpdateAsync(Guid id, CryoLocationUpdateRequest request)
+        {
+            const string methodName = nameof(UpdateAsync);
+            _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
+
+            try
+            {
+                var entity = await _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .Where(c => c.Id == id && !c.IsDeleted)
+                    .FirstOrDefaultAsync();
 
                 if (entity == null)
                 {
                     return new BaseResponse<CryoLocationResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
-                        SystemCode = "NOT_FOUND",
-                        Message = "CryoLocation not found",
-                        Data = null
+                        Message = "Location not found"
                     };
                 }
 
+                _mapper.Map(request, entity);
+                await _unitOfWork.Repository<CryoLocation>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+
+                var response = _mapper.Map<CryoLocationResponse>(entity);
                 return new BaseResponse<CryoLocationResponse>
                 {
                     Code = StatusCodes.Status200OK,
-                    SystemCode = "SUCCESS",
-                    Message = "CryoLocation retrieved successfully",
-                    Data = _mapper.Map<CryoLocationResponse>(entity)
+                    Message = "Location updated successfully",
+                    Data = response
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error retrieving CryoLocation", methodName);
+                _logger.LogError(ex, "{MethodName}: Error updating location", methodName);
                 return new BaseResponse<CryoLocationResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
-                    SystemCode = "INTERNAL_ERROR",
-                    Message = "An error occurred while retrieving CryoLocation",
+                    Message = "Internal server error",
                     Data = null
                 };
             }
         }
 
-        // public async Task<BaseResponse<List<CryoLocationResponse>>> GetAllAsync()
-        // {
-        //     const string methodName = nameof(GetAllAsync);
-        //     _logger.LogInformation("{MethodName} called", methodName);
-
-        //     try
-        //     {
-        //         var list = await _unitOfWork.Repository<CryoLocation>().AsQueryable().ToListAsync();
-        //         return new BaseResponse<List<CryoLocationResponse>>
-        //         {
-        //             Code = StatusCodes.Status200OK,
-        //             SystemCode = "SUCCESS",
-        //             Message = "CryoLocations retrieved successfully",
-        //             Data = _mapper.Map<List<CryoLocationResponse>>(list)
-        //         };
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "{MethodName}: Error retrieving CryoLocations", methodName);
-        //         return new BaseResponse<List<CryoLocationResponse>>
-        //         {
-        //             Code = StatusCodes.Status500InternalServerError,
-        //             SystemCode = "INTERNAL_ERROR",
-        //             Message = "An error occurred while retrieving CryoLocations",
-        //             Data = null
-        //         };
-        //     }
-        // }
-
-        public async Task<BaseResponse<List<CryoLocationResponse>>> GetHierarchyAsync()
+        public async Task<BaseResponse> DeleteAsync(Guid id)
         {
-            const string methodName = nameof(GetHierarchyAsync);
-            _logger.LogInformation("{MethodName} called", methodName);
+            const string methodName = nameof(DeleteAsync);
+            _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
 
             try
             {
-                var allLocations = await _unitOfWork.Repository<CryoLocation>()
+                var entity = await _unitOfWork.Repository<CryoLocation>()
                     .AsQueryable()
-                    .Include(x => x.LabSamples)
-                    .ToListAsync();
+                    .Where(c => c.Id == id && !c.IsDeleted)
+                    .FirstOrDefaultAsync();
 
-                // Build tree recursively
-                List<CryoLocationResponse> BuildTree(Guid? parentId)
+                if (entity == null)
                 {
-                    return allLocations
-                        .Where(x => x.ParentId == parentId)
-                        .Select(x => new CryoLocationResponse
-                        {
-                            Id = x.Id,
-                            Name = x.Name,
-                            ParentId = x.ParentId,
-                            Capacity = x.Capacity,
-                            CurrentSampleCount = x.LabSamples.Count,
-                            Children = BuildTree(x.Id)
-                        })
-                        .ToList();
-                }
-
-                var tree = BuildTree(null); // root nodes
-                return new BaseResponse<List<CryoLocationResponse>>
-                {
-                    Code = StatusCodes.Status200OK,
-                    SystemCode = "SUCCESS",
-                    Message = "CryoLocation full hierarchy retrieved successfully",
-                    Data = tree
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "{MethodName}: Error retrieving full hierarchy", methodName);
-                return new BaseResponse<List<CryoLocationResponse>>
-                {
-                    Code = StatusCodes.Status500InternalServerError,
-                    SystemCode = "INTERNAL_ERROR",
-                    Message = "An error occurred while retrieving CryoLocation hierarchy",
-                    Data = null
-                };
-            }
-        }
-
-        public async Task<BaseResponse<List<CryoLocationSummaryResponse>>> GetAllTanksAsync(SampleType? sampleType = null)
-        {
-            const string methodName = nameof(GetAllTanksAsync);
-            _logger.LogInformation("{MethodName} called", methodName);
-
-            try
-            {
-                var query = _unitOfWork.Repository<CryoLocation>().AsQueryable()
-                    .Where(x => x.ParentId == null);
-
-                if (sampleType.HasValue)
-                    query = query.Where(x => x.SampleType == sampleType.Value);
-
-                var tanks = await query.ToListAsync();
-
-                var result = tanks.Select(t => new CryoLocationSummaryResponse
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    SampleType = t.SampleType,
-                    TotalCapacity = t.Capacity ?? 0,
-                    CurrentCount = t.LabSamples.Count
-                }).ToList();
-
-                return new BaseResponse<List<CryoLocationSummaryResponse>>
-                {
-                    Code = StatusCodes.Status200OK,
-                    SystemCode = "SUCCESS",
-                    Message = "Tanks retrieved successfully",
-                    Data = result
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "{MethodName}: Error retrieving tanks", methodName);
-                return new BaseResponse<List<CryoLocationSummaryResponse>>
-                {
-                    Code = StatusCodes.Status500InternalServerError,
-                    SystemCode = "INTERNAL_ERROR",
-                    Message = "An error occurred while retrieving tanks",
-                    Data = null
-                };
-            }
-        }
-
-        public async Task<BaseResponse<List<CryoLocationResponse>>> GetChildrenAsync(Guid parentId)
-        {
-            const string methodName = nameof(GetChildrenAsync);
-            _logger.LogInformation("{MethodName} called with parentId: {ParentId}", methodName, parentId);
-
-            try
-            {
-                var children = await _unitOfWork.Repository<CryoLocation>().AsQueryable()
-                    .Where(x => x.ParentId == parentId)
-                    .Include(x => x.LabSamples) // nếu muốn hiển thị số lượng sample
-                    .ToListAsync();
-
-                var result = _mapper.Map<List<CryoLocationResponse>>(children);
-
-                return new BaseResponse<List<CryoLocationResponse>>
-                {
-                    Code = StatusCodes.Status200OK,
-                    SystemCode = "SUCCESS",
-                    Message = "Child locations retrieved successfully",
-                    Data = result
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "{MethodName}: Error retrieving children", methodName);
-                return new BaseResponse<List<CryoLocationResponse>>
-                {
-                    Code = StatusCodes.Status500InternalServerError,
-                    SystemCode = "INTERNAL_ERROR",
-                    Message = "An error occurred while retrieving children",
-                    Data = null
-                };
-            }
-        }
-
-
-        public async Task<BaseResponse<int>> CheckAvailableCapacityAsync(Guid locationId)
-        {
-            const string methodName = nameof(CheckAvailableCapacityAsync);
-            _logger.LogInformation("{MethodName} called with locationId: {Id}", methodName, locationId);
-
-            try
-            {
-                var location = await _unitOfWork.Repository<CryoLocation>().AsQueryable()
-                    .Include(x => x.LabSamples)
-                    .FirstOrDefaultAsync(x => x.Id == locationId);
-
-                if (location == null)
-                {
-                    return new BaseResponse<int>
+                    return new BaseResponse
                     {
                         Code = StatusCodes.Status404NotFound,
-                        SystemCode = "NOT_FOUND",
-                        Message = "CryoLocation not found",
-                        Data = 0
+                        Message = "Location not found"
                     };
                 }
 
-                int available = location.Capacity.HasValue ? location.Capacity.Value - location.LabSamples.Count : int.MaxValue;
-                return new BaseResponse<int>
+                entity.IsDeleted = true;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<CryoLocation>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+
+                return new BaseResponse
                 {
                     Code = StatusCodes.Status200OK,
-                    SystemCode = "SUCCESS",
-                    Message = "Available capacity retrieved successfully",
-                    Data = available
+                    Message = "Location deleted successfully"
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error checking capacity", methodName);
-                return new BaseResponse<int>
+                _logger.LogError(ex, "{MethodName}: Error deleting location", methodName);
+                return new BaseResponse
                 {
                     Code = StatusCodes.Status500InternalServerError,
-                    SystemCode = "INTERNAL_ERROR",
-                    Message = "An error occurred while checking capacity",
-                    Data = 0
+                    Message = "Internal server error"
                 };
             }
         }

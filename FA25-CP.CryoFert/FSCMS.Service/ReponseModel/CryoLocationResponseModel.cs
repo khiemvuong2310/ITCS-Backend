@@ -9,24 +9,43 @@ namespace FSCMS.Service.ReponseModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = default!;
-        public FSCMS.Core.Enum.CryoLocationType Type { get; set; }
-        public FSCMS.Core.Enum.SampleType SampleType { get; set; }
+        public string Code { get; set; } = default!;
+        public CryoLocationType Type { get; set; }
+        public SampleType SampleType { get; set; }
         public Guid? ParentId { get; set; }
         public int? Capacity { get; set; }
+        public int SampleCount { get; set; }
+        public int AvailableCapacity { get; set; }
         public bool IsActive { get; set; }
         public decimal? Temperature { get; set; }
         public string? Notes { get; set; }
-        public int CurrentSampleCount { get; set; }
-        public List<CryoLocationResponse> Children { get; set; } = new();
+        // public List<CryoLocationResponse> Children { get; set; } = new();
     }
 
     public class CryoLocationSummaryResponse
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;
+        public string Code { get; set; } = default!;
         public SampleType SampleType { get; set; }
-        public int TotalCapacity { get; set; }
-        public int CurrentCount { get; set; }
+        public int SampleCount { get; set; }
+    }
+
+    public class CryoLocationFullTreeResponse
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = default!;
+        public string Code { get; set; } = default!;
+        public CryoLocationType Type { get; set; }
+        public SampleType SampleType { get; set; }
+        public Guid? ParentId { get; set; }
+        public int? Capacity { get; set; }
+        public int SampleCount { get; set; }
+        public int AvailableCapacity { get; set; }
+        public bool IsActive { get; set; }
+        public decimal? Temperature { get; set; }
+        public string? Notes { get; set; }
+        public List<CryoLocationFullTreeResponse> Children { get; set; } = new();
     }
 
 }
