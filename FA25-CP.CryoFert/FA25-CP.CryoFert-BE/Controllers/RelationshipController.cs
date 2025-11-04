@@ -27,14 +27,16 @@ namespace FA25_CP.CryoFert_BE.Controllers
         #region Relationship CRUD Operations
 
         /// <summary>
-        /// Creates a new relationship between patients
+        /// Creates a new relationship between patients (with email confirmation workflow)
         /// </summary>
         /// <param name="request">Relationship creation request</param>
         /// <returns>Created relationship response</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Admin,Receptionist,Patient")]
         [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
@@ -45,7 +47,8 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 return BadRequest(new BaseResponse<RelationshipResponse>
                 {
                     Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid request data"
+                    Message = "Invalid request data",
+                    SystemCode = "INVALID_REQUEST"
                 });
             }
 
@@ -143,6 +146,68 @@ namespace FA25_CP.CryoFert_BE.Controllers
         public async Task<IActionResult> DeleteRelationship(Guid id)
         {
             var result = await _patientService.DeleteRelationshipAsync(id);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        #endregion
+
+        #region Relationship Status Operations
+
+        /// <summary>
+        /// Approves a pending relationship request
+        /// </summary>
+        /// <param name="request">Approve relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        [HttpPost("approve")]
+        [Authorize(Roles = "Admin,Receptionist,Patient")]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ApproveRelationship([FromBody] ApproveRelationshipRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<RelationshipResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid request data",
+                    SystemCode = "INVALID_REQUEST"
+                });
+            }
+
+            var result = await _patientService.ApproveRelationshipAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Rejects a pending relationship request
+        /// </summary>
+        /// <param name="request">Reject relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        [HttpPost("reject")]
+        [Authorize(Roles = "Admin,Receptionist,Patient")]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> RejectRelationship([FromBody] RejectRelationshipRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<RelationshipResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid request data",
+                    SystemCode = "INVALID_REQUEST"
+                });
+            }
+
+            var result = await _patientService.RejectRelationshipAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

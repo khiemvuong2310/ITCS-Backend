@@ -43,14 +43,20 @@
 	  <Folder Include="Controllers\" />
 	</ItemGroup>
 
-	<!-- Copy Templates to output directory -->
+	<!-- Copy .env to output directory -->
 	<ItemGroup>
-		<None Update="Templates\**\*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
 		<None Update=".env">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+		<!-- Exclude Templates folder from publish (templates are copied from FSCMS.Service) -->
+		<Content Update="Templates\**\*">
+			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Content>
+		<None Update="Templates\**\*">
+			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 </Project>

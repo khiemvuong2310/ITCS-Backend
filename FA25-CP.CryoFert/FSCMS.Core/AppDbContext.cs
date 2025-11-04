@@ -52,6 +52,7 @@ namespace FSCMS.Core
         // ========== Nhóm 5: Hợp đồng & Gói dịch vụ ==========
         public DbSet<CryoPackage> CryoPackages { get; set; }
         public DbSet<CryoStorageContract> CryoStorageContracts { get; set; }
+        public DbSet<Agreement> Agreements { get; set; }
         public DbSet<CPSDetail> CPSDetails { get; set; }
 
         // ========== Nhóm 6: Bảng Phụ trợ ==========
@@ -300,7 +301,7 @@ namespace FSCMS.Core
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ========================================
-            // Nhóm 5: CryoPackage, CryoStorageContract, CPSDetail
+            // Nhóm 5: CryoPackage, CryoStorageContract, Agreement, CPSDetail
             // ========================================
 
             // CryoStorageContract & Patient Relationship
@@ -329,6 +330,19 @@ namespace FSCMS.Core
                 .WithMany(ls => ls.CPSDetails)
                 .HasForeignKey(cpsd => cpsd.LabSampleId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Agreement Relationships
+            modelBuilder.Entity<Agreement>()
+                .HasOne(a => a.Treatment)
+                .WithMany()
+                .HasForeignKey(a => a.TreatmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Agreement>()
+                .HasOne(a => a.Patient)
+                .WithMany()
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // ========================================
             // Nhóm 6: Transaction & Media

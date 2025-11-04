@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,9 @@ using Twilio.Clients;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Services;
 using FSCMS.Service.Interfaces;
+using FSCMS.Core.Interfaces;
+using FSCMS.Core.Services;
+using FSCMS.Core.Models.Options;
 using AutoMapper;
 using FSCMS.Service.Mapping;
 
@@ -33,6 +37,25 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             // Add UnitOfWork and Repository Pattern
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+            // Configure MailServiceOptions from configuration
+            services.Configure<MailServiceOptions>(options =>
+            {
+                configuration.GetSection("Email").Bind(options);
+                
+                // Map Email section to MailServiceOptions
+                options.SmtpServer = configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+                options.SmtpPort = int.Parse(configuration["Email:SmtpPort"] ?? "587");
+                options.UseSsl = true;
+                options.SenderEmail = configuration["Email:Sender"] ?? string.Empty;
+                options.SenderName = configuration["Email:SenderName"] ?? "CryoFert - Fertility Management System";
+                options.Username = configuration["Email:Sender"] ?? string.Empty;
+                options.Password = configuration["Email:Password"] ?? string.Empty;
+                options.TemplatesPath = "Templates"; // Templates folder path
+            });
+
+            // Register Mail Service
+            services.AddScoped<IMailService, SmtpMailService>();
+
             // Add Service Layer
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IEmailTemplateService, EmailTemplateService>();
@@ -42,12 +65,20 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IDoctorService, DoctorService>(); // Doctor service with comprehensive CRUD operations
             services.AddScoped<IPatientService, PatientService>(); // Patient service with comprehensive CRUD operations
             services.AddScoped<IAppointmentService, AppointmentService>(); // Appointment service with comprehensive CRUD operations
+            services.AddScoped<ICryoLocationService, CryoLocationService>();
+            services.AddScoped<INotificationService, NotificationService>();
             
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
             services.AddScoped<IServiceService, ServiceService>(); // Service management with category filtering
             services.AddScoped<IServiceRequestService, ServiceRequestService>(); // Service request workflow management
             services.AddScoped<IServiceRequestDetailsService, ServiceRequestDetailsService>(); // Service request details management 
+
+            // Treatment Servicess - Fertility Treatment Management
+            services.AddScoped<ITreatmentService, TreatmentService>();
+            services.AddScoped<ITreatmentIVFService, TreatmentIVFService>();
+            services.AddScoped<ITreatmentIUIService, TreatmentIUIService>();
+            services.AddScoped<ITreatmentCycleService, TreatmentCycleService>();
         }
     }
 }
