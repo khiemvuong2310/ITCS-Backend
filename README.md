@@ -25,6 +25,16 @@ Built with **ASP.NET Core 8.0 Web API** following **Clean Architecture** and **D
 
 ---
 
+## 🌐 Live Demo
+
+You can access the hosted API on MonsterASP here:
+
+👉 **Swagger UI:** [https://cryofert.runasp.net/swagger/index.html](https://cryofert.runasp.net/swagger/index.html)
+
+> 🧭 This is the live deployment of the ASP.NET Core Web API for demonstration and testing purposes.
+
+---
+
 ## 🧩 Core Features
 
 ### 👩‍⚕️ Patient Management
@@ -37,7 +47,7 @@ Built with **ASP.NET Core 8.0 Web API** following **Clean Architecture** and **D
 - Assign doctors to appointments or treatment cycles  
 
 ### 📅 Appointment Management
-- Booking, approving, canceling appointments  
+- Booking, approving, and canceling appointments  
 - Doctor confirmation workflow  
 - Appointment and schedule tracking  
 
@@ -107,11 +117,17 @@ dotnet ef database update
 dotnet run --project WebAPI
 ```
 
-The API will be available at:
+The API will be available locally at:
 
 ```
 https://localhost:5001
 http://localhost:5000
+```
+
+Or use the hosted version:
+
+```
+https://cryofert.runasp.net/swagger/index.html
 ```
 
 ---
@@ -120,11 +136,13 @@ http://localhost:5000
 
 Swagger UI is automatically generated at runtime.
 
-```
-https://localhost:5001/swagger
-```
+**🔗 Local:**
+`https://localhost:5001/swagger`
 
-You can explore all available endpoints, models, and responses directly in the Swagger UI.
+**🔗 Online:**
+[https://cryofert.runasp.net/swagger/index.html](https://cryofert.runasp.net/swagger/index.html)
+
+You can explore all available endpoints, models, and responses directly in Swagger UI.
 
 ---
 
@@ -191,7 +209,7 @@ CI/CD pipeline setup (GitHub Actions, Azure, or Docker)
 **Docker example:**
 
 ```bash
-docker build -t fertility-backend .
+docker build -t fertility-backend.
 docker run -d -p 8080:80 fertility-backend
 ```
 
