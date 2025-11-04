@@ -21,7 +21,7 @@ public class CryoLocation : BaseEntity<Guid>
         Guid? parentId = null,
         int? capacity = null,
         int sampleCount = 0,
-        SampleType sampleType = SampleType.None,
+        SampleType sampleType = SampleType.Embryo,
         bool isActive = true
     )
     {
@@ -38,7 +38,7 @@ public class CryoLocation : BaseEntity<Guid>
     public string Name { get; set; } = default!;
     public string Code { get; set; } = default!;
     public CryoLocationType Type { get; set; }
-    public SampleType SampleType { get; set; } = SampleType.None;
+    public SampleType SampleType { get; set; }
     public Guid? ParentId { get; set; }
     public int? Capacity { get; set; }
     public int SampleCount { get; set; } = 0;
