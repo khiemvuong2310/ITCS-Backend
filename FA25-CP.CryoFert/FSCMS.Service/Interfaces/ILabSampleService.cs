@@ -8,7 +8,7 @@ namespace FSCMS.Service.Interfaces
 {
     public interface ILabSampleService
     {
-        Task<BaseResponse<LabSampleResponse>> GetByIdAsync(Guid id);
+        Task<BaseResponse<LabSampleDetailResponse>> GetByIdAsync(Guid id);
         Task<DynamicResponse<LabSampleResponse>> GetAllAsync(GetLabSamplesRequest request);
         Task<BaseResponse<LabSampleResponse>> CreateAsync(CreateLabSampleRequest request);
         Task<BaseResponse<LabSampleResponse>> UpdateAsync(Guid id, UpdateLabSampleRequest request);
