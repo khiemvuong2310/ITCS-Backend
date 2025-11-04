@@ -25,8 +25,8 @@ namespace FSCMS.Service.Services
         private readonly IConfiguration _configuration;
 
         public CryoLocationService(
-            IUnitOfWork unitOfWork, 
-            IMapper mapper, 
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
             ILogger<CryoLocationService> logger,
             IConfiguration configuration)
         {
@@ -403,12 +403,13 @@ namespace FSCMS.Service.Services
 
             try
             {
-                var entity = await _unitOfWork.Repository<CryoLocation>()
+                // 1. Lấy node cần xóa
+                var node = await _unitOfWork.Repository<CryoLocation>()
                     .AsQueryable()
-                    .Where(c => c.Id == id && !c.IsDeleted)
-                    .FirstOrDefaultAsync();
+                    .Include(n => n.Children) // load children để check recursive
+                    .FirstOrDefaultAsync(n => n.Id == id && !n.IsDeleted);
 
-                if (entity == null)
+                if (node == null)
                 {
                     return new BaseResponse
                     {
@@ -417,10 +418,22 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                entity.IsDeleted = true;
-                entity.UpdatedAt = DateTime.UtcNow;
+                // 2. Kiểm tra node hiện tại và tất cả node con có sample
+                if (node.SampleCount>0)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Cannot delete node because it or its children contain samples"
+                    };
+                }
 
-                await _unitOfWork.Repository<CryoLocation>().UpdateGuid(entity, entity.Id);
+                // 3. Soft delete node và tất cả con
+                await SoftDeleteRecursive(node);
+
+                // 4. Cập nhật lại SampleCount và Capacity cho các node cha
+                await UpdateParentCountsRecursive(node.ParentId);
+
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
@@ -439,5 +452,49 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        private async Task SoftDeleteRecursive(CryoLocation node)
+        {
+            node.IsDeleted = true;
+            node.UpdatedAt = DateTime.UtcNow;
+            await _unitOfWork.Repository<CryoLocation>().UpdateGuid(node, node.Id);
+
+            var children = await _unitOfWork.Repository<CryoLocation>()
+                .AsQueryable()
+                .Where(c => c.ParentId == node.Id && !c.IsDeleted)
+                .ToListAsync();
+
+            foreach (var child in children)
+            {
+                await SoftDeleteRecursive(child);
+            }
+        }
+
+        private async Task UpdateParentCountsRecursive(Guid? parentId)
+        {
+            if (!parentId.HasValue)
+                return;
+
+            var parent = await _unitOfWork.Repository<CryoLocation>()
+                .AsQueryable()
+                .Include(p => p.Children)
+                .FirstOrDefaultAsync(p => p.Id == parentId.Value && !p.IsDeleted);
+
+            if (parent == null)
+                return;
+
+            // Tính lại SampleCount từ tất cả children chưa xóa
+            parent.SampleCount = parent.Children
+                .Where(c => !c.IsDeleted)
+                .Sum(c => c.SampleCount);
+
+            // Capacity không thay đổi, nếu muốn tính lại theo children thì có thể update thêm logic ở đây
+
+            await _unitOfWork.Repository<CryoLocation>().UpdateGuid(parent, parent.Id);
+
+            // Đi lên cha tiếp theo
+            await UpdateParentCountsRecursive(parent.ParentId);
+        }
+
     }
 }
