@@ -11,31 +11,37 @@ public class CryoLocation : BaseEntity<Guid>
     // - Tự tham chiếu: Parent/Children (cây thư mục vị trí)
     // - 1-n với LabSample (mẫu đang được lưu tại vị trí)
     // - 1-n với CryoImport/CryoExport (các giao dịch nhập/xuất liên quan)
-    protected CryoLocation() : base() { }
+    public CryoLocation() : base() { }
 
     public CryoLocation(
         Guid id,
         string name,
+        string code,
         CryoLocationType type,
         Guid? parentId = null,
         int? capacity = null,
+        int sampleCount = 0,
         SampleType sampleType = SampleType.None,
         bool isActive = true
     )
     {
         Id = id;
         Name = name;
+        Code = code;
         Type = type;
         ParentId = parentId;
         Capacity = capacity;
+        SampleCount = sampleCount;
         SampleType = sampleType;
         IsActive = isActive;
     }
     public string Name { get; set; } = default!;
+    public string Code { get; set; } = default!;
     public CryoLocationType Type { get; set; }
     public SampleType SampleType { get; set; } = SampleType.None;
     public Guid? ParentId { get; set; }
     public int? Capacity { get; set; }
+    public int SampleCount { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public decimal? Temperature { get; set; }
     public string? Notes { get; set; }

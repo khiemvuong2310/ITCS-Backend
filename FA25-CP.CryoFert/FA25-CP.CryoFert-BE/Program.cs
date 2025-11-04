@@ -33,6 +33,12 @@ namespace FA25_CP.CryoFert_BE
             // Exception handler 
             builder.Services.AddProblemDetails();
 
+            builder.Services.AddControllers().AddJsonOptions(opts =>
+            {
+                opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
+
             // 3. DbContext config (MySQL)
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
