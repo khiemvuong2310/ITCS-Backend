@@ -18,11 +18,6 @@ namespace FSCMS.Service.RequestModel
 
     public class CryoLocationUpdateRequest
     {
-        public CryoLocationType Type { get; set; }
-        public SampleType SampleType { get; set; }
-        public Guid? ParentId { get; set; }
-        public int? Capacity { get; set; }
-        public int SampleCount { get; set; }
         public bool IsActive { get; set; }
         public decimal? Temperature { get; set; }
         public string? Notes { get; set; }

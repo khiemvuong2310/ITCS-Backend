@@ -7,7 +7,7 @@ namespace FSCMS.Core.Enum
         Test = 3,
         Payment = 4,
         Treatment = 5,
-        System = 6,
+        Relationship = 6,
         Reminder = 7
     }
 }
