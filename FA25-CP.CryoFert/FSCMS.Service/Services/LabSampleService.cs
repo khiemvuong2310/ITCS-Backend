@@ -29,18 +29,19 @@ namespace FSCMS.Service.Services
         }
 
         #region GET BY ID
-        public async Task<BaseResponse<LabSampleResponse>> GetByIdAsync(Guid id)
+        public async Task<BaseResponse<LabSampleDetailResponse>> GetByIdAsync(Guid id)
         {
             const string methodName = nameof(GetByIdAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
             if (id == Guid.Empty)
             {
-                return new BaseResponse<LabSampleResponse>
+                return new BaseResponse<LabSampleDetailResponse>
                 {
                     Code = StatusCodes.Status400BadRequest,
                     Message = "Invalid lab sample ID.",
-                    SystemCode = "INVALID_ID"
+                    SystemCode = "INVALID_ID",
+                    Data = null
                 };
             }
 
@@ -57,7 +58,7 @@ namespace FSCMS.Service.Services
 
                 if (sample == null)
                 {
-                    return new BaseResponse<LabSampleResponse>
+                    return new BaseResponse<LabSampleDetailResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Lab sample not found.",
@@ -67,7 +68,7 @@ namespace FSCMS.Service.Services
 
                 var response = _mapper.Map<LabSampleDetailResponse>(sample);
 
-                return new BaseResponse<LabSampleResponse>
+                return new BaseResponse<LabSampleDetailResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "Lab sample retrieved successfully.",
@@ -78,7 +79,7 @@ namespace FSCMS.Service.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "{MethodName}: Error retrieving sample {Id}", methodName, id);
-                return new BaseResponse<LabSampleResponse>
+                return new BaseResponse<LabSampleDetailResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
                     Message = "Internal server error.",
