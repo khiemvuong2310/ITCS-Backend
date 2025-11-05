@@ -112,12 +112,12 @@ namespace FSCMS.Core
                 .HasForeignKey(ds => ds.DoctorId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Slot & DoctorSchedule Relationship
-            modelBuilder.Entity<Slot>()
-                .HasOne(s => s.DoctorSchedule)
-                .WithMany(ds => ds.Slots)
-                .HasForeignKey(s => s.DoctorScheduleId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // Slot & DoctorSchedule Relationship (Slot 1 - n DoctorSchedules)
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasOne(ds => ds.Slot)
+                .WithMany(s => s.DoctorSchedules)
+                .HasForeignKey(ds => ds.SlotId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Slot & Appointment Relationship (One-to-One)
             modelBuilder.Entity<Slot>()
@@ -455,6 +455,14 @@ namespace FSCMS.Core
                 new ServiceCategory(catTreatment, "Treatment Procedures") { Code = "TRMT", Description = "IUI/IVF related procedures", DisplayOrder = 5 },
                 new ServiceCategory(catMedication, "Medications") { Code = "MED", Description = "Medications and injections", DisplayOrder = 6 },
                 new ServiceCategory(catAdministrative, "Administrative & Others") { Code = "ADMIN", Description = "Administrative fees", DisplayOrder = 7 }
+            );
+
+            // Seed fixed Slots (4 slots in a day)
+            modelBuilder.Entity<Slot>().HasData(
+                new Slot(new Guid("30000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0), false) { Notes = "Morning Slot 1" },
+                new Slot(new Guid("30000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0), false) { Notes = "Morning Slot 2" },
+                new Slot(new Guid("30000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0), false) { Notes = "Afternoon Slot 1" },
+                new Slot(new Guid("30000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0), false) { Notes = "Afternoon Slot 2" }
             );
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
