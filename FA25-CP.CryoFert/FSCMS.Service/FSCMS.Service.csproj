@@ -25,10 +25,6 @@
 	  <ProjectReference Include="..\FSCMS.Data\FSCMS.Data.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Mapping\" />
-	</ItemGroup>
-
 	<!-- Copy Templates folder to output directory -->
 	<ItemGroup>
 		<None Update="Templates\**\*">
