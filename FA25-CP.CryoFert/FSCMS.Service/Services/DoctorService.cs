@@ -581,7 +581,7 @@ namespace FSCMS.Service.Services
                 // Check if doctor has active schedules or treatments
                 var hasActiveSchedules = await _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
-                    .AnyAsync(s => s.DoctorId == doctorId && s.WorkDate >= DateTime.Today && !s.IsDeleted);
+                    .AnyAsync(s => s.DoctorId == doctorId && s.WorkDate >= DateOnly.FromDateTime(DateTime.Today) && !s.IsDeleted);
 
                 if (hasActiveSchedules)
                 {
@@ -750,7 +750,7 @@ namespace FSCMS.Service.Services
 
             try
             {
-                var today = DateTime.Today;
+                var today = DateOnly.FromDateTime(DateTime.Today);
 
                 var totalDoctors = await _unitOfWork.Repository<Doctor>()
                     .AsQueryable()
@@ -768,13 +768,13 @@ namespace FSCMS.Service.Services
 
                 var totalSlotsToday = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
-                    .Include(s => s.DoctorSchedule)
-                    .CountAsync(s => s.DoctorSchedule.WorkDate == today && !s.IsDeleted && !s.DoctorSchedule.IsDeleted);
+                    .Include(s => s.DoctorSchedules)
+                    .CountAsync(s => s.DoctorSchedules.Any(ds => ds.WorkDate == today && !ds.IsDeleted) && !s.IsDeleted);
 
                 var bookedSlotsToday = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
-                    .Include(s => s.DoctorSchedule)
-                    .CountAsync(s => s.DoctorSchedule.WorkDate == today && s.IsBooked && !s.IsDeleted && !s.DoctorSchedule.IsDeleted);
+                    .Include(s => s.DoctorSchedules)
+                    .CountAsync(s => s.DoctorSchedules.Any(ds => ds.WorkDate == today && !ds.IsDeleted) && s.IsBooked && !s.IsDeleted);
 
                 var availableSlotsToday = totalSlotsToday - bookedSlotsToday;
 
@@ -892,7 +892,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slots.Where(s => !s.IsDeleted))
+                    .Include(ds => ds.Slot)
                     .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -905,9 +905,9 @@ namespace FSCMS.Service.Services
                 var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(schedule);
                 
                 // Calculate slot statistics
-                scheduleResponse.TotalSlots = schedule.Slots.Count;
-                scheduleResponse.AvailableSlots = schedule.Slots.Count(s => !s.IsBooked);
-                scheduleResponse.BookedSlots = schedule.Slots.Count(s => s.IsBooked);
+                scheduleResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
+                scheduleResponse.AvailableSlots = schedule.Slot != null && !schedule.Slot.IsBooked ? 1 : 0;
+                scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.IsBooked ? 1 : 0;
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved schedule {ScheduleId}", methodName, scheduleId);
                 return BaseResponse<DoctorScheduleResponse>.CreateSuccess(scheduleResponse, "Schedule retrieved successfully");
@@ -940,7 +940,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slots.Where(s => !s.IsDeleted))
+                    .Include(ds => ds.Slot)
                         .ThenInclude(s => s.Appointment)
                     .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
                     .FirstOrDefaultAsync();
@@ -954,12 +954,12 @@ namespace FSCMS.Service.Services
                 var scheduleDetailResponse = _mapper.Map<DoctorScheduleDetailResponse>(schedule);
                 
                 // Calculate slot statistics
-                scheduleDetailResponse.TotalSlots = schedule.Slots.Count;
-                scheduleDetailResponse.AvailableSlots = schedule.Slots.Count(s => !s.IsBooked);
-                scheduleDetailResponse.BookedSlots = schedule.Slots.Count(s => s.IsBooked);
+                scheduleDetailResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
+                scheduleDetailResponse.AvailableSlots = schedule.Slot != null && !schedule.Slot.IsBooked ? 1 : 0;
+                scheduleDetailResponse.BookedSlots = schedule.Slot != null && schedule.Slot.IsBooked ? 1 : 0;
 
                 // Map slots
-                scheduleDetailResponse.Slots = _mapper.Map<List<SlotResponse>>(schedule.Slots);
+                scheduleDetailResponse.Slots = schedule.Slot != null ? _mapper.Map<List<SlotResponse>>(new List<Slot> { schedule.Slot }) : new List<SlotResponse>();
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved schedule details {ScheduleId}", methodName, scheduleId);
                 return BaseResponse<DoctorScheduleDetailResponse>.CreateSuccess(scheduleDetailResponse, "Schedule details retrieved successfully");
@@ -991,7 +991,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slots.Where(s => !s.IsDeleted))
+                    .Include(ds => ds.Slot)
                     .Where(ds => !ds.IsDeleted);
 
                 // Apply filters
@@ -1002,12 +1002,12 @@ namespace FSCMS.Service.Services
 
                 if (request.WorkDateFrom.HasValue)
                 {
-                    query = query.Where(ds => ds.WorkDate >= request.WorkDateFrom.Value.Date);
+                    query = query.Where(ds => ds.WorkDate >= DateOnly.FromDateTime(request.WorkDateFrom.Value));
                 }
 
                 if (request.WorkDateTo.HasValue)
                 {
-                    query = query.Where(ds => ds.WorkDate <= request.WorkDateTo.Value.Date);
+                    query = query.Where(ds => ds.WorkDate <= DateOnly.FromDateTime(request.WorkDateTo.Value));
                 }
 
                 if (request.IsAvailable.HasValue)
@@ -1053,9 +1053,9 @@ namespace FSCMS.Service.Services
                 foreach (var scheduleResponse in scheduleResponses)
                 {
                     var schedule = schedules.First(s => s.Id == scheduleResponse.Id);
-                    scheduleResponse.TotalSlots = schedule.Slots.Count;
-                    scheduleResponse.AvailableSlots = schedule.Slots.Count(s => !s.IsBooked);
-                    scheduleResponse.BookedSlots = schedule.Slots.Count(s => s.IsBooked);
+                    scheduleResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
+                    scheduleResponse.AvailableSlots = schedule.Slot != null && !schedule.Slot.IsBooked ? 1 : 0;
+                    scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.IsBooked ? 1 : 0;
                 }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} schedules", methodName, scheduleResponses.Count);
@@ -1184,7 +1184,7 @@ namespace FSCMS.Service.Services
                 var hasOverlap = await _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
                     .Where(ds => ds.DoctorId == request.DoctorId &&
-                                 ds.WorkDate.Date == request.WorkDate.Date &&
+                                 ds.WorkDate == DateOnly.FromDateTime(request.WorkDate) &&
                                  !ds.IsDeleted &&
                                  ds.IsAvailable &&
                                  ((ds.StartTime < request.EndTime && ds.EndTime > request.StartTime)))
@@ -1200,7 +1200,8 @@ namespace FSCMS.Service.Services
                 var schedule = new DoctorSchedule(
                     Guid.NewGuid(),
                     request.DoctorId,
-                    request.WorkDate.Date,
+                    Guid.Empty, // SlotId - will be set later based on business logic
+                    DateOnly.FromDateTime(request.WorkDate),
                     request.StartTime,
                     request.EndTime,
                     request.IsAvailable
@@ -1219,13 +1220,13 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slots.Where(s => !s.IsDeleted))
+                    .Include(ds => ds.Slot)
                     .FirstOrDefaultAsync(ds => ds.Id == schedule.Id);
 
                 var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(createdSchedule);
-                scheduleResponse.TotalSlots = createdSchedule!.Slots.Count;
-                scheduleResponse.AvailableSlots = createdSchedule.Slots.Count(s => !s.IsBooked);
-                scheduleResponse.BookedSlots = createdSchedule.Slots.Count(s => s.IsBooked);
+                scheduleResponse.TotalSlots = createdSchedule!.Slot != null ? 1 : 0;
+                scheduleResponse.AvailableSlots = createdSchedule.Slot != null && !createdSchedule.Slot.IsBooked ? 1 : 0;
+                scheduleResponse.BookedSlots = createdSchedule.Slot != null && createdSchedule.Slot.IsBooked ? 1 : 0;
 
                 _logger.LogInformation("{MethodName}: Successfully created schedule {ScheduleId}", methodName, schedule.Id);
                 return BaseResponse<DoctorScheduleResponse>.CreateSuccess(scheduleResponse, "Schedule created successfully", StatusCodes.Status201Created);
@@ -1291,7 +1292,7 @@ namespace FSCMS.Service.Services
                 }
 
                 // Check for overlapping schedules if time or date is being updated
-                var workDate = request.WorkDate ?? schedule.WorkDate;
+                var workDate = request.WorkDate.HasValue ? DateOnly.FromDateTime(request.WorkDate.Value) : schedule.WorkDate;
                 var startTime = request.StartTime ?? schedule.StartTime;
                 var endTime = request.EndTime ?? schedule.EndTime;
 
@@ -1299,7 +1300,7 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .Where(ds => ds.DoctorId == schedule.DoctorId &&
                                  ds.Id != scheduleId &&
-                                 ds.WorkDate.Date == workDate.Date &&
+                                 ds.WorkDate == workDate &&
                                  !ds.IsDeleted &&
                                  ds.IsAvailable &&
                                  ((ds.StartTime < endTime && ds.EndTime > startTime)))
@@ -1324,13 +1325,13 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slots.Where(s => !s.IsDeleted))
+                    .Include(ds => ds.Slot)
                     .FirstOrDefaultAsync(ds => ds.Id == scheduleId);
 
                 var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(updatedSchedule);
-                scheduleResponse.TotalSlots = updatedSchedule!.Slots.Count;
-                scheduleResponse.AvailableSlots = updatedSchedule.Slots.Count(s => !s.IsBooked);
-                scheduleResponse.BookedSlots = updatedSchedule.Slots.Count(s => s.IsBooked);
+                scheduleResponse.TotalSlots = updatedSchedule!.Slot != null ? 1 : 0;
+                scheduleResponse.AvailableSlots = updatedSchedule.Slot != null && !updatedSchedule.Slot.IsBooked ? 1 : 0;
+                scheduleResponse.BookedSlots = updatedSchedule.Slot != null && updatedSchedule.Slot.IsBooked ? 1 : 0;
 
                 _logger.LogInformation("{MethodName}: Successfully updated schedule {ScheduleId}", methodName, scheduleId);
                 return BaseResponse<DoctorScheduleResponse>.CreateSuccess(scheduleResponse, "Schedule updated successfully");
@@ -1360,7 +1361,7 @@ namespace FSCMS.Service.Services
 
                 var schedule = await _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
-                    .Include(ds => ds.Slots.Where(s => !s.IsDeleted && s.IsBooked))
+                    .Include(ds => ds.Slot)
                     .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -1371,7 +1372,7 @@ namespace FSCMS.Service.Services
                 }
 
                 // Check if schedule has booked slots
-                var hasBookedSlots = schedule.Slots.Any(s => s.IsBooked);
+                var hasBookedSlots = schedule.Slot != null && schedule.Slot.IsBooked;
                 if (hasBookedSlots)
                 {
                     _logger.LogWarning("{MethodName}: Cannot delete schedule with booked slots: {ScheduleId}", methodName, scheduleId);
@@ -1383,14 +1384,7 @@ namespace FSCMS.Service.Services
                 schedule.DeletedAt = DateTime.UtcNow.AddHours(7);
                 schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
-                // Also soft delete all slots
-                foreach (var slot in schedule.Slots.Where(s => !s.IsDeleted))
-
-                {
-                    slot.IsDeleted = true;
-                    slot.DeletedAt = DateTime.UtcNow.AddHours(7);
-                    slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-                }
+                // Note: Slots are global and not deleted when a schedule is deleted
 
                 await _unitOfWork.Repository<DoctorSchedule>().UpdateGuid(schedule, scheduleId);
                 await _unitOfWork.CommitAsync();
@@ -1471,7 +1465,7 @@ namespace FSCMS.Service.Services
                 var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
-                    .Include(s => s.DoctorSchedule)
+                    .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
                     .Where(s => s.Id == slotId && !s.IsDeleted)
@@ -1513,7 +1507,7 @@ namespace FSCMS.Service.Services
                 var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
-                    .Include(s => s.DoctorSchedule)
+                    .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
                     .Include(s => s.Appointment)
@@ -1559,7 +1553,7 @@ namespace FSCMS.Service.Services
                 var query = _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
-                    .Include(s => s.DoctorSchedule)
+                    .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
                     .Where(s => !s.IsDeleted);
@@ -1567,12 +1561,12 @@ namespace FSCMS.Service.Services
                 // Apply filters
                 if (request.DoctorScheduleId.HasValue)
                 {
-                    query = query.Where(s => s.DoctorScheduleId == request.DoctorScheduleId.Value);
+                    query = query.Where(s => s.DoctorSchedules.Any(ds => ds.Id == request.DoctorScheduleId.Value));
                 }
 
                 if (request.DoctorId.HasValue)
                 {
-                    query = query.Where(s => s.DoctorSchedule != null && s.DoctorSchedule.DoctorId == request.DoctorId.Value);
+                    query = query.Where(s => s.DoctorSchedules.Any(ds => ds.DoctorId == request.DoctorId.Value));
                 }
 
                 if (request.IsBooked.HasValue)
@@ -1582,14 +1576,15 @@ namespace FSCMS.Service.Services
 
                 if (request.DateFrom.HasValue || request.DateTo.HasValue)
                 {
-                    query = query.Where(s => s.DoctorSchedule != null);
                     if (request.DateFrom.HasValue)
                     {
-                        query = query.Where(s => s.DoctorSchedule!.WorkDate >= request.DateFrom.Value.Date);
+                        var from = DateOnly.FromDateTime(request.DateFrom.Value);
+                        query = query.Where(s => s.DoctorSchedules.Any(ds => ds.WorkDate >= from));
                     }
                     if (request.DateTo.HasValue)
                     {
-                        query = query.Where(s => s.DoctorSchedule!.WorkDate <= request.DateTo.Value.Date);
+                        var to = DateOnly.FromDateTime(request.DateTo.Value);
+                        query = query.Where(s => s.DoctorSchedules.Any(ds => ds.WorkDate <= to));
                     }
                 }
 
@@ -1620,7 +1615,7 @@ namespace FSCMS.Service.Services
                 }
                 else
                 {
-                    query = query.OrderBy(s => s.DoctorSchedule != null ? s.DoctorSchedule.WorkDate : DateTime.MinValue)
+                    query = query.OrderBy(s => s.DoctorSchedules.Any() ? s.DoctorSchedules.Min(ds => ds.WorkDate) : DateOnly.MinValue)
                                  .ThenBy(s => s.StartTime);
                 }
 
@@ -1780,18 +1775,17 @@ namespace FSCMS.Service.Services
                 var slots = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
-                    .Include(s => s.DoctorSchedule)
+                    .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
                     .Where(s => !s.IsDeleted &&
                                !s.IsBooked &&
-                               s.DoctorSchedule != null &&
-                               s.DoctorSchedule.DoctorId == doctorId &&
-                               s.DoctorSchedule.WorkDate >= dateFrom.Date &&
-                               s.DoctorSchedule.WorkDate <= dateTo.Date &&
-                               s.DoctorSchedule.IsAvailable &&
-                               !s.DoctorSchedule.IsDeleted)
-                    .OrderBy(s => s.DoctorSchedule!.WorkDate)
+                               s.DoctorSchedules.Any(ds => ds.DoctorId == doctorId &&
+                                                           ds.WorkDate >= DateOnly.FromDateTime(dateFrom) &&
+                                                           ds.WorkDate <= DateOnly.FromDateTime(dateTo) &&
+                                                           ds.IsAvailable &&
+                                                           !ds.IsDeleted))
+                    .OrderBy(s => s.DoctorSchedules.Min(ds => ds.WorkDate))
                     .ThenBy(s => s.StartTime)
                     .ToListAsync();
 
@@ -1851,66 +1845,11 @@ namespace FSCMS.Service.Services
                     return BaseResponse<SlotResponse>.CreateError("Start time must be before end time", StatusCodes.Status400BadRequest, "INVALID_TIME_RANGE");
                 }
 
-                // Verify schedule exists
-                var schedule = await _unitOfWork.Repository<DoctorSchedule>()
-                    .AsQueryable()
-                    .Where(ds => ds.Id == request.DoctorScheduleId && !ds.IsDeleted)
-                    .FirstOrDefaultAsync();
+                // With fixed global slots, creation per schedule is not supported
+                _logger.LogWarning("{MethodName}: Creating slots per schedule is not supported with fixed Slot design", methodName);
+                return BaseResponse<SlotResponse>.CreateError("Creating slots per schedule is not supported.", StatusCodes.Status400BadRequest, "SLOT_CREATION_NOT_SUPPORTED");
 
-                if (schedule == null)
-                {
-                    _logger.LogWarning("{MethodName}: Schedule not found with ID: {ScheduleId}", methodName, request.DoctorScheduleId);
-                    return BaseResponse<SlotResponse>.CreateError("Schedule not found", StatusCodes.Status404NotFound, "SCHEDULE_NOT_FOUND");
-                }
-
-                // Validate slot time is within schedule time
-                if (request.StartTime < schedule.StartTime || request.EndTime > schedule.EndTime)
-                {
-                    _logger.LogWarning("{MethodName}: Slot time must be within schedule time", methodName);
-                    return BaseResponse<SlotResponse>.CreateError("Slot time must be within schedule time", StatusCodes.Status400BadRequest, "SLOT_TIME_OUT_OF_RANGE");
-                }
-
-                // Check for overlapping slots
-                var hasOverlap = await _unitOfWork.Repository<Slot>()
-                    .AsQueryable()
-                    .Where(s => s.DoctorScheduleId == request.DoctorScheduleId &&
-                               !s.IsDeleted &&
-                               ((s.StartTime < request.EndTime && s.EndTime > request.StartTime)))
-                    .AnyAsync();
-
-                if (hasOverlap)
-                {
-                    _logger.LogWarning("{MethodName}: Slot overlaps with existing slot", methodName);
-                    return BaseResponse<SlotResponse>.CreateError("Slot overlaps with an existing slot", StatusCodes.Status400BadRequest, "SLOT_OVERLAP");
-                }
-
-                // Create slot entity
-                var slot = new Slot(
-                    Guid.NewGuid(),
-                    request.DoctorScheduleId,
-                    request.StartTime,
-                    request.EndTime,
-                    request.IsBooked
-                )
-                {
-                    Notes = request.Notes
-                };
-
-                await _unitOfWork.Repository<Slot>().InsertAsync(slot);
-                await _unitOfWork.CommitAsync();
-
-                // Reload with related data
-                var createdSlot = await _unitOfWork.Repository<Slot>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(s => s.DoctorSchedule)
-                        .ThenInclude(ds => ds.Doctor)
-                            .ThenInclude(d => d.Account)
-                    .FirstOrDefaultAsync(s => s.Id == slot.Id);
-
-                var slotResponse = _mapper.Map<SlotResponse>(createdSlot);
-                _logger.LogInformation("{MethodName}: Successfully created slot {SlotId}", methodName, slot.Id);
-                return BaseResponse<SlotResponse>.CreateSuccess(slotResponse, "Slot created successfully", StatusCodes.Status201Created);
+                
             }
             catch (Exception ex)
             {
@@ -1927,101 +1866,9 @@ namespace FSCMS.Service.Services
             const string methodName = nameof(CreateSlotsForScheduleAsync);
             _logger.LogInformation("{MethodName} called with scheduleId: {ScheduleId}, slotDuration: {SlotDuration}", methodName, scheduleId, slotDuration);
 
-            try
-            {
-                if (scheduleId == Guid.Empty)
-                {
-                    _logger.LogWarning("{MethodName}: Invalid schedule ID provided - {ScheduleId}", methodName, scheduleId);
-                    return BaseResponse<int>.CreateError("Schedule ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_SCHEDULE_ID");
-                }
-
-                if (slotDuration <= 0 || slotDuration > 480)
-                {
-                    _logger.LogWarning("{MethodName}: Invalid slot duration - {SlotDuration}", methodName, slotDuration);
-                    return BaseResponse<int>.CreateError("Slot duration must be between 1 and 480 minutes", StatusCodes.Status400BadRequest, "INVALID_SLOT_DURATION");
-                }
-
-                var schedule = await _unitOfWork.Repository<DoctorSchedule>()
-                    .AsQueryable()
-                    .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
-                    .FirstOrDefaultAsync();
-
-                if (schedule == null)
-                {
-                    _logger.LogWarning("{MethodName}: Schedule not found with ID: {ScheduleId}", methodName, scheduleId);
-                    return BaseResponse<int>.CreateError("Schedule not found", StatusCodes.Status404NotFound, "SCHEDULE_NOT_FOUND");
-                }
-
-                // Check if schedule already has slots
-                var existingSlotsCount = await _unitOfWork.Repository<Slot>()
-                    .AsQueryable()
-                    .Where(s => s.DoctorScheduleId == scheduleId && !s.IsDeleted)
-                    .CountAsync();
-
-                if (existingSlotsCount > 0)
-                {
-                    _logger.LogWarning("{MethodName}: Schedule already has slots", methodName);
-                    return BaseResponse<int>.CreateError("Schedule already has slots. Please delete existing slots first or create individual slots.", StatusCodes.Status400BadRequest, "SCHEDULE_HAS_SLOTS");
-                }
-
-                // Calculate total duration in minutes
-                var totalMinutes = (schedule.EndTime - schedule.StartTime).TotalMinutes;
-                var numberOfSlots = (int)(totalMinutes / slotDuration);
-
-                if (numberOfSlots == 0)
-                {
-                    _logger.LogWarning("{MethodName}: Schedule duration is too short for slot duration", methodName);
-                    return BaseResponse<int>.CreateError("Schedule duration is too short for the specified slot duration", StatusCodes.Status400BadRequest, "INSUFFICIENT_SCHEDULE_DURATION");
-                }
-
-                var slots = new List<Slot>();
-                var currentTime = schedule.StartTime;
-
-                for (int i = 0; i < numberOfSlots; i++)
-                {
-                    var slotStartTime = currentTime;
-                    var slotEndTime = currentTime.Add(TimeSpan.FromMinutes(slotDuration));
-
-                    // Ensure we don't exceed schedule end time
-                    if (slotEndTime > schedule.EndTime)
-                    {
-                        slotEndTime = schedule.EndTime;
-                    }
-
-                    var slot = new Slot(
-                        Guid.NewGuid(),
-                        scheduleId,
-                        slotStartTime,
-                        slotEndTime,
-                        false
-                    );
-
-                    slots.Add(slot);
-                    currentTime = slotEndTime;
-
-                    // Stop if we've reached the schedule end time
-                    if (slotEndTime >= schedule.EndTime)
-                    {
-                        break;
-                    }
-                }
-
-                // Insert all slots
-                foreach (var slot in slots)
-                {
-                    await _unitOfWork.Repository<Slot>().InsertAsync(slot);
-                }
-
-                await _unitOfWork.CommitAsync();
-
-                _logger.LogInformation("{MethodName}: Successfully created {Count} slots for schedule {ScheduleId}", methodName, slots.Count, scheduleId);
-                return BaseResponse<int>.CreateSuccess(slots.Count, $"Successfully created {slots.Count} slots", StatusCodes.Status201Created);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "{MethodName}: Error creating slots for schedule {ScheduleId}", methodName, scheduleId);
-                return BaseResponse<int>.CreateError($"Error creating slots: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
-            }
+            // Not supported with fixed global slots
+            _logger.LogWarning("{MethodName}: Creating generated slots per schedule is not supported", methodName);
+            return BaseResponse<int>.CreateError("Auto-generating slots per schedule is not supported.", StatusCodes.Status400BadRequest, "SLOT_GENERATION_NOT_SUPPORTED");
         }
 
         /// <summary>
@@ -2048,7 +1895,7 @@ namespace FSCMS.Service.Services
 
                 var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
-                    .Include(s => s.DoctorSchedule)
+                    .Include(s => s.DoctorSchedules)
                     .Where(s => s.Id == slotId && !s.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -2085,20 +1932,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse<SlotResponse>.CreateError("Start time must be before end time", StatusCodes.Status400BadRequest, "INVALID_TIME_RANGE");
                 }
 
-                // Validate slot time is within schedule time if time is being updated
-                if (slot.DoctorSchedule != null && (request.StartTime.HasValue || request.EndTime.HasValue))
-                {
-                    var startTime = request.StartTime ?? slot.StartTime;
-                    var endTime = request.EndTime ?? slot.EndTime;
-
-                    if (startTime < slot.DoctorSchedule.StartTime || endTime > slot.DoctorSchedule.EndTime)
-                    {
-                        _logger.LogWarning("{MethodName}: Slot time must be within schedule time", methodName);
-                        return BaseResponse<SlotResponse>.CreateError("Slot time must be within schedule time", StatusCodes.Status400BadRequest, "SLOT_TIME_OUT_OF_RANGE");
-                    }
-                }
-
-                // Check for overlapping slots if time is being updated
+                // Check for overlapping slots globally if time is being updated
                 if (request.StartTime.HasValue || request.EndTime.HasValue)
                 {
                     var startTime = request.StartTime ?? slot.StartTime;
@@ -2106,8 +1940,7 @@ namespace FSCMS.Service.Services
 
                     var hasOverlap = await _unitOfWork.Repository<Slot>()
                         .AsQueryable()
-                        .Where(s => s.DoctorScheduleId == slot.DoctorScheduleId &&
-                                   s.Id != slotId &&
+                        .Where(s => s.Id != slotId &&
                                    !s.IsDeleted &&
                                    ((s.StartTime < endTime && s.EndTime > startTime)))
                         .AnyAsync();
@@ -2138,7 +1971,7 @@ namespace FSCMS.Service.Services
                 var updatedSlot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
-                    .Include(s => s.DoctorSchedule)
+                    .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
                     .FirstOrDefaultAsync(s => s.Id == slotId);

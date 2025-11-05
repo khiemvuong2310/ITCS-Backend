@@ -57,7 +57,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(t => t.Patient)
                                 .ThenInclude(p => p.Account)
                     .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedule)
+                        .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
@@ -107,7 +107,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(t => t.Patient)
                                 .ThenInclude(p => p.Account)
                     .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedule)
+                        .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
@@ -175,7 +175,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(t => t.Patient)
                                 .ThenInclude(p => p.Account)
                     .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedule)
+                        .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
@@ -443,7 +443,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(t => t.Patient)
                                 .ThenInclude(p => p.Account)
                     .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedule)
+                        .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
@@ -527,7 +527,7 @@ namespace FSCMS.Service.Services
                     }
 
                     // Check if slot time matches appointment date
-                    if (slot.DoctorSchedule != null && slot.DoctorSchedule.WorkDate.Date != request.AppointmentDate.Date)
+                    if (slot.DoctorSchedules == null || !slot.DoctorSchedules.Any(ds => ds.WorkDate == DateOnly.FromDateTime(request.AppointmentDate.Date)))
                     {
                         _logger.LogWarning("{MethodName}: Slot date does not match appointment date", methodName);
                         return BaseResponse<AppointmentResponse>.CreateError("Slot date does not match appointment date", StatusCodes.Status400BadRequest, "SLOT_DATE_MISMATCH");
@@ -621,7 +621,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(t => t.Patient)
                                 .ThenInclude(p => p.Account)
                     .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedule)
+                        .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
@@ -721,7 +721,7 @@ namespace FSCMS.Service.Services
 
                     // Validate slot date matches appointment date
                     var appointmentDate = request.AppointmentDate ?? appointment.AppointmentDate;
-                    if (newSlot.DoctorSchedule != null && newSlot.DoctorSchedule.WorkDate.Date != appointmentDate.Date)
+                    if (newSlot.DoctorSchedules == null || !newSlot.DoctorSchedules.Any(ds => ds.WorkDate == DateOnly.FromDateTime(appointmentDate.Date)))
                     {
                         _logger.LogWarning("{MethodName}: Slot date does not match appointment date", methodName);
                         return BaseResponse<AppointmentResponse>.CreateError("Slot date does not match appointment date", StatusCodes.Status400BadRequest, "SLOT_DATE_MISMATCH");
@@ -767,7 +767,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(t => t.Patient)
                                 .ThenInclude(p => p.Account)
                     .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedule)
+                        .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
@@ -1342,27 +1342,34 @@ namespace FSCMS.Service.Services
                     IsBooked = appointment.Slot.IsBooked
                 };
 
-                // Map Schedule
-                if (appointment.Slot.DoctorSchedule != null)
+                // Map Schedule: pick schedule for the appointment date if available, otherwise first by date
+                if (appointment.Slot != null && appointment.Slot.DoctorSchedules != null && appointment.Slot.DoctorSchedules.Any())
                 {
-                    response.Slot.Schedule = new AppointmentScheduleInfo
+                    var apptDateOnly = DateOnly.FromDateTime(appointment.AppointmentDate.Date);
+                    var matchedSchedule = appointment.Slot.DoctorSchedules
+                        .FirstOrDefault(ds => ds.WorkDate == apptDateOnly);
+                    var schedule = matchedSchedule ?? appointment.Slot.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault();
+                    if (schedule != null)
                     {
-                        Id = appointment.Slot.DoctorSchedule.Id,
-                        WorkDate = appointment.Slot.DoctorSchedule.WorkDate,
-                        Location = appointment.Slot.DoctorSchedule.Location
-                    };
-
-                    // Map Doctor from Schedule
-                    if (appointment.Slot.DoctorSchedule.Doctor != null && appointment.Slot.DoctorSchedule.Doctor.Account != null)
-                    {
-                        var account = appointment.Slot.DoctorSchedule.Doctor.Account;
-                        response.Slot.Schedule.Doctor = new AppointmentDoctorBasicInfo
+                        response.Slot.Schedule = new AppointmentScheduleInfo
                         {
-                            Id = appointment.Slot.DoctorSchedule.Doctor.Id,
-                            BadgeId = appointment.Slot.DoctorSchedule.Doctor.BadgeId,
-                            Specialty = appointment.Slot.DoctorSchedule.Doctor.Specialty,
-                            FullName = $"{account.FirstName} {account.LastName}".Trim()
+                            Id = schedule.Id,
+                            WorkDate = schedule.WorkDate.ToDateTime(TimeOnly.MinValue),
+                            Location = schedule.Location
                         };
+
+                        // Map Doctor from Schedule
+                        if (schedule.Doctor != null && schedule.Doctor.Account != null)
+                        {
+                            var account = schedule.Doctor.Account;
+                            response.Slot.Schedule.Doctor = new AppointmentDoctorBasicInfo
+                            {
+                                Id = schedule.Doctor.Id,
+                                BadgeId = schedule.Doctor.BadgeId,
+                                Specialty = schedule.Doctor.Specialty,
+                                FullName = $"{account.FirstName} {account.LastName}".Trim()
+                            };
+                        }
                     }
                 }
             }

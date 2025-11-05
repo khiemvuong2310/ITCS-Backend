@@ -30,7 +30,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.TotalTreatments, opt => opt.MapFrom(src => src.Treatments.Count))
                 .ForMember(dest => dest.UpcomingSchedules, opt => opt.MapFrom(src => 
                     src.DoctorSchedules
-                        .Where(s => s.WorkDate >= DateTime.Today && !s.IsDeleted)
+                        .Where(s => s.WorkDate >= DateOnly.FromDateTime(DateTime.Today) && !s.IsDeleted)
                         .OrderBy(s => s.WorkDate)
                         .Take(5)))
                 .ForMember(dest => dest.RecentTreatments, opt => opt.MapFrom(src => 
@@ -77,15 +77,14 @@ namespace FSCMS.Service.Mapping
             // Map DoctorSchedule entity to DoctorScheduleResponse
             CreateMap<DoctorSchedule, DoctorScheduleResponse>()
                 .ForMember(dest => dest.Doctor, opt => opt.MapFrom(src => src.Doctor))
-                .ForMember(dest => dest.TotalSlots, opt => opt.MapFrom(src => src.Slots.Count))
-                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slots.Count(s => !s.IsBooked && !s.IsDeleted)))
-                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slots.Count(s => s.IsBooked && !s.IsDeleted)));
+                .ForMember(dest => dest.TotalSlots, opt => opt.MapFrom(src => src.Slot != null ? 1 : 0))
+                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null && !src.Slot.IsBooked && !src.Slot.IsDeleted ? 1 : 0))
+                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.IsBooked && !src.Slot.IsDeleted ? 1 : 0));
 
             // Map DoctorSchedule entity to DoctorScheduleDetailResponse
             CreateMap<DoctorSchedule, DoctorScheduleDetailResponse>()
                 .IncludeBase<DoctorSchedule, DoctorScheduleResponse>()
-                .ForMember(dest => dest.Slots, opt => opt.MapFrom(src => 
-                    src.Slots.Where(s => !s.IsDeleted).OrderBy(s => s.StartTime)));
+                .ForMember(dest => dest.Slots, opt => opt.MapFrom(src => src.Slot != null && !src.Slot.IsDeleted ? new List<Slot> { src.Slot } : new List<Slot>()));
 
             // Map CreateDoctorScheduleRequest to DoctorSchedule entity
             CreateMap<CreateDoctorScheduleRequest, DoctorSchedule>()
@@ -95,7 +94,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Doctor, opt => opt.Ignore())
-                .ForMember(dest => dest.Slots, opt => opt.Ignore());
+                .ForMember(dest => dest.Slot, opt => opt.Ignore());
 
             // Map UpdateDoctorScheduleRequest to DoctorSchedule entity
             CreateMap<UpdateDoctorScheduleRequest, DoctorSchedule>()
@@ -106,7 +105,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Doctor, opt => opt.Ignore())
-                .ForMember(dest => dest.Slots, opt => opt.Ignore())
+                .ForMember(dest => dest.Slot, opt => opt.Ignore())
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             #endregion
@@ -115,7 +114,8 @@ namespace FSCMS.Service.Mapping
 
             // Map Slot entity to SlotResponse
             CreateMap<Slot, SlotResponse>()
-                .ForMember(dest => dest.Schedule, opt => opt.MapFrom(src => src.DoctorSchedule));
+                .ForMember(dest => dest.DoctorScheduleId, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).Select(ds => ds.Id).FirstOrDefault()))
+                .ForMember(dest => dest.Schedule, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault()));
 
             // Map Slot entity to SlotDetailResponse
             CreateMap<Slot, SlotDetailResponse>()
@@ -140,18 +140,17 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.DoctorSchedule, opt => opt.Ignore())
+                .ForMember(dest => dest.DoctorSchedules, opt => opt.Ignore())
                 .ForMember(dest => dest.Appointment, opt => opt.Ignore());
 
             // Map UpdateSlotRequest to Slot entity
             CreateMap<UpdateSlotRequest, Slot>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.DoctorScheduleId, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.DoctorSchedule, opt => opt.Ignore())
+                .ForMember(dest => dest.DoctorSchedules, opt => opt.Ignore())
                 .ForMember(dest => dest.Appointment, opt => opt.Ignore())
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
