@@ -1030,15 +1030,13 @@ namespace FSCMS.Service.Services
                     query = request.Sort.ToLower() switch
                     {
                         "workdate" => isDescending ? query.OrderByDescending(ds => ds.WorkDate) : query.OrderBy(ds => ds.WorkDate),
-                        "starttime" => isDescending ? query.OrderByDescending(ds => ds.StartTime) : query.OrderBy(ds => ds.StartTime),
-                        "endtime" => isDescending ? query.OrderByDescending(ds => ds.EndTime) : query.OrderBy(ds => ds.EndTime),
                         "createdat" => isDescending ? query.OrderByDescending(ds => ds.CreatedAt) : query.OrderBy(ds => ds.CreatedAt),
                         _ => isDescending ? query.OrderByDescending(ds => ds.CreatedAt) : query.OrderBy(ds => ds.CreatedAt)
                     };
                 }
                 else
                 {
-                    query = query.OrderBy(ds => ds.WorkDate).ThenBy(ds => ds.StartTime);
+                    query = query.OrderBy(ds => ds.WorkDate).ThenBy(ds => ds.CreatedAt);
                 }
 
                 // Apply pagination
@@ -1165,13 +1163,6 @@ namespace FSCMS.Service.Services
                     return BaseResponse<DoctorScheduleResponse>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
                 }
 
-                // Validate time
-                if (request.StartTime >= request.EndTime)
-                {
-                    _logger.LogWarning("{MethodName}: Start time must be before end time", methodName);
-                    return BaseResponse<DoctorScheduleResponse>.CreateError("Start time must be before end time", StatusCodes.Status400BadRequest, "INVALID_TIME_RANGE");
-                }
-
                 // Verify doctor exists
                 var doctorExists = await DoctorExistsAsync(request.DoctorId);
                 if (!doctorExists)
@@ -1180,30 +1171,38 @@ namespace FSCMS.Service.Services
                     return BaseResponse<DoctorScheduleResponse>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
                 }
 
-                // Check for overlapping schedules (same doctor, same date, overlapping time)
-                var hasOverlap = await _unitOfWork.Repository<DoctorSchedule>()
+                // Verify slot exists
+                var slotExists = await _unitOfWork.Repository<Slot>()
+                    .AsQueryable()
+                    .AnyAsync(s => s.Id == request.SlotId && !s.IsDeleted);
+
+                if (!slotExists)
+                {
+                    _logger.LogWarning("{MethodName}: Slot not found with ID: {SlotId}", methodName, request.SlotId);
+                    return BaseResponse<DoctorScheduleResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
+                }
+
+                // Check for duplicate schedule (same doctor, same slot, same date)
+                var hasDuplicate = await _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
                     .Where(ds => ds.DoctorId == request.DoctorId &&
+                                 ds.SlotId == request.SlotId &&
                                  ds.WorkDate == DateOnly.FromDateTime(request.WorkDate) &&
-                                 !ds.IsDeleted &&
-                                 ds.IsAvailable &&
-                                 ((ds.StartTime < request.EndTime && ds.EndTime > request.StartTime)))
+                                 !ds.IsDeleted)
                     .AnyAsync();
 
-                if (hasOverlap)
+                if (hasDuplicate)
                 {
-                    _logger.LogWarning("{MethodName}: Schedule overlaps with existing schedule for doctor {DoctorId}", methodName, request.DoctorId);
-                    return BaseResponse<DoctorScheduleResponse>.CreateError("Schedule overlaps with an existing schedule", StatusCodes.Status400BadRequest, "SCHEDULE_OVERLAP");
+                    _logger.LogWarning("{MethodName}: Schedule already exists for doctor {DoctorId}, slot {SlotId} on {WorkDate}", methodName, request.DoctorId, request.SlotId, request.WorkDate);
+                    return BaseResponse<DoctorScheduleResponse>.CreateError("Schedule already exists for this doctor, slot, and date", StatusCodes.Status400BadRequest, "SCHEDULE_DUPLICATE");
                 }
 
                 // Create schedule entity
                 var schedule = new DoctorSchedule(
                     Guid.NewGuid(),
                     request.DoctorId,
-                    Guid.Empty, // SlotId - will be set later based on business logic
+                    request.SlotId,
                     DateOnly.FromDateTime(request.WorkDate),
-                    request.StartTime,
-                    request.EndTime,
                     request.IsAvailable
                 )
                 {
@@ -1271,49 +1270,50 @@ namespace FSCMS.Service.Services
                     return BaseResponse<DoctorScheduleResponse>.CreateError("Schedule not found", StatusCodes.Status404NotFound, "SCHEDULE_NOT_FOUND");
                 }
 
-                // Validate time if both times are being updated
-                if (request.StartTime.HasValue && request.EndTime.HasValue)
+                // Verify slot exists if being updated
+                if (request.SlotId.HasValue)
                 {
-                    if (request.StartTime.Value >= request.EndTime.Value)
+                    var slotExists = await _unitOfWork.Repository<Slot>()
+                        .AsQueryable()
+                        .AnyAsync(s => s.Id == request.SlotId.Value && !s.IsDeleted);
+
+                    if (!slotExists)
                     {
-                        _logger.LogWarning("{MethodName}: Start time must be before end time", methodName);
-                        return BaseResponse<DoctorScheduleResponse>.CreateError("Start time must be before end time", StatusCodes.Status400BadRequest, "INVALID_TIME_RANGE");
+                        _logger.LogWarning("{MethodName}: Slot not found with ID: {SlotId}", methodName, request.SlotId);
+                        return BaseResponse<DoctorScheduleResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                     }
                 }
-                else if (request.StartTime.HasValue && request.StartTime.Value >= schedule.EndTime)
-                {
-                    _logger.LogWarning("{MethodName}: Start time must be before end time", methodName);
-                    return BaseResponse<DoctorScheduleResponse>.CreateError("Start time must be before end time", StatusCodes.Status400BadRequest, "INVALID_TIME_RANGE");
-                }
-                else if (request.EndTime.HasValue && schedule.StartTime >= request.EndTime.Value)
-                {
-                    _logger.LogWarning("{MethodName}: Start time must be before end time", methodName);
-                    return BaseResponse<DoctorScheduleResponse>.CreateError("Start time must be before end time", StatusCodes.Status400BadRequest, "INVALID_TIME_RANGE");
-                }
 
-                // Check for overlapping schedules if time or date is being updated
+                // Check for duplicate schedule if slot or date is being updated
                 var workDate = request.WorkDate.HasValue ? DateOnly.FromDateTime(request.WorkDate.Value) : schedule.WorkDate;
-                var startTime = request.StartTime ?? schedule.StartTime;
-                var endTime = request.EndTime ?? schedule.EndTime;
+                var slotId = request.SlotId ?? schedule.SlotId;
 
-                var hasOverlap = await _unitOfWork.Repository<DoctorSchedule>()
+                var hasDuplicate = await _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
                     .Where(ds => ds.DoctorId == schedule.DoctorId &&
                                  ds.Id != scheduleId &&
+                                 ds.SlotId == slotId &&
                                  ds.WorkDate == workDate &&
-                                 !ds.IsDeleted &&
-                                 ds.IsAvailable &&
-                                 ((ds.StartTime < endTime && ds.EndTime > startTime)))
+                                 !ds.IsDeleted)
                     .AnyAsync();
 
-                if (hasOverlap)
+                if (hasDuplicate)
                 {
-                    _logger.LogWarning("{MethodName}: Updated schedule overlaps with existing schedule", methodName);
-                    return BaseResponse<DoctorScheduleResponse>.CreateError("Schedule overlaps with an existing schedule", StatusCodes.Status400BadRequest, "SCHEDULE_OVERLAP");
+                    _logger.LogWarning("{MethodName}: Updated schedule would create duplicate", methodName);
+                    return BaseResponse<DoctorScheduleResponse>.CreateError("Schedule already exists for this doctor, slot, and date", StatusCodes.Status400BadRequest, "SCHEDULE_DUPLICATE");
                 }
 
                 // Update schedule
-                _mapper.Map(request, schedule);
+                if (request.SlotId.HasValue)
+                    schedule.SlotId = request.SlotId.Value;
+                if (request.WorkDate.HasValue)
+                    schedule.WorkDate = DateOnly.FromDateTime(request.WorkDate.Value);
+                if (request.Location != null)
+                    schedule.Location = request.Location;
+                if (request.Notes != null)
+                    schedule.Notes = request.Notes;
+                if (request.IsAvailable.HasValue)
+                    schedule.IsAvailable = request.IsAvailable.Value;
                 schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
                 await _unitOfWork.Repository<DoctorSchedule>().UpdateGuid(schedule, scheduleId);

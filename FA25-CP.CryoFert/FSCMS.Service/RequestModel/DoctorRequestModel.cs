@@ -127,17 +127,13 @@ namespace FSCMS.Service.RequestModel
         [JsonPropertyName("doctorId")]
         public Guid DoctorId { get; set; }
 
+        [Required(ErrorMessage = "Slot ID is required.")]
+        [JsonPropertyName("slotId")]
+        public Guid SlotId { get; set; }
+
         [Required(ErrorMessage = "Work date is required.")]
         [JsonPropertyName("workDate")]
         public DateTime WorkDate { get; set; }
-
-        [Required(ErrorMessage = "Start time is required.")]
-        [JsonPropertyName("startTime")]
-        public TimeSpan StartTime { get; set; }
-
-        [Required(ErrorMessage = "End time is required.")]
-        [JsonPropertyName("endTime")]
-        public TimeSpan EndTime { get; set; }
 
         [StringLength(100, ErrorMessage = "Location cannot exceed 100 characters.")]
         [JsonPropertyName("location")]
@@ -156,14 +152,11 @@ namespace FSCMS.Service.RequestModel
     /// </summary>
     public class UpdateDoctorScheduleRequest
     {
+        [JsonPropertyName("slotId")]
+        public Guid? SlotId { get; set; }
+
         [JsonPropertyName("workDate")]
         public DateTime? WorkDate { get; set; }
-
-        [JsonPropertyName("startTime")]
-        public TimeSpan? StartTime { get; set; }
-
-        [JsonPropertyName("endTime")]
-        public TimeSpan? EndTime { get; set; }
 
         [StringLength(100, ErrorMessage = "Location cannot exceed 100 characters.")]
         [JsonPropertyName("location")]
