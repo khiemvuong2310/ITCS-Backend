@@ -38,11 +38,6 @@
 		<PackageReference Include="Twilio.AspNet.Core" Version="8.1.1" />
 	</ItemGroup>
 
-
-	<ItemGroup>
-	  <Folder Include="Controllers\" />
-	</ItemGroup>
-
 	<!-- Copy .env to output directory -->
 	<ItemGroup>
 		<None Update=".env">

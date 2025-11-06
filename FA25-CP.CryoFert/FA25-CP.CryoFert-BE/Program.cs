@@ -1,11 +1,12 @@
-﻿using FSCMS.Core; // namespace chứa AppDbContext
+﻿using System.Text.Json.Serialization;
+using DotNetEnv;
+using FA25_CP.CryoFert_BE.AppStarts;
+using FSCMS.Core; // namespace chứa AppDbContext
+using FSCMS.Core.Models;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using DotNetEnv;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http.Features;
 using Pomelo.EntityFrameworkCore.MySql;
-using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE
 {
@@ -56,6 +57,9 @@ namespace FA25_CP.CryoFert_BE
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
             });
 
+            builder.Services.Configure<CloudinarySettings>(
+                builder.Configuration.GetSection("CloudinarySettings")
+            );
 
             // 4. CORS config
             builder.Services.AddCors(options =>
