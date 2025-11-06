@@ -15,8 +15,6 @@ namespace FSCMS.Core.Entities
             Guid doctorId,
             Guid slotId,
             DateOnly workDate,
-            TimeSpan startTime,
-            TimeSpan endTime,
             bool isAvailable = true
         )
         {
@@ -24,15 +22,11 @@ namespace FSCMS.Core.Entities
             DoctorId = doctorId;
             SlotId = slotId;
             WorkDate = workDate;
-            StartTime = startTime;
-            EndTime = endTime;
             IsAvailable = isAvailable;
         }
         public Guid DoctorId { get; set; }
         public Guid SlotId { get; set; }
         public DateOnly WorkDate { get; set; }
-        public TimeSpan StartTime { get; set; }
-        public TimeSpan EndTime { get; set; }
         public bool IsAvailable { get; set; } = true;
         public string? Location { get; set; }
         public string? Notes { get; set; }

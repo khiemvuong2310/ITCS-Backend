@@ -115,6 +115,9 @@ namespace FSCMS.Service.ReponseModel
         [JsonPropertyName("doctorId")]
         public Guid DoctorId { get; set; }
 
+        [JsonPropertyName("slotId")]
+        public Guid SlotId { get; set; }
+
         [JsonPropertyName("workDate")]
         public DateTime WorkDate { get; set; }
 
