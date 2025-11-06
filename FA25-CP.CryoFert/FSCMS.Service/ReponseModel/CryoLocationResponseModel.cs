@@ -1,3 +1,4 @@
+using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ namespace FSCMS.Service.ReponseModel
         public bool IsActive { get; set; }
         public decimal? Temperature { get; set; }
         public string? Notes { get; set; }
+        //public LabSample? LabSample { get; set; }
         // public List<CryoLocationResponse> Children { get; set; } = new();
     }
 
@@ -29,6 +31,7 @@ namespace FSCMS.Service.ReponseModel
         public string Code { get; set; } = default!;
         public SampleType SampleType { get; set; }
         public int SampleCount { get; set; }
+        public CryoLocationType Type { get; set; }
     }
 
     public class CryoLocationFullTreeResponse

@@ -5,47 +5,43 @@ using FSCMS.Service.ReponseModel;
 
 namespace FSCMS.Service.RequestModel
 {
+    #region ===== BASE REQUEST CLASSES =====
+
     /// <summary>
-    /// Request to create a new lab sample (generic base)
+    /// Base request for creating lab samples (common fields)
     /// </summary>
-    public class CreateLabSampleRequest
+    public abstract class CreateLabSampleBaseRequest
     {
         [Required(ErrorMessage = "Patient ID is required.")]
         public Guid PatientId { get; set; }
 
-        [Required(ErrorMessage = "Sample type is required.")]
-        public SampleType SampleType { get; set; }
-
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
+
         public bool IsAvailable { get; set; } = true;
-        // Optional — for type-specific details
-        public CreateLabSampleSpermRequest? Sperm { get; set; }
-
-        public CreateLabSampleOocyteRequest? Oocyte { get; set; }
-
-        public CreateLabSampleEmbryoRequest? Embryo { get; set; }
     }
 
     /// <summary>
-    /// Request to update existing lab sample
+    /// Base request for updating lab samples (common fields)
     /// </summary>
-    public class UpdateLabSampleRequest
+    public abstract class UpdateLabSampleBaseRequest
     {
         public SpecimenStatus? Status { get; set; }
+
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
+
         public bool? IsAvailable { get; set; }
-        // Optional — type-specific update
-        public UpdateLabSampleSpermRequest? Sperm { get; set; }
-
-        public UpdateLabSampleOocyteRequest? Oocyte { get; set; }
-
-        public UpdateLabSampleEmbryoRequest? Embryo { get; set; }
     }
 
-    #region Sperm Request DTOs
-    public class CreateLabSampleSpermRequest
+    #endregion
+
+    #region ===== SPERM SAMPLE REQUEST =====
+
+    /// <summary>
+    /// Create sperm sample request
+    /// </summary>
+    public class CreateLabSampleSpermRequest : CreateLabSampleBaseRequest
     {
         [Range(0, 10, ErrorMessage = "Volume must be between 0 and 10 mL.")]
         public decimal? Volume { get; set; }
@@ -75,16 +71,43 @@ namespace FSCMS.Service.RequestModel
         public string? Color { get; set; }
 
         public int? TotalSpermCount { get; set; }
-
-        [StringLength(500)]
-        public string? Notes { get; set; }
     }
 
-    public class UpdateLabSampleSpermRequest : CreateLabSampleSpermRequest { }
+    /// <summary>
+    /// Update sperm sample request
+    /// </summary>
+    public class UpdateLabSampleSpermRequest : UpdateLabSampleBaseRequest
+    {
+        [Range(0, 10)]
+        public decimal? Volume { get; set; }
+        [Range(0, 500)]
+        public decimal? Concentration { get; set; }
+        [Range(0, 100)]
+        public decimal? Motility { get; set; }
+        [Range(0, 100)]
+        public decimal? ProgressiveMotility { get; set; }
+        [Range(0, 100)]
+        public decimal? Morphology { get; set; }
+        [Range(6, 9)]
+        public decimal? PH { get; set; }
+
+        [StringLength(50)]
+        public string? Viscosity { get; set; }
+        [StringLength(50)]
+        public string? Liquefaction { get; set; }
+        [StringLength(30)]
+        public string? Color { get; set; }
+        public int? TotalSpermCount { get; set; }
+    }
+
     #endregion
 
-    #region Oocyte Request DTOs
-    public class CreateLabSampleOocyteRequest
+    #region ===== OOCYTE SAMPLE REQUEST =====
+
+    /// <summary>
+    /// Create oocyte sample request
+    /// </summary>
+    public class CreateLabSampleOocyteRequest : CreateLabSampleBaseRequest
     {
         [Required(ErrorMessage = "Maturity stage is required.")]
         [StringLength(100)]
@@ -106,16 +129,42 @@ namespace FSCMS.Service.RequestModel
         public bool IsVitrified { get; set; }
 
         public DateTime? VitrificationDate { get; set; }
-
-        [StringLength(500)]
-        public string? Notes { get; set; }
     }
 
-    public class UpdateLabSampleOocyteRequest : CreateLabSampleOocyteRequest { }
+    /// <summary>
+    /// Update oocyte sample request
+    /// </summary>
+    public class UpdateLabSampleOocyteRequest : UpdateLabSampleBaseRequest
+    {
+        [StringLength(100)]
+        public string? MaturityStage { get; set; }
+
+        [StringLength(100)]
+        public string? Quality { get; set; }
+
+        public bool? IsMature { get; set; }
+
+        public DateTime? RetrievalDate { get; set; }
+
+        [StringLength(100)]
+        public string? CumulusCells { get; set; }
+
+        [StringLength(100)]
+        public string? CytoplasmAppearance { get; set; }
+
+        public bool? IsVitrified { get; set; }
+
+        public DateTime? VitrificationDate { get; set; }
+    }
+
     #endregion
 
-    #region Embryo Request DTOs
-    public class CreateLabSampleEmbryoRequest
+    #region ===== EMBRYO SAMPLE REQUEST =====
+
+    /// <summary>
+    /// Create embryo sample request
+    /// </summary>
+    public class CreateLabSampleEmbryoRequest : CreateLabSampleBaseRequest
     {
         [Range(1, 10, ErrorMessage = "Day of development must be between 1 and 10.")]
         public int DayOfDevelopment { get; set; }
@@ -138,10 +187,39 @@ namespace FSCMS.Service.RequestModel
 
         [StringLength(100)]
         public string? FertilizationMethod { get; set; }
-
-        [StringLength(500)]
-        public string? Notes { get; set; }
     }
+
+    /// <summary>
+    /// Update embryo sample request
+    /// </summary>
+    public class UpdateLabSampleEmbryoRequest : UpdateLabSampleBaseRequest
+    {
+        [Range(1, 10)]
+        public int? DayOfDevelopment { get; set; }
+
+        [StringLength(20)]
+        public string? Grade { get; set; }
+
+        [Range(1, 200)]
+        public int? CellCount { get; set; }
+
+        [StringLength(100)]
+        public string? Morphology { get; set; }
+
+        public bool? IsBiopsied { get; set; }
+
+        public bool? IsPGTTested { get; set; }
+
+        [StringLength(255)]
+        public string? PGTResult { get; set; }
+
+        [StringLength(100)]
+        public string? FertilizationMethod { get; set; }
+    }
+
+    #endregion
+
+    #region ===== GET FILTER REQUEST =====
 
     public class GetLabSamplesRequest : PagingModel
     {
@@ -151,6 +229,5 @@ namespace FSCMS.Service.RequestModel
         public Guid? PatientId { get; set; }
     }
 
-    public class UpdateLabSampleEmbryoRequest : CreateLabSampleEmbryoRequest { }
     #endregion
 }

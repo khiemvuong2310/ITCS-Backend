@@ -67,8 +67,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IAppointmentService, AppointmentService>(); // Appointment service with comprehensive CRUD operations
             services.AddScoped<ICryoLocationService, CryoLocationService>();
             services.AddScoped<INotificationService, NotificationService>();
-            services.AddScoped<CryoExportService, CryoExportService>();
-            services.AddScoped<CryoImportService, CryoImportService>();
+            services.AddScoped<ICryoExportService, CryoExportService>();
+            services.AddScoped<ICryoImportService, CryoImportService>();
             
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management

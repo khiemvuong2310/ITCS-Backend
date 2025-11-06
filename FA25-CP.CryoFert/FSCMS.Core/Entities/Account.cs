@@ -48,7 +48,7 @@ public class Account : BaseEntity<Guid>
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public DateTime? BirthDate { get; set; }
-    public bool? Gender { get; set; }
+    public bool? Gender { get; set; } // true man / false female
     public string Phone { get; set; } = string.Empty;    
     public string? Address { get; set; }
     public string Username { get; set; } = string.Empty;

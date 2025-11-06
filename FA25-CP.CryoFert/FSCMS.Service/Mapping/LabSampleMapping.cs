@@ -1,7 +1,8 @@
 using AutoMapper;
 using FSCMS.Core.Entities;
-using FSCMS.Service.ReponseModel;
+using FSCMS.Core.Enum;
 using FSCMS.Service.RequestModel;
+using FSCMS.Service.ReponseModel;
 using System;
 
 namespace FSCMS.Service.Mapping
@@ -10,11 +11,10 @@ namespace FSCMS.Service.Mapping
     {
         public LabSampleMappingProfile()
         {
-            // =============================
-            // Entity → Response
-            // =============================
+            // =========================================================
+            // ENTITY → RESPONSE
+            // =========================================================
             CreateMap<LabSample, LabSampleResponse>()
-                .ForMember(dest => dest.Patient, opt => opt.MapFrom(src => src.Patient))
                 .ForMember(dest => dest.IsStoraged, opt => opt.MapFrom(src => src.StorageDate.HasValue))
                 .ForMember(dest => dest.IsAvailable, opt => opt.MapFrom(src => src.IsAvailable))
                 .ForMember(dest => dest.Quality, opt => opt.MapFrom(src => src.Quality))
@@ -27,44 +27,74 @@ namespace FSCMS.Service.Mapping
 
             CreateMap<LabSample, LabSampleDetailResponse>()
                 .IncludeBase<LabSample, LabSampleResponse>()
+                .ForMember(dest => dest.Patient, opt => opt.MapFrom(src => src.Patient))
                 .ForMember(dest => dest.Sperm, opt => opt.MapFrom(src => src.LabSampleSperm))
                 .ForMember(dest => dest.Oocyte, opt => opt.MapFrom(src => src.LabSampleOocyte))
                 .ForMember(dest => dest.Embryo, opt => opt.MapFrom(src => src.LabSampleEmbryo));
 
-            // Patient basic info mapping
+            // Basic patient info
             CreateMap<Patient, PatientBasicInfo>();
 
-            // Type-specific: entity → response DTOs
+            // Type-specific entity → response
             CreateMap<LabSampleSperm, LabSampleSpermDto>();
             CreateMap<LabSampleOocyte, LabSampleOocyteDto>();
             CreateMap<LabSampleEmbryo, LabSampleEmbryoDto>();
 
-            // =============================
-            // Request → Entity
-            // =============================
 
-            // Create base lab sample
-            CreateMap<CreateLabSampleRequest, LabSample>()
+            // =========================================================
+            // REQUEST → ENTITY
+            // =========================================================
+
+            // ======= CREATE: SPERM =======
+            CreateMap<CreateLabSampleSpermRequest, LabSample>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.SampleType, opt => opt.MapFrom(_ => SampleType.Sperm))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => SpecimenStatus.Donated))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.StorageDate, opt => opt.Ignore())
-                .ForMember(dest => dest.ExpiryDate, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => Core.Enum.SpecimenStatus.Donated))
-                .ForMember(dest => dest.LabSampleSperm, opt => opt.MapFrom(src => src.Sperm))
-                .ForMember(dest => dest.LabSampleOocyte, opt => opt.MapFrom(src => src.Oocyte))
-                .ForMember(dest => dest.LabSampleEmbryo, opt => opt.MapFrom(src => src.Embryo))
-                .ForMember(dest => dest.Patient, opt => opt.Ignore());
+                .ForMember(dest => dest.LabSampleSperm, opt => opt.MapFrom(src => src))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
-            // Update base lab sample
-            CreateMap<UpdateLabSampleRequest, LabSample>()
+            // ======= CREATE: OOCYTE =======
+            CreateMap<CreateLabSampleOocyteRequest, LabSample>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.SampleType, opt => opt.MapFrom(_ => SampleType.Oocyte))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => SpecimenStatus.Donated))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.LabSampleOocyte, opt => opt.MapFrom(src => src))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // ======= CREATE: EMBRYO =======
+            CreateMap<CreateLabSampleEmbryoRequest, LabSample>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.SampleType, opt => opt.MapFrom(_ => SampleType.Embryo))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => SpecimenStatus.Donated))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.LabSampleEmbryo, opt => opt.MapFrom(src => src))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // ======= UPDATE: SPERM =======
+            CreateMap<UpdateLabSampleSpermRequest, LabSample>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.LabSampleSperm, opt => opt.MapFrom(src => src.Sperm))
-                .ForMember(dest => dest.LabSampleOocyte, opt => opt.MapFrom(src => src.Oocyte))
-                .ForMember(dest => dest.LabSampleEmbryo, opt => opt.MapFrom(src => src.Embryo))
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+                .ForMember(dest => dest.LabSampleSperm, opt => opt.MapFrom(src => src))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
-            // Type-specific: request → entity
+            // ======= UPDATE: OOCYTE =======
+            CreateMap<UpdateLabSampleOocyteRequest, LabSample>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.LabSampleOocyte, opt => opt.MapFrom(src => src))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // ======= UPDATE: EMBRYO =======
+            CreateMap<UpdateLabSampleEmbryoRequest, LabSample>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.LabSampleEmbryo, opt => opt.MapFrom(src => src))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+
+            // ======= SUB ENTITY MAPPING =======
             CreateMap<CreateLabSampleSpermRequest, LabSampleSperm>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
@@ -74,15 +104,15 @@ namespace FSCMS.Service.Mapping
             CreateMap<CreateLabSampleEmbryoRequest, LabSampleEmbryo>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            // Update
+            // Update type-specific
             CreateMap<UpdateLabSampleSpermRequest, LabSampleSperm>()
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<UpdateLabSampleOocyteRequest, LabSampleOocyte>()
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<UpdateLabSampleEmbryoRequest, LabSampleEmbryo>()
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }

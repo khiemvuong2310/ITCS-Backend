@@ -30,9 +30,6 @@ namespace FSCMS.Service.ReponseModel
         [JsonPropertyName("isAvailable")]
         public bool IsAvailable { get; set; }
 
-        [JsonPropertyName("patient")]
-        public PatientBasicInfo? Patient { get; set; }
-
         [JsonPropertyName("isStoraged")]
         public bool IsStoraged { get; set; } = false;
 
@@ -62,6 +59,9 @@ namespace FSCMS.Service.ReponseModel
 
         [JsonPropertyName("embryo")]
         public LabSampleEmbryoDto? Embryo { get; set; }
+
+        [JsonPropertyName("patient")]
+        public PatientBasicInfo? Patient { get; set; }
     }
 
     /// <summary>

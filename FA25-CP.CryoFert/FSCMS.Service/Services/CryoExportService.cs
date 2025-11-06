@@ -1,5 +1,10 @@
-﻿using AutoMapper;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using AutoMapper;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
@@ -7,10 +12,6 @@ using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
 {
@@ -143,25 +144,13 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                var labSampleExists = await _unitOfWork.Repository<LabSample>()
-                    .AsQueryable()
-                    .AnyAsync(r => r.Id == request.LabSampleId && !r.IsDeleted);
-
-                if (!labSampleExists)
-                {
-                    return new BaseResponse<CryoExportResponse>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "Invalid labSample ID",
-                        Data = null
-                    };
-                }
-
                 var locationExists = await _unitOfWork.Repository<CryoLocation>()
                     .AsQueryable()
-                    .AnyAsync(r => r.Id == request.CryoLocationId && !r.IsDeleted);
+                    .Include(x => x.Parent)
+                    .Where(r => r.Id == request.CryoLocationId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
 
-                if (!locationExists)
+                if (locationExists == null || locationExists.Type != CryoLocationType.Slot)
                 {
                     return new BaseResponse<CryoExportResponse>
                     {
@@ -171,11 +160,37 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                var labSampleExists = await _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.CryoLocationId == locationExists.Id)
+                    .FirstOrDefaultAsync();
+
+                if (labSampleExists == null)
+                {
+                    return new BaseResponse<CryoExportResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid labSample",
+                        Data = null
+                    };
+                }
+
+                if (locationExists.SampleType != labSampleExists.SampleType)
+                {
+                    return new BaseResponse<CryoExportResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Sample Type not match location",
+                        Data = null
+                    };
+                }
+
                 var userExists = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .AnyAsync(r => r.Id == request.WitnessedBy && !r.IsDeleted);
+                    .Include(x => x.Role)
+                    .FirstOrDefaultAsync(r => r.Id == request.WitnessedBy && !r.IsDeleted && r.Role.RoleCode == "LAB_TECH");
 
-                if (!userExists)
+                if (userExists == null)
                 {
                     return new BaseResponse<CryoExportResponse>
                     {
@@ -185,6 +200,9 @@ namespace FSCMS.Service.Services
                     };
                 }
                 var entity = _mapper.Map<CryoExport>(request);
+                //locationExists.LabSamples = null;
+                labSampleExists.Status = SpecimenStatus.Thawed;
+                await DecrementSampleCountAsync(locationExists.Id);
 
                 await _unitOfWork.Repository<CryoExport>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
@@ -207,6 +225,25 @@ namespace FSCMS.Service.Services
             }
         }
 
+        private async Task DecrementSampleCountAsync(Guid locationId)
+        {
+            var current = await _unitOfWork.Repository<CryoLocation>()
+                .AsQueryable()
+                .FirstOrDefaultAsync(x => x.Id == locationId && !x.IsDeleted);
+
+            while (current != null)
+            {
+                current.SampleCount -= 1;
+
+                if (current.ParentId == null)
+                    break;
+
+                current = await _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == current.ParentId && !x.IsDeleted);
+            }
+            await _unitOfWork.CommitAsync();
+        }
         public async Task<BaseResponse<CryoExportResponse>> UpdateAsync(Guid id, UpdateCryoExportRequest request)
         {
             try
