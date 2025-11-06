@@ -70,6 +70,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<ICryoExportService, CryoExportService>();
             services.AddScoped<ICryoImportService, CryoImportService>();
             services.AddScoped<IMediaService, MediaService>();
+            services.AddScoped<ITransactionService, TransactionService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management

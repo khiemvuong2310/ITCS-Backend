@@ -8,7 +8,7 @@ namespace FSCMS.Core.Entities
     // Bảng độc lập; liên kết logic tới đối tượng liên quan qua RelatedEntity*
     public class Transaction : BaseEntity<Guid>
     {
-        protected Transaction() : base() { }
+        public Transaction() : base() { }
         public Transaction(
             Guid id,
             string transactionCode,
@@ -44,10 +44,10 @@ namespace FSCMS.Core.Entities
         public string? PaymentGateway { get; set; }
 
         public string? ReferenceNumber { get; set; }
-        public int? RelatedEntityId { get; set; } // e.g., Invoice, Contract, ServiceRequest
+        public Guid RelatedEntityId { get; set; } // e.g., Invoice, Contract, ServiceRequest
         public string? RelatedEntityType { get; set; } // "Invoice", "Contract", "ServiceRequest"
 
-        public int? PatientId { get; set; }
+        public Guid PatientId { get; set; }
         public string? PatientName { get; set; }
 
         public string? Description { get; set; }
