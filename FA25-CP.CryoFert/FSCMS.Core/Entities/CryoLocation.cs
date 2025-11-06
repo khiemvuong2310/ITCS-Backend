@@ -14,26 +14,32 @@ public class CryoLocation : BaseEntity<Guid>
     public CryoLocation() : base() { }
 
     public CryoLocation(
-        Guid id,
         string name,
         string code,
         CryoLocationType type,
         Guid? parentId = null,
+        CryoLocation parent = null,
         int? capacity = null,
         int sampleCount = 0,
         SampleType sampleType = SampleType.Embryo,
-        bool isActive = true
-    )
+        bool isActive = true,
+        decimal? temperature = null,
+        string? notes = null
+    ) : base()
     {
-        Id = id;
+        Id = Guid.NewGuid(); 
         Name = name;
         Code = code;
         Type = type;
         ParentId = parentId;
+        Parent = parent;
         Capacity = capacity;
         SampleCount = sampleCount;
         SampleType = sampleType;
         IsActive = isActive;
+        Temperature = temperature;
+        Notes = notes;
+        Children = new List<CryoLocation>();
     }
     public string Name { get; set; } = default!;
     public string Code { get; set; } = default!;

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
@@ -142,23 +143,26 @@ namespace FSCMS.Service.Services
             {
                 var labSampleExists = await _unitOfWork.Repository<LabSample>()
                     .AsQueryable()
-                    .AnyAsync(r => r.Id == request.LabSampleId && !r.IsDeleted);
+                    .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.Status != SpecimenStatus.Stored)
+                    .FirstOrDefaultAsync();
 
-                if (!labSampleExists) 
+                if (labSampleExists == null) 
                 { 
                     return new BaseResponse<CryoImportResponse> 
                     { 
                         Code = StatusCodes.Status400BadRequest, 
-                        Message = "Invalid labSample ID", 
+                        Message = "Invalid labSample",
                         Data = null 
                     }; 
                 }
 
                 var locationExists = await _unitOfWork.Repository<CryoLocation>()
                     .AsQueryable()
-                    .AnyAsync(r => r.Id == request.CryoLocationId && !r.IsDeleted);
+                    .Include(x => x.Parent)
+                    .Where(r => r.Id == request.CryoLocationId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
 
-                if (!locationExists) 
+                if (locationExists == null || locationExists.Type != CryoLocationType.Slot) 
                 { 
                     return new BaseResponse<CryoImportResponse> 
                     { 
@@ -168,11 +172,22 @@ namespace FSCMS.Service.Services
                     }; 
                 }
 
+                if (locationExists.SampleType != labSampleExists.SampleType) 
+                { 
+                    return new BaseResponse<CryoImportResponse> 
+                    { 
+                        Code = StatusCodes.Status400BadRequest, 
+                        Message = "Sample Type not match location", 
+                        Data = null 
+                    }; 
+                }
+
                 var userExists = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .AnyAsync(r => r.Id == request.WitnessedBy && !r.IsDeleted);
+                    .Include(x => x.Role)
+                    .FirstOrDefaultAsync(r => r.Id == request.WitnessedBy && !r.IsDeleted && r.Role.RoleCode == "LAB_TECH");
 
-                if (!userExists) 
+                if (userExists == null) 
                 { 
                     return new BaseResponse<CryoImportResponse> 
                     { 
@@ -181,6 +196,9 @@ namespace FSCMS.Service.Services
                         Data = null 
                     }; 
                 }
+                //locationExists.LabSample = labSampleExists;
+                labSampleExists.Status = SpecimenStatus.Stored;
+                await IncrementSampleCountAsync(locationExists.Id);
 
                 var entity = _mapper.Map<CryoImport>(request);
 
@@ -204,6 +222,27 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        private async Task IncrementSampleCountAsync(Guid locationId)
+        {
+            var current = await _unitOfWork.Repository<CryoLocation>()
+                .AsQueryable()
+                .FirstOrDefaultAsync(x => x.Id == locationId && !x.IsDeleted);
+
+            while (current != null)
+            {
+                current.SampleCount += 1;
+
+                if (current.ParentId == null)
+                    break;
+
+                current = await _unitOfWork.Repository<CryoLocation>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == current.ParentId && !x.IsDeleted);
+            }
+            await _unitOfWork.CommitAsync();
+        }
+
 
         public async Task<BaseResponse<CryoImportResponse>> UpdateAsync(Guid id, UpdateCryoImportRequest request)
         {

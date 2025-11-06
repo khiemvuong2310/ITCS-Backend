@@ -62,54 +62,137 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
-        /// Create new lab sample
+        /// Create new sperm sample
         /// </summary>
-        /// <param name="request">Lab sample creation details</param>
-        /// <returns>Created lab sample</returns>
-        [HttpPost]
+        [HttpPost("sperm")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Create([FromBody] CreateLabSampleRequest request)
+        public async Task<IActionResult> CreateSperm([FromBody] CreateLabSampleSpermRequest request)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status400BadRequest,
                     Message = "Invalid input data."
                 });
-            }
 
-            var result = await _labSampleService.CreateAsync(request);
+            var result = await _labSampleService.CreateSpermAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         /// <summary>
-        /// Update an existing lab sample
+        /// Create new oocyte sample
         /// </summary>
-        /// <param name="id">Lab sample ID</param>
-        /// <param name="request">Updated data</param>
-        /// <returns>Updated lab sample</returns>
-        [HttpPut("{id}")]
+        [HttpPost("oocyte")]
+        [Authorize(Roles = "Admin,LaboratoryTechnician")]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreateOocyte([FromBody] CreateLabSampleOocyteRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data."
+                });
+
+            var result = await _labSampleService.CreateOocyteAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Create new embryo sample
+        /// </summary>
+        [HttpPost("embryo")]
+        [Authorize(Roles = "Admin,LaboratoryTechnician")]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreateEmbryo([FromBody] CreateLabSampleEmbryoRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data."
+                });
+
+            var result = await _labSampleService.CreateEmbryoAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Update existing sperm sample
+        /// </summary>
+        [HttpPut("sperm/{id}")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateLabSampleRequest request)
+        public async Task<IActionResult> UpdateSperm(Guid id, [FromBody] UpdateLabSampleSpermRequest request)
         {
-            if (id == Guid.Empty)
+            if (!ModelState.IsValid || id == Guid.Empty)
             {
                 return BadRequest(new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid lab sample ID."
+                    Message = "Invalid input data or sample ID."
                 });
             }
 
-            var result = await _labSampleService.UpdateAsync(id, request);
+            var result = await _labSampleService.UpdateSpermAsync(id, request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Update existing oocyte sample
+        /// </summary>
+        [HttpPut("oocyte/{id}")]
+        [Authorize(Roles = "Admin,LaboratoryTechnician")]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateOocyte(Guid id, [FromBody] UpdateLabSampleOocyteRequest request)
+        {
+            if (!ModelState.IsValid || id == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data or sample ID."
+                });
+            }
+
+            var result = await _labSampleService.UpdateOocyteAsync(id, request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Update existing embryo sample
+        /// </summary>
+        [HttpPut("embryo/{id}")]
+        [Authorize(Roles = "Admin,LaboratoryTechnician")]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateEmbryo(Guid id, [FromBody] UpdateLabSampleEmbryoRequest request)
+        {
+            if (!ModelState.IsValid || id == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data or sample ID."
+                });
+            }
+
+            var result = await _labSampleService.UpdateEmbryoAsync(id, request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

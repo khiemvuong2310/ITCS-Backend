@@ -10,8 +10,12 @@ namespace FSCMS.Service.Interfaces
     {
         Task<BaseResponse<LabSampleDetailResponse>> GetByIdAsync(Guid id);
         Task<DynamicResponse<LabSampleResponse>> GetAllAsync(GetLabSamplesRequest request);
-        Task<BaseResponse<LabSampleResponse>> CreateAsync(CreateLabSampleRequest request);
-        Task<BaseResponse<LabSampleResponse>> UpdateAsync(Guid id, UpdateLabSampleRequest request);
+        Task<BaseResponse<LabSampleResponse>> CreateEmbryoAsync(CreateLabSampleEmbryoRequest request);
+        Task<BaseResponse<LabSampleResponse>> CreateOocyteAsync(CreateLabSampleOocyteRequest request);
+        Task<BaseResponse<LabSampleResponse>> CreateSpermAsync(CreateLabSampleSpermRequest request);
+        Task<BaseResponse<LabSampleResponse>> UpdateSpermAsync(Guid id, UpdateLabSampleSpermRequest request);
+        Task<BaseResponse<LabSampleResponse>> UpdateOocyteAsync(Guid id, UpdateLabSampleOocyteRequest request);
+        Task<BaseResponse<LabSampleResponse>> UpdateEmbryoAsync(Guid id, UpdateLabSampleEmbryoRequest request);
         Task<BaseResponse> DeleteAsync(Guid id);
     }
 }

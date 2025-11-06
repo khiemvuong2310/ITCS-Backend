@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
@@ -10,10 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace FSCMS.Service.Services
 {
@@ -74,38 +75,39 @@ namespace FSCMS.Service.Services
                     for (int t = 0; t < tankConfig.TankCount; t++)
                     {
                         var tank = new CryoLocation
-                        {
-                            Name = $"{tankConfig.SampleType} Tank{t + 1}",
-                            Capacity = config.CanisterPerTank * config.GobletPerCanister * config.SlotPerGoblet,
-                            Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}",
-                            SampleCount = 0,
-                            Temperature = -196,
-                            Notes = "Initial",
-                            Type = CryoLocationType.Tank,
-                            SampleType = tankConfig.SampleType,
-                            IsActive = true,
-                            Children = new List<CryoLocation>()
-                        };
+                        (
+                            name: $"{tankConfig.SampleType} Tank{t + 1}",
+                            code: $"{tankConfig.SampleType.ToString().First()}-T{t + 1}",
+                            type: CryoLocationType.Tank,
+                            parentId: null,
+                            parent: null,
+                            capacity: config.CanisterPerTank * config.GobletPerCanister * config.SlotPerGoblet,
+                            sampleCount: 0,
+                            sampleType: tankConfig.SampleType,
+                            isActive: true,
+                            temperature: -196,
+                            notes: "Initial"
+                        );
                         allNodes.Add(tank);
 
                         // Canisters
                         for (int c = 0; c < config.CanisterPerTank; c++)
                         {
+
                             var canister = new CryoLocation
-                            {
-                                Name = $"{tank.Name} Canister{c + 1}",
-                                Capacity = config.GobletPerCanister * config.SlotPerGoblet,
-                                Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}",
-                                SampleCount = 0,
-                                Temperature = -196,
-                                Notes = "Initial",
-                                Type = CryoLocationType.Canister,
-                                SampleType = tankConfig.SampleType,
-                                ParentId = tank.Id,
-                                Parent = tank,
-                                IsActive = true,
-                                Children = new List<CryoLocation>()
-                            };
+                            (
+                                name: $"{tank.Name} Canister{c + 1}",
+                                code: $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}",
+                                type: CryoLocationType.Canister,
+                                parentId: tank.Id,
+                                parent: tank,
+                                capacity: config.GobletPerCanister * config.SlotPerGoblet,
+                                sampleCount: 0,
+                                sampleType: tankConfig.SampleType,
+                                isActive: true,
+                                temperature: -196,
+                                notes: "Initial"
+                            );
                             tank.Children.Add(canister);
                             allNodes.Add(canister);
 
@@ -113,20 +115,19 @@ namespace FSCMS.Service.Services
                             for (int g = 0; g < config.GobletPerCanister; g++)
                             {
                                 var goblet = new CryoLocation
-                                {
-                                    Name = $"{canister.Name} Goblet{g + 1}",
-                                    Capacity = config.SlotPerGoblet,
-                                    Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}-G{g + 1}",
-                                    SampleCount = 0,
-                                    Temperature = -196,
-                                    Notes = "Initial",
-                                    Type = CryoLocationType.Goblet,
-                                    SampleType = tankConfig.SampleType,
-                                    ParentId = canister.Id,
-                                    Parent = canister,
-                                    IsActive = true,
-                                    Children = new List<CryoLocation>()
-                                };
+                                (
+                                    name: $"{canister.Name} Goblet{g + 1}",
+                                    code: $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}-G{g + 1}",
+                                    type: CryoLocationType.Goblet,
+                                    parentId: canister.Id,
+                                    parent: canister,
+                                    capacity: config.SlotPerGoblet,
+                                    sampleCount: 0,
+                                    sampleType: tankConfig.SampleType,
+                                    isActive: true,
+                                    temperature: -196,
+                                    notes: "Initial"
+                                );
                                 canister.Children.Add(goblet);
                                 allNodes.Add(goblet);
 
@@ -134,19 +135,19 @@ namespace FSCMS.Service.Services
                                 for (int s = 0; s < config.SlotPerGoblet; s++)
                                 {
                                     var slot = new CryoLocation
-                                    {
-                                        Name = $"{goblet.Name} Slot {s + 1}",
-                                        Capacity = 1,
-                                        Code = $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}-G{g + 1}-S{s + 1}",
-                                        SampleCount = 0,
-                                        Temperature = -196,
-                                        Notes = "Initial",
-                                        Type = CryoLocationType.Slot,
-                                        SampleType = tankConfig.SampleType,
-                                        ParentId = goblet.Id,
-                                        Parent = goblet,
-                                        IsActive = true
-                                    };
+                                    (
+                                        name: $"{goblet.Name} Slot {s + 1}",
+                                        code: $"{tankConfig.SampleType.ToString().First()}-T{t + 1}-C{c + 1}-G{g + 1}-S{s + 1}",
+                                        type: CryoLocationType.Slot,
+                                        parentId: goblet.Id,
+                                        parent: goblet,
+                                        capacity: 1,
+                                        sampleCount: 0,
+                                        sampleType: tankConfig.SampleType,
+                                        isActive: true,
+                                        temperature: -196,
+                                        notes: "Initial"
+                                    );
                                     goblet.Children.Add(slot);
                                     allNodes.Add(slot);
                                 }

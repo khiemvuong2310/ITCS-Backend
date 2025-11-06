@@ -65,8 +65,15 @@ namespace FSCMS.Service.Services
                         SystemCode = "NOT_FOUND"
                     };
                 }
-
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(x => x.Account)
+                    .FirstOrDefaultAsync(x => x.Id == sample.PatientId && !x.IsDeleted);
                 var response = _mapper.Map<LabSampleDetailResponse>(sample);
+                response.Patient.FullName = patient.Account.FirstName + " " + patient.Account.LastName;
+                response.Patient.DOB = patient.Account.BirthDate;
+                if(patient.Account.Gender != null)
+                    response.Patient.Gender = (bool)patient.Account.Gender ? "Man" : "Female";
 
                 return new BaseResponse<LabSampleDetailResponse>
                 {
@@ -169,9 +176,10 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region CREATE
-        public async Task<BaseResponse<LabSampleResponse>> CreateAsync(CreateLabSampleRequest request)
+
+        public async Task<BaseResponse<LabSampleResponse>> CreateSpermAsync(CreateLabSampleSpermRequest request)
         {
-            const string methodName = nameof(CreateAsync);
+            const string methodName = nameof(CreateSpermAsync);
             _logger.LogInformation("{MethodName} called", methodName);
 
             try
@@ -180,10 +188,9 @@ namespace FSCMS.Service.Services
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "Invalid request."
+                        Message = "Invalid sperm request."
                     };
 
-                // Validate patient exists
                 var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
                 if (patient == null)
                     return new BaseResponse<LabSampleResponse>
@@ -192,69 +199,26 @@ namespace FSCMS.Service.Services
                         Message = "Patient not found."
                     };
 
-                // Validate type-specific detail exists
-                switch (request.SampleType)
-                {
-                    case SampleType.Sperm:
-                        if (request.Sperm == null)
-                            return new BaseResponse<LabSampleResponse>
-                            {
-                                Code = StatusCodes.Status400BadRequest,
-                                Message = "Sperm sample details are required."
-                            };
-                        break;
-
-                    case SampleType.Oocyte:
-                        if (request.Oocyte == null)
-                            return new BaseResponse<LabSampleResponse>
-                            {
-                                Code = StatusCodes.Status400BadRequest,
-                                Message = "Oocyte sample details are required."
-                            };
-                        break;
-
-                    case SampleType.Embryo:
-                        if (request.Embryo == null)
-                            return new BaseResponse<LabSampleResponse>
-                            {
-                                Code = StatusCodes.Status400BadRequest,
-                                Message = "Embryo sample details are required."
-                            };
-                        break;
-
-                    default:
-                        return new BaseResponse<LabSampleResponse>
-                        {
-                            Code = StatusCodes.Status400BadRequest,
-                            Message = "Invalid sample type."
-                        };
-                }
-
-                // Map main LabSample entity
                 var entity = _mapper.Map<LabSample>(request);
-                entity.SampleCode = GenerateSampleCode(request.SampleType);
+                entity.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 entity.PatientId = request.PatientId;
+                entity.Patient = patient;
 
-                // Map type-specific detail
-                CreateSampleDetail(entity, request);
-
-                // Insert and commit
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
 
-                // Map response
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
                 return new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status201Created,
-                    Message = "Lab sample created successfully.",
+                    Message = "Sperm sample created successfully.",
                     Data = response
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error creating lab sample", methodName);
+                _logger.LogError(ex, "{MethodName}: Error creating sperm sample", methodName);
                 return new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -263,28 +227,222 @@ namespace FSCMS.Service.Services
             }
         }
 
-        // --- Private helpers ---
-
-        private void CreateSampleDetail(LabSample entity, CreateLabSampleRequest request)
+        public async Task<BaseResponse<LabSampleResponse>> CreateOocyteAsync(CreateLabSampleOocyteRequest request)
         {
-            switch (request.SampleType)
+            const string methodName = nameof(CreateOocyteAsync);
+            _logger.LogInformation("{MethodName} called", methodName);
+
+            try
             {
-                case SampleType.Sperm:
-                    if (request.Sperm != null)
-                        entity.LabSampleSperm = _mapper.Map<LabSampleSperm>(request.Sperm);
-                    break;
+                if (request == null)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid oocyte request."
+                    };
 
-                case SampleType.Oocyte:
-                    if (request.Oocyte != null)
-                        entity.LabSampleOocyte = _mapper.Map<LabSampleOocyte>(request.Oocyte);
-                    break;
+                var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+                if (patient == null)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient not found."
+                    };
 
-                case SampleType.Embryo:
-                    if (request.Embryo != null)
-                        entity.LabSampleEmbryo = _mapper.Map<LabSampleEmbryo>(request.Embryo);
-                    break;
+                var entity = _mapper.Map<LabSample>(request);
+                entity.SampleCode = GenerateSampleCode(SampleType.Oocyte);
+                entity.PatientId = request.PatientId;
+                entity.Patient = patient;
+
+                await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
+                await _unitOfWork.CommitAsync();
+
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status201Created,
+                    Message = "Oocyte sample created successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error creating Oocyte sample", methodName);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
             }
         }
+
+        public async Task<BaseResponse<LabSampleResponse>> CreateEmbryoAsync(CreateLabSampleEmbryoRequest request)
+        {
+            const string methodName = nameof(CreateEmbryoAsync);
+            _logger.LogInformation("{MethodName} called", methodName);
+
+            try
+            {
+                if (request == null)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid embryo request."
+                    };
+
+                var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+                if (patient == null)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient not found."
+                    };
+
+                var entity = _mapper.Map<LabSample>(request);
+                entity.SampleCode = GenerateSampleCode(SampleType.Embryo);
+                entity.PatientId = request.PatientId;
+                entity.Patient = patient;
+
+                await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
+                await _unitOfWork.CommitAsync();
+
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status201Created,
+                    Message = "Embryo sample created successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error creating Embryo sample", methodName);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
+        //public async Task<BaseResponse<LabSampleResponse>> CreateAsync(CreateLabSampleRequest request)
+        //{
+        //    const string methodName = nameof(CreateAsync);
+        //    _logger.LogInformation("{MethodName} called", methodName);
+
+        //    try
+        //    {
+        //        if (request == null)
+        //            return new BaseResponse<LabSampleResponse>
+        //            {
+        //                Code = StatusCodes.Status400BadRequest,
+        //                Message = "Invalid request."
+        //            };
+
+        //        // Validate patient exists
+        //        var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+        //        if (patient == null)
+        //            return new BaseResponse<LabSampleResponse>
+        //            {
+        //                Code = StatusCodes.Status404NotFound,
+        //                Message = "Patient not found."
+        //            };
+
+        //        // Validate type-specific detail exists
+        //        switch (request.SampleType)
+        //        {
+        //            case SampleType.Sperm:
+        //                if (request.Sperm == null)
+        //                    return new BaseResponse<LabSampleResponse>
+        //                    {
+        //                        Code = StatusCodes.Status400BadRequest,
+        //                        Message = "Sperm sample details are required."
+        //                    };
+        //                break;
+
+        //            case SampleType.Oocyte:
+        //                if (request.Oocyte == null)
+        //                    return new BaseResponse<LabSampleResponse>
+        //                    {
+        //                        Code = StatusCodes.Status400BadRequest,
+        //                        Message = "Oocyte sample details are required."
+        //                    };
+        //                break;
+
+        //            case SampleType.Embryo:
+        //                if (request.Embryo == null)
+        //                    return new BaseResponse<LabSampleResponse>
+        //                    {
+        //                        Code = StatusCodes.Status400BadRequest,
+        //                        Message = "Embryo sample details are required."
+        //                    };
+        //                break;
+
+        //            default:
+        //                return new BaseResponse<LabSampleResponse>
+        //                {
+        //                    Code = StatusCodes.Status400BadRequest,
+        //                    Message = "Invalid sample type."
+        //                };
+        //        }
+
+        //        // Map main LabSample entity
+        //        var entity = _mapper.Map<LabSample>(request);
+        //        entity.SampleCode = GenerateSampleCode(request.SampleType);
+        //        entity.PatientId = request.PatientId;
+
+        //        // Map type-specific detail
+        //        CreateSampleDetail(entity, request);
+
+        //        // Insert and commit
+        //        await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
+        //        await _unitOfWork.CommitAsync();
+
+        //        // Map response
+        //        var response = _mapper.Map<LabSampleResponse>(entity);
+
+        //        return new BaseResponse<LabSampleResponse>
+        //        {
+        //            Code = StatusCodes.Status201Created,
+        //            Message = "Lab sample created successfully.",
+        //            Data = response
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "{MethodName}: Error creating lab sample", methodName);
+        //        return new BaseResponse<LabSampleResponse>
+        //        {
+        //            Code = StatusCodes.Status500InternalServerError,
+        //            Message = "Internal server error."
+        //        };
+        //    }
+        //}
+
+        // --- Private helpers ---
+
+        //private void CreateSampleDetail(LabSample entity, CreateLabSampleRequest request)
+        //{
+        //    switch (request.SampleType)
+        //    {
+        //        case SampleType.Sperm:
+        //            if (request.Sperm != null)
+        //                entity.LabSampleSperm = _mapper.Map<LabSampleSperm>(request.Sperm);
+        //            break;
+
+        //        case SampleType.Oocyte:
+        //            if (request.Oocyte != null)
+        //                entity.LabSampleOocyte = _mapper.Map<LabSampleOocyte>(request.Oocyte);
+        //            break;
+
+        //        case SampleType.Embryo:
+        //            if (request.Embryo != null)
+        //                entity.LabSampleEmbryo = _mapper.Map<LabSampleEmbryo>(request.Embryo);
+        //            break;
+        //    }
+        //}
 
         private string GenerateSampleCode(SampleType type)
         {
@@ -301,9 +459,10 @@ namespace FSCMS.Service.Services
 
 
         #region UPDATE
-        public async Task<BaseResponse<LabSampleResponse>> UpdateAsync(Guid id, UpdateLabSampleRequest request)
+
+        public async Task<BaseResponse<LabSampleResponse>> UpdateSpermAsync(Guid id, UpdateLabSampleSpermRequest request)
         {
-            const string methodName = nameof(UpdateAsync);
+            const string methodName = nameof(UpdateSpermAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
             if (id == Guid.Empty)
@@ -311,17 +470,14 @@ namespace FSCMS.Service.Services
                 return new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid lab sample ID."
+                    Message = "Invalid lab sample Sperm ID."
                 };
             }
-
             try
             {
                 var entity = await _unitOfWork.Repository<LabSample>()
                     .AsQueryable()
                     .Include(x => x.LabSampleSperm)
-                    .Include(x => x.LabSampleOocyte)
-                    .Include(x => x.LabSampleEmbryo)
                     .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
 
                 if (entity == null)
@@ -329,7 +485,7 @@ namespace FSCMS.Service.Services
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
-                        Message = "Lab sample not found."
+                        Message = "Sperm sample not found."
                     };
                 }
 
@@ -344,13 +500,13 @@ namespace FSCMS.Service.Services
                 return new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status200OK,
-                    Message = "Lab sample updated successfully.",
+                    Message = "Sperm sample updated successfully.",
                     Data = response
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error updating sample {Id}", methodName, id);
+                _logger.LogError(ex, "{MethodName}: Error updating Sperm sample {Id}", methodName, id);
                 return new BaseResponse<LabSampleResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -358,6 +514,174 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        public async Task<BaseResponse<LabSampleResponse>> UpdateOocyteAsync(Guid id, UpdateLabSampleOocyteRequest request)
+        {
+            const string methodName = nameof(UpdateOocyteAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            if (id == Guid.Empty)
+            {
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid lab sample ID."
+                };
+            }
+            try
+            {
+                var entity = await _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .Include(x => x.LabSampleOocyte)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (entity == null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Oocyte sample not found."
+                    };
+                }
+
+                _mapper.Map(request, entity);
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Oocyte sample updated successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error updating Oocyte sample {Id}", methodName, id);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
+        public async Task<BaseResponse<LabSampleResponse>> UpdateEmbryoAsync(Guid id, UpdateLabSampleEmbryoRequest request)
+        {
+            const string methodName = nameof(UpdateEmbryoAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            if (id == Guid.Empty)
+            {
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid lab sample ID."
+                };
+            }
+            try
+            {
+                var entity = await _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .Include(x => x.LabSampleEmbryo)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (entity == null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Embryo sample not found."
+                    };
+                }
+
+                _mapper.Map(request, entity);
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Embryo sample updated successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error updating embryo sample {Id}", methodName, id);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
+        //public async Task<BaseResponse<LabSampleResponse>> UpdateAsync(Guid id, UpdateLabSampleRequest request)
+        //{
+        //    const string methodName = nameof(UpdateAsync);
+        //    _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+        //    if (id == Guid.Empty)
+        //    {
+        //        return new BaseResponse<LabSampleResponse>
+        //        {
+        //            Code = StatusCodes.Status400BadRequest,
+        //            Message = "Invalid lab sample ID."
+        //        };
+        //    }
+
+        //    try
+        //    {
+        //        var entity = await _unitOfWork.Repository<LabSample>()
+        //            .AsQueryable()
+        //            .Include(x => x.LabSampleSperm)
+        //            .Include(x => x.LabSampleOocyte)
+        //            .Include(x => x.LabSampleEmbryo)
+        //            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+        //        if (entity == null)
+        //        {
+        //            return new BaseResponse<LabSampleResponse>
+        //            {
+        //                Code = StatusCodes.Status404NotFound,
+        //                Message = "Lab sample not found."
+        //            };
+        //        }
+
+        //        _mapper.Map(request, entity);
+        //        entity.UpdatedAt = DateTime.UtcNow;
+
+        //        await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
+        //        await _unitOfWork.CommitAsync();
+
+        //        var response = _mapper.Map<LabSampleResponse>(entity);
+
+        //        return new BaseResponse<LabSampleResponse>
+        //        {
+        //            Code = StatusCodes.Status200OK,
+        //            Message = "Lab sample updated successfully.",
+        //            Data = response
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "{MethodName}: Error updating sample {Id}", methodName, id);
+        //        return new BaseResponse<LabSampleResponse>
+        //        {
+        //            Code = StatusCodes.Status500InternalServerError,
+        //            Message = "Internal server error."
+        //        };
+        //    }
+        //}
         #endregion
 
         #region DELETE
