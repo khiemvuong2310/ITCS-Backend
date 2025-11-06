@@ -3,6 +3,7 @@ using DotNetEnv;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FSCMS.Core; // namespace chứa AppDbContext
 using FSCMS.Core.Models;
+using FSCMS.Core.Models.Options;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -60,6 +61,11 @@ namespace FA25_CP.CryoFert_BE
             builder.Services.Configure<CloudinarySettings>(
                 builder.Configuration.GetSection("CloudinarySettings")
             );
+
+            builder.Services.Configure<VnPayOptions>(
+                builder.Configuration.GetSection("VnPay")
+            );
+
 
             // 4. CORS config
             builder.Services.AddCors(options =>
