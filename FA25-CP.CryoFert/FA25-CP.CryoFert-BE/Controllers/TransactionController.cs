@@ -1,20 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using FSCMS.Service.Services;
+using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
-using FSCMS.Service.Interfaces;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
-    /// <summary>
-    /// Transaction Controller - Handles transaction CRUD, filtering, and payment processing
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -29,34 +21,14 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
-        /// Get transaction by ID
+        /// Create a payment transaction and get VNPay redirect URL
         /// </summary>
-        [HttpGet("{transactionId}")]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetTransactionById(Guid transactionId)
-        {
-            if (transactionId == Guid.Empty)
-            {
-                return BadRequest(new BaseResponse<TransactionResponseModel>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid transaction ID"
-                });
-            }
-
-            var result = await _transactionService.GetTransactionByIdAsync(transactionId);
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
-        }
-
-        /// <summary>
-        /// Create a new transaction
-        /// </summary>
+        /// <param name="request">Transaction request</param>
+        /// <returns>Transaction data with VNPay URL</returns>
         [HttpPost]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
         {
@@ -74,59 +46,20 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
-        /// Get transactions with paging and filters
+        /// VNPay callback URL
+        /// VNPay will redirect here after payment, service handles updating transaction and pushes status via SignalR
         /// </summary>
-        [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetTransactions([FromQuery] GetTransactionsRequest request)
-        {
-            var result = await _transactionService.GetTransactionsAsync(request);
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
-        }
-
-        /// <summary>
-        /// Update a transaction
-        /// </summary>
-        [HttpPut("{transactionId}")]
+        /// <returns>Transaction status result</returns>
+        [HttpGet("vnpay-callback")]
+        [AllowAnonymous] // VNPay will call without JWT
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateTransaction(Guid transactionId, [FromBody] UpdateTransactionRequest request)
+        public async Task<IActionResult> VnPayCallback()
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new BaseResponse<TransactionResponseModel>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid input data"
-                });
-            }
-
-            var result = await _transactionService.UpdateTransactionAsync(transactionId, request);
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
-        }
-
-        /// <summary>
-        /// Delete a transaction (soft delete)
-        /// </summary>
-        [HttpDelete("{transactionId}")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteTransaction(Guid transactionId)
-        {
-            if (transactionId == Guid.Empty)
-            {
-                return BadRequest(new BaseResponse
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid transaction ID"
-                });
-            }
-
-            var result = await _transactionService.DeleteTransactionAsync(transactionId);
+            var query = HttpContext.Request.Query;
+            var result = await _transactionService.HandleVnPayCallbackAsync(query);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
     }
