@@ -165,6 +165,13 @@ namespace FSCMS.Core
                 .HasForeignKey(t => t.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Appointment & Patient Relationship (Many-to-One)
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Patient)
+                .WithMany(p => p.Appointments)
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Treatment & Doctor Relationship
             modelBuilder.Entity<Treatment>()
                 .HasOne(t => t.Doctor)

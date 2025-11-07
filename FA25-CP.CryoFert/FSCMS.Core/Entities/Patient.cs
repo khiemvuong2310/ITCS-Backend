@@ -39,6 +39,7 @@ namespace FSCMS.Core.Entities
         //Navigate properties
         public virtual Account? Account { get; set; }
         public virtual ICollection<Treatment> Treatments { get; set; } = new List<Treatment>();
+        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
         public virtual ICollection<LabSample> LabSamples { get; set; } = new List<LabSample>();
         public virtual ICollection<CryoStorageContract> CryoStorageContracts { get; set; } = new List<CryoStorageContract>();
         public virtual ICollection<Relationship> RelationshipsAsPatient1 { get; set; } = new List<Relationship>();

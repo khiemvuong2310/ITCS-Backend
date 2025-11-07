@@ -52,6 +52,8 @@ namespace FSCMS.Service.Services
                 var appointment = await _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
                     .AsNoTracking()
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.Account)
                     .Include(a => a.TreatmentCycle)
                         .ThenInclude(tc => tc.Treatment)
                             .ThenInclude(t => t.Patient)
@@ -102,6 +104,8 @@ namespace FSCMS.Service.Services
                 var appointment = await _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
                     .AsNoTracking()
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.Account)
                     .Include(a => a.TreatmentCycle)
                         .ThenInclude(tc => tc.Treatment)
                             .ThenInclude(t => t.Patient)
@@ -170,6 +174,8 @@ namespace FSCMS.Service.Services
                 var query = _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
                     .AsNoTracking()
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.Account)
                     .Include(a => a.TreatmentCycle)
                         .ThenInclude(tc => tc.Treatment)
                             .ThenInclude(t => t.Patient)
@@ -485,16 +491,32 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AppointmentResponse>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
                 }
 
-                // Validate treatment cycle exists
-                var treatmentCycle = await _unitOfWork.Repository<TreatmentCycle>()
+                // Validate patient exists
+                var patient = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
-                    .Where(tc => tc.Id == request.TreatmentCycleId && !tc.IsDeleted)
+                    .Where(p => p.Id == request.PatientId && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
-                if (treatmentCycle == null)
+                if (patient == null)
                 {
-                    _logger.LogWarning("{MethodName}: Treatment cycle not found with ID: {TreatmentCycleId}", methodName, request.TreatmentCycleId);
-                    return BaseResponse<AppointmentResponse>.CreateError("Treatment cycle not found", StatusCodes.Status404NotFound, "TREATMENT_CYCLE_NOT_FOUND");
+                    _logger.LogWarning("{MethodName}: Patient not found with ID: {PatientId}", methodName, request.PatientId);
+                    return BaseResponse<AppointmentResponse>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
+                }
+
+                // Validate treatment cycle exists if provided
+                TreatmentCycle? treatmentCycle = null;
+                if (request.TreatmentCycleId.HasValue)
+                {
+                    treatmentCycle = await _unitOfWork.Repository<TreatmentCycle>()
+                        .AsQueryable()
+                        .Where(tc => tc.Id == request.TreatmentCycleId.Value && !tc.IsDeleted)
+                        .FirstOrDefaultAsync();
+
+                    if (treatmentCycle == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Treatment cycle not found with ID: {TreatmentCycleId}", methodName, request.TreatmentCycleId);
+                        return BaseResponse<AppointmentResponse>.CreateError("Treatment cycle not found", StatusCodes.Status404NotFound, "TREATMENT_CYCLE_NOT_FOUND");
+                    }
                 }
 
                 // Validate slot if provided
@@ -537,6 +559,7 @@ namespace FSCMS.Service.Services
                 // Create appointment entity
                 var appointment = new Appointment(
                     Guid.NewGuid(),
+                    request.PatientId,
                     request.TreatmentCycleId,
                     request.AppointmentDate,
                     request.Type,
@@ -1329,6 +1352,34 @@ namespace FSCMS.Service.Services
                         };
                     }
                 }
+            }
+
+            // Map Patient (prefer direct relation; fallback to patient from treatment)
+            if (appointment.Patient != null && appointment.Patient.Account != null)
+            {
+                var p = appointment.Patient;
+                var pa = p.Account;
+                response.Patient = new AppointmentPatientInfo
+                {
+                    Id = p.Id,
+                    PatientCode = p.PatientCode,
+                    FullName = $"{pa.FirstName} {pa.LastName}".Trim(),
+                    Phone = pa.Phone,
+                    Email = pa.Email
+                };
+            }
+            else if (appointment.TreatmentCycle?.Treatment?.Patient != null && appointment.TreatmentCycle.Treatment.Patient.Account != null)
+            {
+                var p = appointment.TreatmentCycle.Treatment.Patient;
+                var pa = p.Account;
+                response.Patient = new AppointmentPatientInfo
+                {
+                    Id = p.Id,
+                    PatientCode = p.PatientCode,
+                    FullName = $"{pa.FirstName} {pa.LastName}".Trim(),
+                    Phone = pa.Phone,
+                    Email = pa.Email
+                };
             }
 
             // Map Slot

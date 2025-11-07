@@ -16,6 +16,7 @@ public class Appointment : BaseEntity<Guid>
     }
     public Appointment(
         Guid id,
+        Guid patientId,
         Guid? treatmentCycleId,
         DateTime appointmentDate,
         AppointmentType type,
@@ -30,6 +31,7 @@ public class Appointment : BaseEntity<Guid>
     )
     {
         Id = id;
+        PatientId = patientId;
         TreatmentCycleId = treatmentCycleId;
         AppointmentDate = appointmentDate;
         Type = type;
@@ -42,6 +44,7 @@ public class Appointment : BaseEntity<Guid>
         CheckOutTime = checkOutTime;
         IsReminderSent = isReminderSent;
     }
+    public Guid PatientId { get; set; }
     public Guid? TreatmentCycleId { get; set; }
     public Guid? SlotId { get; set; }
     public AppointmentType Type { get; set; }
@@ -55,6 +58,7 @@ public class Appointment : BaseEntity<Guid>
     public bool IsReminderSent { get; set; } = false;
 
     //Navigate properties
+    public virtual Patient? Patient { get; set; }
     public virtual TreatmentCycle? TreatmentCycle { get; set; }
     public virtual Slot? Slot { get; set; }
     public virtual ICollection<AppointmentDoctor> AppointmentDoctors { get; set; } = new List<AppointmentDoctor>();

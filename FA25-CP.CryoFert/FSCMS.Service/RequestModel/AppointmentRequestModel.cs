@@ -11,9 +11,12 @@ namespace FSCMS.Service.RequestModel
     /// </summary>
     public class CreateAppointmentRequest
     {
-        [Required(ErrorMessage = "Treatment cycle ID is required.")]
+        [Required(ErrorMessage = "Patient ID is required.")]
+        [JsonPropertyName("patientId")]
+        public Guid PatientId { get; set; }
+
         [JsonPropertyName("treatmentCycleId")]
-        public Guid TreatmentCycleId { get; set; }
+        public Guid? TreatmentCycleId { get; set; }
 
         [Required(ErrorMessage = "Appointment date is required.")]
         [JsonPropertyName("appointmentDate")]

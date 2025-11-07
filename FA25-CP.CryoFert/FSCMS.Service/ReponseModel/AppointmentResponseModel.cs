@@ -65,6 +65,9 @@ namespace FSCMS.Service.ReponseModel
         [JsonPropertyName("slot")]
         public AppointmentSlotInfo? Slot { get; set; }
 
+        [JsonPropertyName("patient")]
+        public AppointmentPatientInfo? Patient { get; set; }
+
         [JsonPropertyName("doctors")]
         public List<AppointmentDoctorInfo> Doctors { get; set; } = new List<AppointmentDoctorInfo>();
 

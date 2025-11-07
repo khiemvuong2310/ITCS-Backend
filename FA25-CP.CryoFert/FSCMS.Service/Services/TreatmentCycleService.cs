@@ -479,16 +479,32 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                var cycleExists = await _unitOfWork.Repository<TreatmentCycle>()
+                var cycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
-                    .AnyAsync(tc => tc.Id == id && !tc.IsDeleted);
-                if (!cycleExists)
+                    .Include(tc => tc.Treatment)
+                    .FirstOrDefaultAsync(tc => tc.Id == id && !tc.IsDeleted);
+                if (cycle == null)
                     return BaseResponse<AppointmentSummary>.CreateError("Treatment cycle not found", StatusCodes.Status404NotFound, "NOT_FOUND");
 
                 if (!Enum.TryParse(typeof(AppointmentType), request.Type, true, out var typeObj))
                     return BaseResponse<AppointmentSummary>.CreateError("Invalid appointment type", StatusCodes.Status400BadRequest, "INVALID_TYPE");
 
-                var entity = new Appointment(Guid.NewGuid(), id, request.AppointmentDate, (AppointmentType)typeObj!, AppointmentStatus.Scheduled, request.Reason, request.Instructions, request.Notes, request.SlotId);
+                var patientId = cycle.Treatment?.PatientId ?? Guid.Empty;
+                if (patientId == Guid.Empty)
+                    return BaseResponse<AppointmentSummary>.CreateError("Associated patient not found for this treatment cycle", StatusCodes.Status400BadRequest, "PATIENT_NOT_FOUND");
+
+                var entity = new Appointment(
+                    Guid.NewGuid(),
+                    patientId,
+                    id, // treatmentCycleId (nullable)
+                    request.AppointmentDate,
+                    (AppointmentType)typeObj!,
+                    AppointmentStatus.Scheduled,
+                    request.Reason,
+                    request.Instructions,
+                    request.Notes,
+                    request.SlotId
+                );
                 await _unitOfWork.Repository<Appointment>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
 
