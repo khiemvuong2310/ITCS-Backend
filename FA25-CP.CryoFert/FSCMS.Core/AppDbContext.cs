@@ -32,6 +32,7 @@ namespace FSCMS.Core
         // ========== Nhóm 3: Điều trị & Bệnh án ==========
         public DbSet<Treatment> Treatments { get; set; }
         public DbSet<TreatmentIVF> TreatmentIVFs { get; set; }
+        public DbSet<TreatmentIUI> TreatmentIUIs { get; set; }
         public DbSet<TreatmentCycle> TreatmentCycles { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<AppointmentDoctor> AppointmentDoctors { get; set; }
@@ -176,6 +177,13 @@ namespace FSCMS.Core
                 .HasOne(tivf => tivf.Treatment)
                 .WithOne(t => t.TreatmentIVF)
                 .HasForeignKey<TreatmentIVF>(tivf => tivf.TreatmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // TreatmentIUI & Treatment Relationship (One-to-One)
+            modelBuilder.Entity<TreatmentIUI>()
+                .HasOne(tiui => tiui.Treatment)
+                .WithOne()
+                .HasForeignKey<TreatmentIUI>(tiui => tiui.TreatmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // TreatmentCycle & Treatment Relationship
