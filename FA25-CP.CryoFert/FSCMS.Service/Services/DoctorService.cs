@@ -379,6 +379,20 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                // Ensure account has Doctor role
+                var doctorRoleId = new Guid("00000000-0000-0000-0000-000000000002");
+                if (existingAccount.RoleId != doctorRoleId)
+                {
+                    _logger.LogWarning("{MethodName}: Account does not have Doctor role - {AccountId}", methodName, request.AccountId);
+                    return new BaseResponse<DoctorResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "ACCOUNT_ROLE_INVALID",
+                        Message = "Account role must be Doctor to create a Doctor profile",
+                        Data = null
+                    };
+                }
+
                 // Check if account is already associated with a doctor
                 var existingDoctor = await _unitOfWork.Repository<Doctor>()
                     .AsQueryable()
