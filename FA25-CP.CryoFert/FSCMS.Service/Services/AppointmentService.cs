@@ -548,11 +548,26 @@ namespace FSCMS.Service.Services
                         }
                     }
 
-                    // Check if slot time matches appointment date
-                    if (slot.DoctorSchedules == null || !slot.DoctorSchedules.Any(ds => ds.WorkDate == DateOnly.FromDateTime(request.AppointmentDate.Date)))
+                    // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
+                    var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
+                    var workDate = DateOnly.FromDateTime(request.AppointmentDate.Date);
+                    if (primaryDoctorId.HasValue)
                     {
-                        _logger.LogWarning("{MethodName}: Slot date does not match appointment date", methodName);
-                        return BaseResponse<AppointmentResponse>.CreateError("Slot date does not match appointment date", StatusCodes.Status400BadRequest, "SLOT_DATE_MISMATCH");
+                        var existingSchedule = await _unitOfWork.Repository<DoctorSchedule>()
+                            .AsQueryable()
+                            .FirstOrDefaultAsync(ds => ds.DoctorId == primaryDoctorId.Value && ds.SlotId == slot.Id && ds.WorkDate == workDate && !ds.IsDeleted);
+
+                        if (existingSchedule == null)
+                        {
+                            // Create an available schedule for this doctor, date, and slot
+                            var newSchedule = new DoctorSchedule(Guid.NewGuid(), primaryDoctorId.Value, slot.Id, workDate, true);
+                            await _unitOfWork.Repository<DoctorSchedule>().InsertAsync(newSchedule);
+                        }
+                        else if (!existingSchedule.IsAvailable)
+                        {
+                            _logger.LogWarning("{MethodName}: Doctor not available for selected slot/date", methodName);
+                            return BaseResponse<AppointmentResponse>.CreateError("Doctor is not available for the selected slot/date", StatusCodes.Status400BadRequest, "DOCTOR_NOT_AVAILABLE");
+                        }
                     }
                 }
 

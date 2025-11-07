@@ -482,63 +482,83 @@ namespace FSCMS.Core
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
             modelBuilder.Entity<Service>().HasData(
-                // Consultation
-                // Khám tư vấn ban đầu: bác sĩ khai thác bệnh sử, đánh giá khả năng sinh sản
-                new Service(new Guid("20000000-0000-0000-0000-000000000001"), "Initial fertility consultation", 500000m, catConsultation) { Code = "CONS-INIT", Unit = "session", Duration = 30, Description = "First-time visit and clinical assessment" },
-                // Khám tái khám: theo dõi tiến triển, điều chỉnh kế hoạch điều trị
-                new Service(new Guid("20000000-0000-0000-0000-000000000002"), "Follow-up consultation", 300000m, catConsultation) { Code = "CONS-FUP", Unit = "session", Duration = 20, Description = "Follow-up review and plan" },
+                // Consultation (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000001"), "Initial fertility consultation", 120m, catConsultation) { Code = "CONS-INIT", Unit = "session", Duration = 30, Description = "First-time visit and clinical assessment" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000002"), "Follow-up consultation", 80m, catConsultation) { Code = "CONS-FUP", Unit = "session", Duration = 20, Description = "Follow-up review and plan" },
 
-                // Diagnostics & Imaging
-                // Siêu âm đầu dò âm đạo: đánh giá buồng trứng, tử cung, niêm mạc
-                new Service(new Guid("20000000-0000-0000-0000-000000000010"), "Transvaginal ultrasound", 400000m, catDiagnostics) { Code = "US-TVS", Unit = "scan", Duration = 15 },
-                // Xét nghiệm nội tiết cơ bản: AMH/FSH/LH/E2/PRL để đánh giá dự trữ buồng trứng và trục nội tiết
-                new Service(new Guid("20000000-0000-0000-0000-000000000011"), "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", 1500000m, catDiagnostics) { Code = "LAB-HORM", Unit = "panel" },
-                // Tinh dịch đồ: đánh giá số lượng, di động, hình dạng tinh trùng
-                new Service(new Guid("20000000-0000-0000-0000-000000000012"), "Semen analysis", 600000m, catDiagnostics) { Code = "SA", Unit = "test" },
+                // Diagnostics & Imaging (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000010"), "Transvaginal ultrasound", 60m, catDiagnostics) { Code = "US-TVS", Unit = "scan", Duration = 15 },
+                new Service(new Guid("20000000-0000-0000-0000-000000000011"), "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", 150m, catDiagnostics) { Code = "LAB-HORM", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000012"), "Semen analysis", 40m, catDiagnostics) { Code = "SA", Unit = "test" },
 
-                // Laboratory Procedures
-                // Chọc hút noãn (OPU): lấy noãn sau kích thích buồng trứng
-                new Service(new Guid("20000000-0000-0000-0000-000000000020"), "Oocyte retrieval (OPU)", 7000000m, catLabProcedures) { Code = "OPU", Unit = "procedure" },
-                // Chuẩn bị tinh trùng: lọc rửa để sử dụng cho IUI/IVF
-                new Service(new Guid("20000000-0000-0000-0000-000000000021"), "Sperm preparation (IUI/IVF)", 900000m, catLabProcedures) { Code = "SP-PREP", Unit = "prep" },
-                // Nuôi cấy phôi ngày 1-5: theo dõi và chăm sóc phôi trong labo
-                new Service(new Guid("20000000-0000-0000-0000-000000000022"), "Embryo culture (day 1-5)", 5000000m, catLabProcedures) { Code = "EMB-CULT", Unit = "cycle" },
-                // ICSI: tiêm tinh trùng vào bào tương noãn hỗ trợ thụ tinh
-                new Service(new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", 8000000m, catLabProcedures) { Code = "ICSI", Unit = "procedure" },
-                // Chuyển phôi (ET): đưa phôi vào buồng tử cung
-                new Service(new Guid("20000000-0000-0000-0000-000000000024"), "Embryo transfer (ET)", 4000000m, catLabProcedures) { Code = "ET", Unit = "procedure" },
+                // Laboratory Procedures (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000020"), "Oocyte retrieval (OPU)", 1500m, catLabProcedures) { Code = "OPU", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000021"), "Sperm preparation (IUI/IVF)", 90m, catLabProcedures) { Code = "SP-PREP", Unit = "prep" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000022"), "Embryo culture (day 1-5)", 1500m, catLabProcedures) { Code = "EMB-CULT", Unit = "cycle" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", 1200m, catLabProcedures) { Code = "ICSI", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000024"), "Embryo transfer (ET)", 800m, catLabProcedures) { Code = "ET", Unit = "procedure" },
 
-                // Cryostorage & Logistics
-                // Thuỷ tinh hoá noãn: làm lạnh siêu nhanh để bảo tồn noãn
-                new Service(new Guid("20000000-0000-0000-0000-000000000030"), "Oocyte vitrification", 3000000m, catCryoStorage) { Code = "VIT-OOC", Unit = "procedure" },
-                // Trữ đông tinh trùng
-                new Service(new Guid("20000000-0000-0000-0000-000000000031"), "Sperm cryopreservation", 1200000m, catCryoStorage) { Code = "CRYO-SP", Unit = "procedure" },
-                // Thuỷ tinh hoá phôi
-                new Service(new Guid("20000000-0000-0000-0000-000000000032"), "Embryo vitrification", 3500000m, catCryoStorage) { Code = "VIT-EMB", Unit = "procedure" },
-                // Phí lưu trữ hằng năm mỗi mẫu
-                new Service(new Guid("20000000-0000-0000-0000-000000000033"), "Annual storage fee (per specimen)", 1500000m, catCryoStorage) { Code = "STORE-ANNUAL", Unit = "year" },
-                // Rã đông mẫu lưu trữ
-                new Service(new Guid("20000000-0000-0000-0000-000000000034"), "Specimen thawing", 1000000m, catCryoStorage) { Code = "THAW", Unit = "procedure" },
+                // Cryostorage & Logistics (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000030"), "Oocyte vitrification", 600m, catCryoStorage) { Code = "VIT-OOC", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000031"), "Sperm cryopreservation", 120m, catCryoStorage) { Code = "CRYO-SP", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000032"), "Embryo vitrification", 700m, catCryoStorage) { Code = "VIT-EMB", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000033"), "Annual storage fee (per specimen)", 150m, catCryoStorage) { Code = "STORE-ANNUAL", Unit = "year" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000034"), "Specimen thawing", 200m, catCryoStorage) { Code = "THAW", Unit = "procedure" },
 
-                // Treatment Procedures
-                // Bơm tinh trùng vào buồng tử cung (IUI)
-                new Service(new Guid("20000000-0000-0000-0000-000000000040"), "Intrauterine insemination (IUI)", 2500000m, catTreatment) { Code = "IUI", Unit = "cycle" },
-                // Chu kỳ thụ tinh ống nghiệm (IVF)
-                new Service(new Guid("20000000-0000-0000-0000-000000000041"), "In vitro fertilization (IVF) cycle", 35000000m, catTreatment) { Code = "IVF", Unit = "cycle" },
-                // Chuyển phôi đông lạnh (FET)
-                new Service(new Guid("20000000-0000-0000-0000-000000000042"), "Frozen embryo transfer (FET)", 12000000m, catTreatment) { Code = "FET", Unit = "cycle" },
+                // Treatment Procedures (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000040"), "Intrauterine insemination (IUI)", 250m, catTreatment) { Code = "IUI", Unit = "cycle" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000041"), "In vitro fertilization (IVF) cycle", 12000m, catTreatment) { Code = "IVF", Unit = "cycle" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000042"), "Frozen embryo transfer (FET)", 3500m, catTreatment) { Code = "FET", Unit = "cycle" },
 
-                // Medications
-                // Bút thuốc kích thích buồng trứng (Gonadotropin)
-                new Service(new Guid("20000000-0000-0000-0000-000000000050"), "Gonadotropin stimulation (per pen)", 1200000m, catMedication) { Code = "GONA-PEN", Unit = "pen" },
-                // Mũi tiêm kích rụng trứng (hCG trigger)
-                new Service(new Guid("20000000-0000-0000-0000-000000000051"), "Trigger injection (hCG)", 450000m, catMedication) { Code = "HCG", Unit = "dose" },
+                // Medications (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000050"), "Gonadotropin stimulation (per pen)", 90m, catMedication) { Code = "GONA-PEN", Unit = "pen" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000051"), "Trigger injection (hCG)", 20m, catMedication) { Code = "HCG", Unit = "dose" },
 
-                // Administrative & Others
-                // Phí mở hồ sơ bệnh án ban đầu
-                new Service(new Guid("20000000-0000-0000-0000-000000000060"), "Medical record creation fee", 100000m, catAdministrative) { Code = "ADMIN-MR", Unit = "case" },
-                // Cấp giấy tờ/xác nhận/báo cáo theo yêu cầu
-                new Service(new Guid("20000000-0000-0000-0000-000000000061"), "Certificate/Report issuance", 150000m, catAdministrative) { Code = "ADMIN-CERT", Unit = "doc" }
+                // Administrative & Others (USD)
+                new Service(new Guid("20000000-0000-0000-0000-000000000060"), "Medical record creation fee", 10m, catAdministrative) { Code = "ADMIN-MR", Unit = "case" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000061"), "Certificate/Report issuance", 15m, catAdministrative) { Code = "ADMIN-CERT", Unit = "doc" }
+            );
+
+            // Seed Medicines (common items used in fertility treatments)
+            modelBuilder.Entity<Medicine>().HasData(
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000001"), "Follitropin alfa", "300 IU", "Injection")
+                {
+                    GenericName = "Recombinant FSH",
+                    Indication = "Ovarian stimulation",
+                    SideEffects = "Headache, abdominal pain",
+                    Notes = "Pen device"
+                },
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000002"), "Chorionic gonadotropin (hCG)", "5,000 IU", "Injection")
+                {
+                    GenericName = "hCG",
+                    Indication = "Ovulation trigger",
+                    SideEffects = "Injection site pain",
+                    Notes = "Store refrigerated"
+                },
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000003"), "Progesterone", "200 mg", "Capsule")
+                {
+                    GenericName = "Progesterone",
+                    Indication = "Luteal phase support",
+                    SideEffects = "Drowsiness",
+                    Notes = "Taken at bedtime"
+                },
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000004"), "Letrozole", "2.5 mg", "Tablet")
+                {
+                    GenericName = "Letrozole",
+                    Indication = "Ovulation induction",
+                    SideEffects = "Fatigue, dizziness"
+                },
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000005"), "Doxycycline", "100 mg", "Tablet")
+                {
+                    GenericName = "Doxycycline hyclate",
+                    Indication = "Infection prophylaxis",
+                    Contraindication = "Pregnancy"
+                },
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000006"), "Estradiol valerate", "2 mg", "Tablet")
+                {
+                    GenericName = "Estradiol",
+                    Indication = "Endometrial preparation"
+                }
             );
         }
     }
