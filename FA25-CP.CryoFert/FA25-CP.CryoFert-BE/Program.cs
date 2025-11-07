@@ -4,6 +4,7 @@ using FA25_CP.CryoFert_BE.AppStarts;
 using FSCMS.Core; // namespace chứa AppDbContext
 using FSCMS.Core.Models;
 using FSCMS.Core.Models.Options;
+using FSCMS.Service.SignalR;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -66,6 +67,7 @@ namespace FA25_CP.CryoFert_BE
                 builder.Configuration.GetSection("VnPay")
             );
 
+            builder.Services.AddSignalR();
 
             // 4. CORS config
             builder.Services.AddCors(options =>
@@ -152,13 +154,18 @@ namespace FA25_CP.CryoFert_BE
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
+            app.UseRouting();   
             app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
             app.UseCors("AllowReactApp");
+            
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapHub<TransactionHub>("/transactionHub");
+            });
             app.MapControllers();
 
             // 9. Run application
