@@ -14,7 +14,7 @@ namespace FSCMS.Service.ReponseModel
         public Guid Id { get; set; }
 
         [JsonPropertyName("treatmentCycleId")]
-        public Guid TreatmentCycleId { get; set; }
+        public Guid? TreatmentCycleId { get; set; }
 
         [JsonPropertyName("slotId")]
         public Guid? SlotId { get; set; }

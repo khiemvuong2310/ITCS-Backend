@@ -16,7 +16,7 @@ public class Appointment : BaseEntity<Guid>
     }
     public Appointment(
         Guid id,
-        Guid treatmentCycleId,
+        Guid? treatmentCycleId,
         DateTime appointmentDate,
         AppointmentType type,
         AppointmentStatus status,
@@ -42,7 +42,7 @@ public class Appointment : BaseEntity<Guid>
         CheckOutTime = checkOutTime;
         IsReminderSent = isReminderSent;
     }
-    public Guid TreatmentCycleId { get; set; }
+    public Guid? TreatmentCycleId { get; set; }
     public Guid? SlotId { get; set; }
     public AppointmentType Type { get; set; }
     public AppointmentStatus Status { get; set; }

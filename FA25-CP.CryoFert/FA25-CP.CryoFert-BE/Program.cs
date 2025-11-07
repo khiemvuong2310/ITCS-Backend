@@ -158,7 +158,7 @@ namespace FA25_CP.CryoFert_BE
             app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
-            app.UseCors("AllowReactApp");
+            app.UseCors("AllowAll");
             
             app.UseAuthentication();
             app.UseAuthorization();
