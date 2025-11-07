@@ -482,40 +482,62 @@ namespace FSCMS.Core
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
             modelBuilder.Entity<Service>().HasData(
-                // Consultation (USD)
+                // Consultation (USD) - Tư vấn
+                // Khám tư vấn ban đầu: bác sĩ khai thác bệnh sử, đánh giá khả năng sinh sản
                 new Service(new Guid("20000000-0000-0000-0000-000000000001"), "Initial fertility consultation", 120m, catConsultation) { Code = "CONS-INIT", Unit = "session", Duration = 30, Description = "First-time visit and clinical assessment" },
+                // Khám tái khám: theo dõi tiến triển, điều chỉnh kế hoạch điều trị
                 new Service(new Guid("20000000-0000-0000-0000-000000000002"), "Follow-up consultation", 80m, catConsultation) { Code = "CONS-FUP", Unit = "session", Duration = 20, Description = "Follow-up review and plan" },
 
-                // Diagnostics & Imaging (USD)
+                // Diagnostics & Imaging (USD) - Chẩn đoán & Hình ảnh
+                // Siêu âm đầu dò âm đạo: đánh giá buồng trứng, tử cung, niêm mạc
                 new Service(new Guid("20000000-0000-0000-0000-000000000010"), "Transvaginal ultrasound", 60m, catDiagnostics) { Code = "US-TVS", Unit = "scan", Duration = 15 },
+                // Xét nghiệm nội tiết cơ bản: AMH/FSH/LH/E2/PRL để đánh giá dự trữ buồng trứng và trục nội tiết
                 new Service(new Guid("20000000-0000-0000-0000-000000000011"), "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", 150m, catDiagnostics) { Code = "LAB-HORM", Unit = "panel" },
+                // Tinh dịch đồ: đánh giá số lượng, di động, hình dạng tinh trùng
                 new Service(new Guid("20000000-0000-0000-0000-000000000012"), "Semen analysis", 40m, catDiagnostics) { Code = "SA", Unit = "test" },
 
-                // Laboratory Procedures (USD)
+                // Laboratory Procedures (USD) - Thủ thuật Phòng Lab
+                // Chọc hút noãn (OPU): lấy noãn sau kích thích buồng trứng
                 new Service(new Guid("20000000-0000-0000-0000-000000000020"), "Oocyte retrieval (OPU)", 1500m, catLabProcedures) { Code = "OPU", Unit = "procedure" },
+                // Chuẩn bị tinh trùng: lọc rửa để sử dụng cho IUI/IVF
                 new Service(new Guid("20000000-0000-0000-0000-000000000021"), "Sperm preparation (IUI/IVF)", 90m, catLabProcedures) { Code = "SP-PREP", Unit = "prep" },
+                // Nuôi cấy phôi ngày 1-5: theo dõi và chăm sóc phôi trong labo
                 new Service(new Guid("20000000-0000-0000-0000-000000000022"), "Embryo culture (day 1-5)", 1500m, catLabProcedures) { Code = "EMB-CULT", Unit = "cycle" },
+                // ICSI: tiêm tinh trùng vào bào tương noãn hỗ trợ thụ tinh
                 new Service(new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", 1200m, catLabProcedures) { Code = "ICSI", Unit = "procedure" },
+                // Chuyển phôi (ET): đưa phôi vào buồng tử cung
                 new Service(new Guid("20000000-0000-0000-0000-000000000024"), "Embryo transfer (ET)", 800m, catLabProcedures) { Code = "ET", Unit = "procedure" },
 
-                // Cryostorage & Logistics (USD)
+                // Cryostorage & Logistics (USD) - Lưu trữ Đông lạnh & Logistics
+                // Thuỷ tinh hoá noãn: làm lạnh siêu nhanh để bảo tồn noãn
                 new Service(new Guid("20000000-0000-0000-0000-000000000030"), "Oocyte vitrification", 600m, catCryoStorage) { Code = "VIT-OOC", Unit = "procedure" },
+                // Trữ đông tinh trùng
                 new Service(new Guid("20000000-0000-0000-0000-000000000031"), "Sperm cryopreservation", 120m, catCryoStorage) { Code = "CRYO-SP", Unit = "procedure" },
+                // Thuỷ tinh hoá phôi
                 new Service(new Guid("20000000-0000-0000-0000-000000000032"), "Embryo vitrification", 700m, catCryoStorage) { Code = "VIT-EMB", Unit = "procedure" },
+                // Phí lưu trữ hằng năm mỗi mẫu
                 new Service(new Guid("20000000-0000-0000-0000-000000000033"), "Annual storage fee (per specimen)", 150m, catCryoStorage) { Code = "STORE-ANNUAL", Unit = "year" },
+                // Rã đông mẫu lưu trữ
                 new Service(new Guid("20000000-0000-0000-0000-000000000034"), "Specimen thawing", 200m, catCryoStorage) { Code = "THAW", Unit = "procedure" },
 
-                // Treatment Procedures (USD)
+                // Treatment Procedures (USD) - Thủ thuật Điều trị
+                // Bơm tinh trùng vào buồng tử cung (IUI)
                 new Service(new Guid("20000000-0000-0000-0000-000000000040"), "Intrauterine insemination (IUI)", 250m, catTreatment) { Code = "IUI", Unit = "cycle" },
+                // Chu kỳ thụ tinh ống nghiệm (IVF)
                 new Service(new Guid("20000000-0000-0000-0000-000000000041"), "In vitro fertilization (IVF) cycle", 12000m, catTreatment) { Code = "IVF", Unit = "cycle" },
+                // Chuyển phôi đông lạnh (FET)
                 new Service(new Guid("20000000-0000-0000-0000-000000000042"), "Frozen embryo transfer (FET)", 3500m, catTreatment) { Code = "FET", Unit = "cycle" },
 
-                // Medications (USD)
+                // Medications (USD) - Thuốc
+                // Bút thuốc kích thích buồng trứng (Gonadotropin)
                 new Service(new Guid("20000000-0000-0000-0000-000000000050"), "Gonadotropin stimulation (per pen)", 90m, catMedication) { Code = "GONA-PEN", Unit = "pen" },
+                // Mũi tiêm kích rụng trứng (hCG trigger)
                 new Service(new Guid("20000000-0000-0000-0000-000000000051"), "Trigger injection (hCG)", 20m, catMedication) { Code = "HCG", Unit = "dose" },
 
-                // Administrative & Others (USD)
+                // Administrative & Others (USD) - Hành chính & Khác
+                // Phí mở hồ sơ bệnh án ban đầu
                 new Service(new Guid("20000000-0000-0000-0000-000000000060"), "Medical record creation fee", 10m, catAdministrative) { Code = "ADMIN-MR", Unit = "case" },
+                // Cấp giấy tờ/xác nhận/báo cáo theo yêu cầu
                 new Service(new Guid("20000000-0000-0000-0000-000000000061"), "Certificate/Report issuance", 15m, catAdministrative) { Code = "ADMIN-CERT", Unit = "doc" }
             );
 
