@@ -631,15 +631,8 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                var existingAccount = await _unitOfWork.Repository<Account>().FindAsync(u => u.Email == email);
-                if (existingAccount != null)
-                {
-                    return new BaseResponse
-                    {
-                        Code = StatusCodes.Status409Conflict,
-                        Message = "Email already exists"
-                    };
-                }
+                // Allow resending verification code multiple times regardless of existing accounts
+                // Previous behavior returned 409 Conflict when email existed.
 
                 var verificationCode = GenerateVerificationCode();
                 
