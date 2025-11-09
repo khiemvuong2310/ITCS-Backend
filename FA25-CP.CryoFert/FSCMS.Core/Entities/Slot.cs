@@ -13,18 +13,15 @@ namespace FSCMS.Core.Entities
         public Slot(
             Guid id,
             TimeSpan startTime,
-            TimeSpan endTime,
-            bool isBooked = false
+			TimeSpan endTime
         )
         {
             Id = id;
             StartTime = startTime;
             EndTime = endTime;
-            IsBooked = isBooked;
         }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
-        public bool IsBooked { get; set; } = false;
         public string? Notes { get; set; }
 
         //Navigation properties

@@ -533,19 +533,16 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                     }
 
-                    // Check if slot is already booked
-                    if (slot.IsBooked)
-                    {
-                        var existingAppointment = await _unitOfWork.Repository<Appointment>()
-                            .AsQueryable()
-                            .Where(a => a.SlotId == request.SlotId.Value && !a.IsDeleted)
-                            .FirstOrDefaultAsync();
+                    // Check if slot is already booked (by existing appointment)
+                    var existingAppointment = await _unitOfWork.Repository<Appointment>()
+                        .AsQueryable()
+                        .Where(a => a.SlotId == request.SlotId.Value && !a.IsDeleted)
+                        .FirstOrDefaultAsync();
 
-                        if (existingAppointment != null)
-                        {
-                            _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
-                            return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
-                        }
+                    if (existingAppointment != null)
+                    {
+                        _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
+                        return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
                     }
 
                     // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
@@ -632,21 +629,7 @@ namespace FSCMS.Service.Services
                     }
                 }
 
-                // Update slot booking status if slot is provided
-                if (request.SlotId.HasValue)
-                {
-                    var slot = await _unitOfWork.Repository<Slot>()
-                        .AsQueryable()
-                        .Where(s => s.Id == request.SlotId.Value)
-                        .FirstOrDefaultAsync();
-
-                    if (slot != null)
-                    {
-                        slot.IsBooked = true;
-                        slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-                        await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slot.Id);
-                    }
-                }
+                // No direct slot booking flag; booking is inferred by Appointment presence
 
                 await _unitOfWork.CommitAsync();
 
@@ -714,21 +697,7 @@ namespace FSCMS.Service.Services
                 // Handle slot change
                 if (request.SlotId.HasValue && request.SlotId.Value != appointment.SlotId)
                 {
-                    // Unbook old slot if exists
-                    if (appointment.SlotId.HasValue)
-                    {
-                        var oldSlot = await _unitOfWork.Repository<Slot>()
-                            .AsQueryable()
-                            .Where(s => s.Id == appointment.SlotId.Value)
-                            .FirstOrDefaultAsync();
-
-                        if (oldSlot != null)
-                        {
-                            oldSlot.IsBooked = false;
-                            oldSlot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-                            await _unitOfWork.Repository<Slot>().UpdateGuid(oldSlot, oldSlot.Id);
-                        }
-                    }
+                    // No need to unbook old slot; booking is inferred by Appointment linkage
 
                     // Validate and book new slot
                     var newSlot = await _unitOfWork.Repository<Slot>()
@@ -742,19 +711,16 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                     }
 
-                    // Check if slot is already booked
-                    if (newSlot.IsBooked)
-                    {
-                        var existingAppointment = await _unitOfWork.Repository<Appointment>()
-                            .AsQueryable()
-                            .Where(a => a.SlotId == request.SlotId.Value && a.Id != appointmentId && !a.IsDeleted)
-                            .FirstOrDefaultAsync();
+                    // Check if slot is already booked by another appointment
+                    var existingAppointment2 = await _unitOfWork.Repository<Appointment>()
+                        .AsQueryable()
+                        .Where(a => a.SlotId == request.SlotId.Value && a.Id != appointmentId && !a.IsDeleted)
+                        .FirstOrDefaultAsync();
 
-                        if (existingAppointment != null)
-                        {
-                            _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
-                            return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
-                        }
+                    if (existingAppointment2 != null)
+                    {
+                        _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
+                        return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
                     }
 
                     // Validate slot date matches appointment date
@@ -765,9 +731,6 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot date does not match appointment date", StatusCodes.Status400BadRequest, "SLOT_DATE_MISMATCH");
                     }
 
-                    newSlot.IsBooked = true;
-                    newSlot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-                    await _unitOfWork.Repository<Slot>().UpdateGuid(newSlot, newSlot.Id);
                     appointment.SlotId = request.SlotId.Value;
                 }
 
@@ -858,21 +821,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Cannot delete completed appointment", StatusCodes.Status400BadRequest, "CANNOT_DELETE_COMPLETED");
                 }
 
-                // Unbook slot if exists
-                if (appointment.SlotId.HasValue)
-                {
-                    var slot = await _unitOfWork.Repository<Slot>()
-                        .AsQueryable()
-                        .Where(s => s.Id == appointment.SlotId.Value)
-                        .FirstOrDefaultAsync();
-
-                    if (slot != null)
-                    {
-                        slot.IsBooked = false;
-                        slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-                        await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slot.Id);
-                    }
-                }
+                // No need to unbook slot; booking is inferred by Appointment linkage
 
                 // Soft delete appointment
                 appointment.IsDeleted = true;
@@ -1086,21 +1035,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Appointment is already cancelled", StatusCodes.Status400BadRequest, "ALREADY_CANCELLED");
                 }
 
-                // Unbook slot if exists
-                if (appointment.SlotId.HasValue)
-                {
-                    var slot = await _unitOfWork.Repository<Slot>()
-                        .AsQueryable()
-                        .Where(s => s.Id == appointment.SlotId.Value)
-                        .FirstOrDefaultAsync();
-
-                    if (slot != null)
-                    {
-                        slot.IsBooked = false;
-                        slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-                        await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slot.Id);
-                    }
-                }
+                // No need to unbook slot; booking is inferred by Appointment linkage
 
                 appointment.Status = AppointmentStatus.Cancelled;
                 if (!string.IsNullOrWhiteSpace(cancellationReason))
@@ -1412,7 +1347,7 @@ namespace FSCMS.Service.Services
                     Id = appointment.Slot.Id,
                     StartTime = appointment.Slot.StartTime,
                     EndTime = appointment.Slot.EndTime,
-                    IsBooked = appointment.Slot.IsBooked
+                    IsBooked = appointment.Slot.Appointment != null
                 };
 
                 // Map Schedule: pick schedule for the appointment date if available, otherwise first by date

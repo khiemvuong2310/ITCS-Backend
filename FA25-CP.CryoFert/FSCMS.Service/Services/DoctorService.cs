@@ -785,10 +785,10 @@ namespace FSCMS.Service.Services
                     .Include(s => s.DoctorSchedules)
                     .CountAsync(s => s.DoctorSchedules.Any(ds => ds.WorkDate == today && !ds.IsDeleted) && !s.IsDeleted);
 
-                var bookedSlotsToday = await _unitOfWork.Repository<Slot>()
+				var bookedSlotsToday = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
-                    .Include(s => s.DoctorSchedules)
-                    .CountAsync(s => s.DoctorSchedules.Any(ds => ds.WorkDate == today && !ds.IsDeleted) && s.IsBooked && !s.IsDeleted);
+					.Include(s => s.DoctorSchedules)
+					.CountAsync(s => s.DoctorSchedules.Any(ds => ds.WorkDate == today && !ds.IsDeleted) && s.Appointment != null && !s.IsDeleted);
 
                 var availableSlotsToday = totalSlotsToday - bookedSlotsToday;
 
@@ -906,7 +906,8 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slot)
+					.Include(ds => ds.Slot)
+						.ThenInclude(s => s.Appointment)
                     .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -918,10 +919,10 @@ namespace FSCMS.Service.Services
 
                 var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(schedule);
                 
-                // Calculate slot statistics
-                scheduleResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
-                scheduleResponse.AvailableSlots = schedule.Slot != null && !schedule.Slot.IsBooked ? 1 : 0;
-                scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.IsBooked ? 1 : 0;
+				// Calculate slot statistics (booked inferred by linked appointment)
+				scheduleResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
+				scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.Appointment != null ? 1 : 0;
+				scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved schedule {ScheduleId}", methodName, scheduleId);
                 return BaseResponse<DoctorScheduleResponse>.CreateSuccess(scheduleResponse, "Schedule retrieved successfully");
@@ -954,8 +955,12 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(ds => ds.Doctor)
                         .ThenInclude(d => d.Account)
-                    .Include(ds => ds.Slot)
-                        .ThenInclude(s => s.Appointment)
+					.Include(ds => ds.Slot)
+						.ThenInclude(s => s.Appointment)
+							.ThenInclude(a => a.TreatmentCycle)
+								.ThenInclude(tc => tc.Treatment)
+									.ThenInclude(t => t.Patient)
+										.ThenInclude(p => p.Account)
                     .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -967,10 +972,10 @@ namespace FSCMS.Service.Services
 
                 var scheduleDetailResponse = _mapper.Map<DoctorScheduleDetailResponse>(schedule);
                 
-                // Calculate slot statistics
-                scheduleDetailResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
-                scheduleDetailResponse.AvailableSlots = schedule.Slot != null && !schedule.Slot.IsBooked ? 1 : 0;
-                scheduleDetailResponse.BookedSlots = schedule.Slot != null && schedule.Slot.IsBooked ? 1 : 0;
+				// Calculate slot statistics (booked inferred by linked appointment)
+				scheduleDetailResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
+				scheduleDetailResponse.BookedSlots = schedule.Slot != null && schedule.Slot.Appointment != null ? 1 : 0;
+				scheduleDetailResponse.AvailableSlots = scheduleDetailResponse.TotalSlots - scheduleDetailResponse.BookedSlots;
 
                 // Map slots
                 scheduleDetailResponse.Slots = schedule.Slot != null ? _mapper.Map<List<SlotResponse>>(new List<Slot> { schedule.Slot }) : new List<SlotResponse>();
@@ -1061,13 +1066,13 @@ namespace FSCMS.Service.Services
 
                 var scheduleResponses = _mapper.Map<List<DoctorScheduleResponse>>(schedules);
                 
-                // Calculate slot statistics for each schedule
+				// Calculate slot statistics for each schedule (booked inferred by linked appointment)
                 foreach (var scheduleResponse in scheduleResponses)
                 {
                     var schedule = schedules.First(s => s.Id == scheduleResponse.Id);
-                    scheduleResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
-                    scheduleResponse.AvailableSlots = schedule.Slot != null && !schedule.Slot.IsBooked ? 1 : 0;
-                    scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.IsBooked ? 1 : 0;
+					scheduleResponse.TotalSlots = schedule.Slot != null ? 1 : 0;
+					scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.Appointment != null ? 1 : 0;
+					scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
                 }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} schedules", methodName, scheduleResponses.Count);
@@ -1236,10 +1241,10 @@ namespace FSCMS.Service.Services
                     .Include(ds => ds.Slot)
                     .FirstOrDefaultAsync(ds => ds.Id == schedule.Id);
 
-                var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(createdSchedule);
-                scheduleResponse.TotalSlots = createdSchedule!.Slot != null ? 1 : 0;
-                scheduleResponse.AvailableSlots = createdSchedule.Slot != null && !createdSchedule.Slot.IsBooked ? 1 : 0;
-                scheduleResponse.BookedSlots = createdSchedule.Slot != null && createdSchedule.Slot.IsBooked ? 1 : 0;
+				var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(createdSchedule);
+				scheduleResponse.TotalSlots = createdSchedule!.Slot != null ? 1 : 0;
+				scheduleResponse.BookedSlots = createdSchedule.Slot != null && createdSchedule.Slot.Appointment != null ? 1 : 0;
+				scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
 
                 _logger.LogInformation("{MethodName}: Successfully created schedule {ScheduleId}", methodName, schedule.Id);
                 return BaseResponse<DoctorScheduleResponse>.CreateSuccess(scheduleResponse, "Schedule created successfully", StatusCodes.Status201Created);
@@ -1342,10 +1347,10 @@ namespace FSCMS.Service.Services
                     .Include(ds => ds.Slot)
                     .FirstOrDefaultAsync(ds => ds.Id == scheduleId);
 
-                var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(updatedSchedule);
-                scheduleResponse.TotalSlots = updatedSchedule!.Slot != null ? 1 : 0;
-                scheduleResponse.AvailableSlots = updatedSchedule.Slot != null && !updatedSchedule.Slot.IsBooked ? 1 : 0;
-                scheduleResponse.BookedSlots = updatedSchedule.Slot != null && updatedSchedule.Slot.IsBooked ? 1 : 0;
+				var scheduleResponse = _mapper.Map<DoctorScheduleResponse>(updatedSchedule);
+				scheduleResponse.TotalSlots = updatedSchedule!.Slot != null ? 1 : 0;
+				scheduleResponse.BookedSlots = updatedSchedule.Slot != null && updatedSchedule.Slot.Appointment != null ? 1 : 0;
+				scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
 
                 _logger.LogInformation("{MethodName}: Successfully updated schedule {ScheduleId}", methodName, scheduleId);
                 return BaseResponse<DoctorScheduleResponse>.CreateSuccess(scheduleResponse, "Schedule updated successfully");
@@ -1373,9 +1378,10 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Schedule ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_SCHEDULE_ID");
                 }
 
-                var schedule = await _unitOfWork.Repository<DoctorSchedule>()
+				var schedule = await _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
-                    .Include(ds => ds.Slot)
+					.Include(ds => ds.Slot)
+						.ThenInclude(s => s.Appointment)
                     .Where(ds => ds.Id == scheduleId && !ds.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -1385,8 +1391,8 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Schedule not found", StatusCodes.Status404NotFound, "SCHEDULE_NOT_FOUND");
                 }
 
-                // Check if schedule has booked slots
-                var hasBookedSlots = schedule.Slot != null && schedule.Slot.IsBooked;
+				// Check if schedule has booked slots
+				var hasBookedSlots = schedule.Slot != null && schedule.Slot.Appointment != null;
                 if (hasBookedSlots)
                 {
                     _logger.LogWarning("{MethodName}: Cannot delete schedule with booked slots: {ScheduleId}", methodName, scheduleId);
@@ -1476,12 +1482,13 @@ namespace FSCMS.Service.Services
                     return BaseResponse<SlotResponse>.CreateError("Slot ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_SLOT_ID");
                 }
 
-                var slot = await _unitOfWork.Repository<Slot>()
+				var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
+					.Include(s => s.Appointment)
                     .Where(s => s.Id == slotId && !s.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -1518,13 +1525,14 @@ namespace FSCMS.Service.Services
                     return BaseResponse<SlotDetailResponse>.CreateError("Slot ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_SLOT_ID");
                 }
 
-                var slot = await _unitOfWork.Repository<Slot>()
+				var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
-                    .Include(s => s.Appointment)
+					.Include(s => s.Appointment)
+					.Include(s => s.Appointment)
                         .ThenInclude(a => a.TreatmentCycle)
                             .ThenInclude(tc => tc.Treatment)
                                 .ThenInclude(t => t.Patient)
@@ -1564,12 +1572,13 @@ namespace FSCMS.Service.Services
 
                 request.Normalize();
 
-                var query = _unitOfWork.Repository<Slot>()
+				var query = _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
+					.Include(s => s.Appointment)
                     .Where(s => !s.IsDeleted);
 
                 // Apply filters
@@ -1583,10 +1592,13 @@ namespace FSCMS.Service.Services
                     query = query.Where(s => s.DoctorSchedules.Any(ds => ds.DoctorId == request.DoctorId.Value));
                 }
 
-                if (request.IsBooked.HasValue)
-                {
-                    query = query.Where(s => s.IsBooked == request.IsBooked.Value);
-                }
+				if (request.IsBooked.HasValue)
+				{
+					if (request.IsBooked.Value)
+						query = query.Where(s => s.Appointment != null);
+					else
+						query = query.Where(s => s.Appointment == null);
+				}
 
                 if (request.DateFrom.HasValue || request.DateTo.HasValue)
                 {
@@ -1786,14 +1798,15 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                var slots = await _unitOfWork.Repository<Slot>()
+				var slots = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(s => s.DoctorSchedules)
                         .ThenInclude(ds => ds.Doctor)
                             .ThenInclude(d => d.Account)
-                    .Where(s => !s.IsDeleted &&
-                               !s.IsBooked &&
+					.Include(s => s.Appointment)
+					.Where(s => !s.IsDeleted &&
+							   s.Appointment == null &&
                                s.DoctorSchedules.Any(ds => ds.DoctorId == doctorId &&
                                                            ds.WorkDate >= DateOnly.FromDateTime(dateFrom) &&
                                                            ds.WorkDate <= DateOnly.FromDateTime(dateTo) &&
@@ -1919,8 +1932,8 @@ namespace FSCMS.Service.Services
                     return BaseResponse<SlotResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                 }
 
-                // Check if slot is booked and trying to change time
-                if (slot.IsBooked && (request.StartTime.HasValue || request.EndTime.HasValue))
+				// Check if slot has an appointment and trying to change time
+				if (slot.Appointment != null && (request.StartTime.HasValue || request.EndTime.HasValue))
                 {
                     _logger.LogWarning("{MethodName}: Cannot modify time of booked slot: {SlotId}", methodName, slotId);
                     return BaseResponse<SlotResponse>.CreateError("Cannot modify time of booked slot", StatusCodes.Status400BadRequest, "SLOT_IS_BOOKED");
@@ -1971,8 +1984,7 @@ namespace FSCMS.Service.Services
                     slot.StartTime = request.StartTime.Value;
                 if (request.EndTime.HasValue)
                     slot.EndTime = request.EndTime.Value;
-                if (request.IsBooked.HasValue)
-                    slot.IsBooked = request.IsBooked.Value;
+				// Booking status is inferred from Appointment, cannot be set directly
                 if (request.Notes != null)
                     slot.Notes = request.Notes;
 
@@ -2017,7 +2029,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Slot ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_SLOT_ID");
                 }
 
-                var slot = await _unitOfWork.Repository<Slot>()
+				var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .Where(s => s.Id == slotId && !s.IsDeleted)
                     .FirstOrDefaultAsync();
@@ -2028,8 +2040,8 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                 }
 
-                // Check if slot is booked
-                if (slot.IsBooked)
+				// Check if slot has an appointment
+				if (slot.Appointment != null)
                 {
                     _logger.LogWarning("{MethodName}: Cannot delete booked slot: {SlotId}", methodName, slotId);
                     return BaseResponse.CreateError("Cannot delete booked slot", StatusCodes.Status400BadRequest, "SLOT_IS_BOOKED");
@@ -2069,7 +2081,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Slot ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_SLOT_ID");
                 }
 
-                var slot = await _unitOfWork.Repository<Slot>()
+				var slot = await _unitOfWork.Repository<Slot>()
                     .AsQueryable()
                     .Where(s => s.Id == slotId && !s.IsDeleted)
                     .FirstOrDefaultAsync();
@@ -2080,14 +2092,9 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                 }
 
-                slot.IsBooked = isBooked;
-                slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
-
-                await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slotId);
-                await _unitOfWork.CommitAsync();
-
-                _logger.LogInformation("{MethodName}: Successfully updated slot booking status {SlotId}", methodName, slotId);
-                return BaseResponse.CreateSuccess($"Slot booking status updated to {(isBooked ? "booked" : "available")}");
+				// Booking status is inferred by Appointment and cannot be updated directly
+				_logger.LogWarning("{MethodName}: Updating slot booking status is not supported for fixed slots", methodName);
+				return BaseResponse.CreateError("Updating slot booking status is not supported.", StatusCodes.Status400BadRequest, "SLOT_BOOKING_STATUS_NOT_SUPPORTED");
             }
             catch (Exception ex)
             {

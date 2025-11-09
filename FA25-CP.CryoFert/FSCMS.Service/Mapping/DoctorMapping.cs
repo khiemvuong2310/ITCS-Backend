@@ -82,8 +82,8 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.StartTime : TimeSpan.Zero))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.EndTime : TimeSpan.Zero))
                 .ForMember(dest => dest.TotalSlots, opt => opt.MapFrom(src => src.Slot != null ? 1 : 0))
-                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null && !src.Slot.IsBooked && !src.Slot.IsDeleted ? 1 : 0))
-                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.IsBooked && !src.Slot.IsDeleted ? 1 : 0));
+                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointment == null && !src.Slot.IsDeleted ? 1 : 0))
+                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointment != null && !src.Slot.IsDeleted ? 1 : 0));
 
             // Map DoctorSchedule entity to DoctorScheduleDetailResponse
             CreateMap<DoctorSchedule, DoctorScheduleDetailResponse>()

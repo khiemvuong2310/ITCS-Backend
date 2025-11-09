@@ -474,10 +474,10 @@ namespace FSCMS.Core
 
             // Seed fixed Slots (4 slots in a day)
             modelBuilder.Entity<Slot>().HasData(
-                new Slot(new Guid("30000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0), false) { Notes = "Morning Slot 1" },
-                new Slot(new Guid("30000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0), false) { Notes = "Morning Slot 2" },
-                new Slot(new Guid("30000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0), false) { Notes = "Afternoon Slot 1" },
-                new Slot(new Guid("30000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0), false) { Notes = "Afternoon Slot 2" }
+				new Slot(new Guid("30000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)) { Notes = "Morning Slot 1" },
+				new Slot(new Guid("30000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)) { Notes = "Morning Slot 2" },
+				new Slot(new Guid("30000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0)) { Notes = "Afternoon Slot 1" },
+				new Slot(new Guid("30000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0)) { Notes = "Afternoon Slot 2" }
             );
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
