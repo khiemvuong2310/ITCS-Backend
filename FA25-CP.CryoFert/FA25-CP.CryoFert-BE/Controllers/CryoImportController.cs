@@ -67,7 +67,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Create([FromBody] CreateCryoImportRequest request)
+        public async Task<IActionResult> Create([FromQuery] CreateCryoImportRequest request)
         {
             if (!ModelState.IsValid)
             {

@@ -38,6 +38,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.TransactionCode, opt => opt.Ignore())
                 .ForMember(dest => dest.TransactionType, opt => opt.MapFrom(src => TransactionType.Payment)) // default Payment
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => TransactionStatus.Pending))
+                .ForMember(dest => dest.Currency, opt => opt.MapFrom(src => "VND"))
                 .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 

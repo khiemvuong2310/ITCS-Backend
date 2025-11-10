@@ -52,32 +52,26 @@ namespace FSCMS.Service.Services
                 }
 
                 // Check RelatedEntityType and RelatedEntityId
-                if (string.IsNullOrWhiteSpace(request.RelatedEntityType) || !request.RelatedEntityId.HasValue)
-                {
-                    return new BaseResponse<MediaResponse>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        SystemCode = "INVALID_ENTITY",
-                        Message = "Related entity type and ID must be provided",
-                        Data = null
-                    };
-                }
+                // if (string.IsNullOrWhiteSpace(request.RelatedEntityType) || !request.RelatedEntityId.HasValue)
+                // {
+                //     return new BaseResponse<MediaResponse>
+                //     {
+                //         Code = StatusCodes.Status400BadRequest,
+                //         SystemCode = "INVALID_ENTITY",
+                //         Message = "Related entity type and ID must be provided",
+                //         Data = null
+                //     };
+                // }
 
                 // Optional: Check entity exists in DB
                 bool entityExists = request.RelatedEntityType switch
                 {
-                    "Patient" => await _unitOfWork.Repository<Patient>()
+                    EntityTypeMedia.MedicalRecord => await _unitOfWork.Repository<MedicalRecord>()
                                     .AsQueryable()
-                                    .AnyAsync(p => p.Id == request.RelatedEntityId.Value && !p.IsDeleted),
-                    "MedicalRecord" => await _unitOfWork.Repository<MedicalRecord>()
+                                    .AnyAsync(p => p.Id == request.RelatedEntityId && !p.IsDeleted),
+                    EntityTypeMedia.TreatmentCycle => await _unitOfWork.Repository<TreatmentCycle>()
                                     .AsQueryable()
-                                    .AnyAsync(m => m.Id == request.RelatedEntityId.Value && !m.IsDeleted),
-                    "Treatment" => await _unitOfWork.Repository<Treatment>()
-                                    .AsQueryable()
-                                    .AnyAsync(t => t.Id == request.RelatedEntityId.Value && !t.IsDeleted),
-                    "TreatmentCycle" => await _unitOfWork.Repository<TreatmentCycle>()
-                                    .AsQueryable()
-                                    .AnyAsync(l => l.Id == request.RelatedEntityId.Value && !l.IsDeleted),
+                                    .AnyAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
                     _ => false
                 };
 
@@ -96,6 +90,7 @@ namespace FSCMS.Service.Services
                 string filePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, file.ContentType);
 
                 var newMedia = _mapper.Map<Media>(request);
+                newMedia.RelatedEntityType = request.RelatedEntityType.ToString();
                 newMedia.OriginalFileName = file.FileName;
                 newMedia.FileType = file.ContentType;
                 newMedia.FileSize = file.Length;
@@ -191,9 +186,9 @@ namespace FSCMS.Service.Services
                     );
                 }
 
-                if (!string.IsNullOrWhiteSpace(request.RelatedEntityType))
+                if (request.RelatedEntityType.HasValue)
                 {
-                    query = query.Where(m => m.RelatedEntityType == request.RelatedEntityType);
+                    query = query.Where(m => m.RelatedEntityType == request.RelatedEntityType.ToString());
                 }
 
                 if (request.RelatedEntityId.HasValue)

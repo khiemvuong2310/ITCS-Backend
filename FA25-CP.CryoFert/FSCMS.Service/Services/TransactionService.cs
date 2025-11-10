@@ -71,7 +71,7 @@ namespace FSCMS.Service.Services
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status404NotFound,
-                        Message = $"Related entity {request.RelatedEntityType} not found"
+                        Message = $"Related entity {request.RelatedEntityType.ToString()} not found"
                     };
 
                 var transaction = new Transaction
@@ -79,11 +79,11 @@ namespace FSCMS.Service.Services
                     TransactionCode = $"TX-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 6)}",
                     TransactionType = TransactionType.Payment,
                     Amount = request.Amount,
-                    Currency = request.Currency ?? "VND",
+                    Currency = "VND",
                     PatientId = patient.Id,
                     PatientName = $"{patient.Account.FirstName} {patient.Account.LastName}",
                     Description = request.Description ?? $"{patient.Account.FirstName} {patient.Account.LastName} payment for {request.RelatedEntityType}",
-                    RelatedEntityType = request.RelatedEntityType,
+                    RelatedEntityType = request.RelatedEntityType.ToString(),
                     RelatedEntityId = request.RelatedEntityId,
                     Status = TransactionStatus.Pending,
                     TransactionDate = DateTime.UtcNow,
@@ -185,19 +185,121 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region Helper
-        private async Task<bool> CheckRelatedEntityExistsAsync(string entityType, Guid? entityId)
+        private async Task<bool> CheckRelatedEntityExistsAsync(EntityTypeTransaction? entityType, Guid? entityId)
         {
-            if (string.IsNullOrEmpty(entityType) || entityId == null) return false;
+            if (entityType == null || entityId == null) return false;
 
             return entityType switch
             {
-                "Patient" => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
-                "Appointment" => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
-                "CryoStorageContract" => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
-                "ServiceRequest" => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
+                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
+                EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
+                EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
                 _ => false
             };
         }
         #endregion
+
+        public async Task<DynamicResponse<TransactionResponseModel>> GetAllTransactionsAsync(GetTransactionsRequest request)
+        {
+            try
+            {
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
+
+                if (patient == null)
+                    return new DynamicResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient not found"
+                    };
+
+                if(request.RelatedEntityId != null && request.RelatedEntityType != null)
+                {
+                    bool entityExists = await CheckRelatedEntityExistsAsync(request.RelatedEntityType, request.RelatedEntityId);
+                    if (!entityExists)
+                        return new DynamicResponse<TransactionResponseModel>
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Message = $"Related entity {request.RelatedEntityType.ToString()} not found"
+                        };
+                }
+
+                var query = _unitOfWork.Repository<Transaction>()
+                    .AsQueryable()
+                    .Where(t => !t.IsDeleted);
+
+                // Filtering
+                if (request.PatientId != Guid.Empty)
+                    query = query.Where(t => t.PatientId == request.PatientId);
+
+                if (request.RelatedEntityType.HasValue)
+                    query = query.Where(t => t.RelatedEntityType == request.RelatedEntityType.Value.ToString());
+
+                if (request.RelatedEntityId != Guid.Empty)
+                    query = query.Where(t => t.RelatedEntityId == request.RelatedEntityId);
+
+                if (request.Status.HasValue)
+                    query = query.Where(t => t.Status == request.Status.Value);
+
+                if (request.FromDate.HasValue)
+                    query = query.Where(t => t.TransactionDate >= request.FromDate.Value);
+
+                if (request.ToDate.HasValue)
+                    query = query.Where(t => t.TransactionDate <= request.ToDate.Value);
+
+                // Total count
+                var totalCount = await query.CountAsync();
+
+                // Sorting
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    var isDescending = request.Order?.ToLower() == "desc";
+
+                    query = request.Sort.ToLower() switch
+                    {
+                        "amount" => isDescending ? query.OrderByDescending(t => t.Amount) : query.OrderBy(t => t.Amount),
+                        "transactiondate" => isDescending ? query.OrderByDescending(t => t.TransactionDate) : query.OrderBy(t => t.TransactionDate),
+                        "status" => isDescending ? query.OrderByDescending(t => t.Status) : query.OrderBy(t => t.Status),
+                        _ => isDescending ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt)
+                    };
+                }
+                else
+                {
+                    query = query.OrderByDescending(t => t.CreatedAt);
+                }
+
+                // Pagination
+                var transactions = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                return new DynamicResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Transactions retrieved successfully",
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount
+                    },
+                    Data = _mapper.Map<List<TransactionResponseModel>>(transactions)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving transactions");
+                return new DynamicResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while retrieving transactions",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<TransactionResponseModel>()
+                };
+            }
+        }
+
     }
 }

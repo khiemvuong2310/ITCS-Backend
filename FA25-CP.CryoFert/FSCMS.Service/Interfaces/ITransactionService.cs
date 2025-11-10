@@ -25,5 +25,6 @@ namespace FSCMS.Service.Interfaces
         /// <param name="query">Query string từ callback VNPay</param>
         /// <returns>BaseResponse với TransactionResponseModel đã cập nhật trạng thái</returns>
         Task<BaseResponse<TransactionResponseModel>> HandleVnPayCallbackAsync(IQueryCollection query);
+        Task<DynamicResponse<TransactionResponseModel>> GetAllTransactionsAsync(GetTransactionsRequest request);
     }
 }

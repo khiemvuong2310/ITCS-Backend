@@ -12,10 +12,14 @@ namespace FSCMS.Service.RequestModel
 {
     public class UploadMediaRequest
     {
+        [Required(ErrorMessage = "File is required.")]
         public IFormFile File { get; set; } = default!;
+        [Required(ErrorMessage = "FileName is required.")]
         public string FileName { get; set; } = default!;
-        public Guid? RelatedEntityId { get; set; } // ID của MedicalRecord, Patient, Treatment, etc.
-        public string? RelatedEntityType { get; set; } // "MedicalRecord", "Patient", "Treatment", "LabTest"
+        [Required(ErrorMessage = "RelatedEntityId is required.")]
+        public Guid RelatedEntityId { get; set; } // ID của MedicalRecord, Patient, Treatment, etc.
+        [Required(ErrorMessage = "RelatedEntityType is required.")]
+        public EntityTypeMedia RelatedEntityType { get; set; } // "MedicalRecord", "Patient", "Treatment", "LabTest"
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? Category { get; set; } // "Lab Result", "Medical Image", "Consent Form", "Report"
@@ -39,7 +43,14 @@ namespace FSCMS.Service.RequestModel
     public class GetMediasRequest : PagingModel
     {
         public string? SearchTerm { get; set; }
-        public string? RelatedEntityType { get; set; }
+        public EntityTypeMedia? RelatedEntityType { get; set; } = null;
         public Guid? RelatedEntityId { get; set; }
+    }
+
+    public enum EntityTypeMedia
+
+    {
+        MedicalRecord = 0,
+        TreatmentCycle = 1
     }
 }

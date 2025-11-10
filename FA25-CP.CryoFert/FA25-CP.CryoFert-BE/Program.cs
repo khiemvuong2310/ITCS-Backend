@@ -67,6 +67,16 @@ namespace FA25_CP.CryoFert_BE
                 builder.Configuration.GetSection("VnPay")
             );
 
+            // builder.Services.Configure<VnPayOptions>(options =>
+            // {
+            //     options.vnp_Url = Environment.GetEnvironmentVariable("VNPAY_URL") ?? "";
+            //     options.vnp_Api = Environment.GetEnvironmentVariable("VNPAY_API") ?? "";
+            //     options.vnp_TmnCode = Environment.GetEnvironmentVariable("VNPAY_TMN_CODE") ?? "";
+            //     options.vnp_HashSecret = Environment.GetEnvironmentVariable("VNPAY_HASH_SECRET") ?? "";
+            //     options.vnp_Returnurl = Environment.GetEnvironmentVariable("VNPAY_RETURNURL") ?? "";
+            // });
+
+
             builder.Services.AddSignalR();
 
             // 4. CORS config
