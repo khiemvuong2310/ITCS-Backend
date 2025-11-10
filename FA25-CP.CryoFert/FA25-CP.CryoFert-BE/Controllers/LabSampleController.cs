@@ -69,7 +69,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateSperm([FromBody] CreateLabSampleSpermRequest request)
+        public async Task<IActionResult> CreateSperm([FromQuery] CreateLabSampleSpermRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new BaseResponse<LabSampleResponse>
@@ -90,7 +90,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateOocyte([FromBody] CreateLabSampleOocyteRequest request)
+        public async Task<IActionResult> CreateOocyte([FromQuery] CreateLabSampleOocyteRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new BaseResponse<LabSampleResponse>
@@ -111,7 +111,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateEmbryo([FromBody] CreateLabSampleEmbryoRequest request)
+        public async Task<IActionResult> CreateEmbryo([FromQuery] CreateLabSampleEmbryoRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new BaseResponse<LabSampleResponse>

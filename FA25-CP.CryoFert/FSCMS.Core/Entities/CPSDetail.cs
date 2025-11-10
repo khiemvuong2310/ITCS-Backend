@@ -9,7 +9,7 @@ public class CPSDetail : BaseEntity<Guid>
     // Quan hệ:
     // - n-1 tới CryoStorageContract (CryoStorageContractId)
     // - n-1 tới LabSample (LabSampleId)
-    protected CPSDetail() : base() { }
+    public CPSDetail() : base() { }
 
     public CPSDetail(
         Guid id,

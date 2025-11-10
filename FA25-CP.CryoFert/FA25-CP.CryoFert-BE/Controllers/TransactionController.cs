@@ -30,7 +30,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
+        public async Task<IActionResult> CreateTransaction([FromQuery] CreateTransactionRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -62,5 +62,34 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var result = await _transactionService.HandleVnPayCallbackAsync(query);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
+
+        /// <summary>
+        /// Get all transactions with filters, sorting, and pagination
+        /// </summary>
+        /// <param name="request">Transaction filter and pagination parameters</param>
+        /// <returns>List of transactions</returns>
+        [HttpGet]
+        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAllTransactions([FromQuery] GetTransactionsRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new DynamicResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<TransactionResponseModel>()
+                });
+            }
+
+            var result = await _transactionService.GetAllTransactionsAsync(request);
+
+            // Trả về code từ DynamicResponse
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
     }
 }

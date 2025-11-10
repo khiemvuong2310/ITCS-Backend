@@ -181,7 +181,7 @@ namespace FSCMS.Service.Services
         {
             const string methodName = nameof(CreateSpermAsync);
             _logger.LogInformation("{MethodName} called", methodName);
-
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request == null)
@@ -203,9 +203,10 @@ namespace FSCMS.Service.Services
                 entity.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 entity.PatientId = request.PatientId;
                 entity.Patient = patient;
-
+                entity.LabSampleSperm = _mapper.Map<LabSampleSperm>(request);
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
-                await _unitOfWork.CommitAsync();
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
@@ -218,6 +219,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error creating sperm sample", methodName);
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -231,7 +233,7 @@ namespace FSCMS.Service.Services
         {
             const string methodName = nameof(CreateOocyteAsync);
             _logger.LogInformation("{MethodName} called", methodName);
-
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request == null)
@@ -253,10 +255,10 @@ namespace FSCMS.Service.Services
                 entity.SampleCode = GenerateSampleCode(SampleType.Oocyte);
                 entity.PatientId = request.PatientId;
                 entity.Patient = patient;
-
+                entity.LabSampleOocyte = _mapper.Map<LabSampleOocyte>(request);
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
-                await _unitOfWork.CommitAsync();
-
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
                 return new BaseResponse<LabSampleResponse>
@@ -268,6 +270,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error creating Oocyte sample", methodName);
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -282,6 +285,7 @@ namespace FSCMS.Service.Services
             const string methodName = nameof(CreateEmbryoAsync);
             _logger.LogInformation("{MethodName} called", methodName);
 
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request == null)
@@ -304,8 +308,12 @@ namespace FSCMS.Service.Services
                 entity.PatientId = request.PatientId;
                 entity.Patient = patient;
 
+                entity.LabSampleEmbryo = _mapper.Map<LabSampleEmbryo>(request);
+
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
-                await _unitOfWork.CommitAsync();
+                await _unitOfWork.SaveChangesAsync();
+
+                await transaction.CommitAsync();
 
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
@@ -318,6 +326,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error creating Embryo sample", methodName);
                 return new BaseResponse<LabSampleResponse>
                 {
