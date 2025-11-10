@@ -119,6 +119,25 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
+        /// Get booking appointments by patient ID
+        /// </summary>
+        /// <param name="patientId">Patient ID</param>
+        /// <param name="request">Filter and pagination parameters</param>
+        /// <returns>Paginated list of booking appointments</returns>
+        [HttpGet("patient/{patientId:guid}/booking")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Patient")]
+        [ProducesResponseType(typeof(DynamicResponse<AppointmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(DynamicResponse<AppointmentResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(DynamicResponse<AppointmentResponse>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(DynamicResponse<AppointmentResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(DynamicResponse<AppointmentResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAppointmentsBooking(Guid patientId, [FromQuery] GetAppointmentsRequest request)
+        {
+            var result = await _appointmentService.GetAppointmentsBookingByPatientIdAsync(patientId, request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
         /// Get appointment by slot ID
         /// </summary>
         /// <param name="slotId">Slot ID</param>

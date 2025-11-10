@@ -9,6 +9,7 @@ namespace FSCMS.Core.Enum
         ET = 5,  // Embryo Transfer
         IUI = 6,
         FollowUp = 7,
-        Injection = 8
+        Injection = 8,
+        Booking = 9 
     }
 }

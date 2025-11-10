@@ -232,6 +232,11 @@ namespace FSCMS.Service.Services
                         (a.Reason != null && a.Reason.ToLower().Contains(searchTerm)) ||
                         (a.Notes != null && a.Notes.ToLower().Contains(searchTerm)) ||
                         (a.TreatmentCycle != null && a.TreatmentCycle.CycleName.ToLower().Contains(searchTerm)) ||
+                        // Search in Patient directly (for Booking appointments without TreatmentCycle)
+                        (a.Patient != null && a.Patient.Account != null &&
+                         (a.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
+                          a.Patient.Account.LastName.ToLower().Contains(searchTerm))) ||
+                        // Search in Patient through TreatmentCycle (for appointments with TreatmentCycle)
                         (a.TreatmentCycle != null && a.TreatmentCycle.Treatment != null &&
                          a.TreatmentCycle.Treatment.Patient != null &&
                          a.TreatmentCycle.Treatment.Patient.Account != null &&
@@ -419,6 +424,160 @@ namespace FSCMS.Service.Services
                     Code = StatusCodes.Status500InternalServerError,
                     SystemCode = "INTERNAL_ERROR",
                     Message = $"Error retrieving appointments: {ex.Message}",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<AppointmentResponse>()
+                };
+            }
+        }
+
+        /// <summary>
+        /// Get booking appointments for a specific patient
+        /// </summary>
+        public async Task<DynamicResponse<AppointmentResponse>> GetAppointmentsBookingByPatientIdAsync(Guid patientId, GetAppointmentsRequest request)
+        {
+            const string methodName = nameof(GetAppointmentsBookingByPatientIdAsync);
+            _logger.LogInformation("{MethodName} called with patientId: {PatientId}, request: {@Request}", methodName, patientId, request);
+
+            try
+            {
+                if (patientId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid patient ID provided - {PatientId}", methodName, patientId);
+                    return new DynamicResponse<AppointmentResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_PATIENT_ID",
+                        Message = "Patient ID cannot be empty",
+                        MetaData = new PagingMetaData(),
+                        Data = new List<AppointmentResponse>()
+                    };
+                }
+
+                // Verify patient exists
+                var patientExists = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .AnyAsync(p => p.Id == patientId && !p.IsDeleted);
+
+                if (!patientExists)
+                {
+                    _logger.LogWarning("{MethodName}: Patient not found with ID: {PatientId}", methodName, patientId);
+                    return new DynamicResponse<AppointmentResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        SystemCode = "PATIENT_NOT_FOUND",
+                        Message = "Patient not found",
+                        MetaData = new PagingMetaData(),
+                        Data = new List<AppointmentResponse>()
+                    };
+                }
+
+                if (request == null)
+                    request = new GetAppointmentsRequest();
+
+                request.Normalize();
+
+                // Build query for booking appointments of the patient
+                var query = _unitOfWork.Repository<Appointment>()
+                    .AsQueryable()
+                    .AsNoTracking()
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.Account)
+                    .Include(a => a.TreatmentCycle)
+                        .ThenInclude(tc => tc.Treatment)
+                            .ThenInclude(t => t.Patient)
+                                .ThenInclude(p => p.Account)
+                    .Include(a => a.Slot)
+                        .ThenInclude(s => s.DoctorSchedules)
+                            .ThenInclude(ds => ds.Doctor)
+                                .ThenInclude(d => d.Account)
+                    .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
+                        .ThenInclude(ad => ad.Doctor)
+                            .ThenInclude(d => d.Account)
+                    .Where(a => !a.IsDeleted 
+                        && a.PatientId == patientId 
+                        && a.Type == AppointmentType.Booking);
+
+                // Apply additional filters from request
+                if (request.Status.HasValue)
+                {
+                    query = query.Where(a => a.Status == request.Status.Value);
+                }
+
+                if (request.AppointmentDateFrom.HasValue)
+                {
+                    query = query.Where(a => a.AppointmentDate >= request.AppointmentDateFrom.Value);
+                }
+
+                if (request.AppointmentDateTo.HasValue)
+                {
+                    query = query.Where(a => a.AppointmentDate <= request.AppointmentDateTo.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                {
+                    var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
+                    query = query.Where(a =>
+                        (a.Reason != null && a.Reason.ToLower().Contains(searchTerm)) ||
+                        (a.Notes != null && a.Notes.ToLower().Contains(searchTerm)) ||
+                        (a.Patient != null && a.Patient.Account != null &&
+                         (a.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
+                          a.Patient.Account.LastName.ToLower().Contains(searchTerm))));
+                }
+
+                // Get total count
+                var totalCount = await query.CountAsync();
+
+                // Apply sorting
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    var isDescending = request.Order?.ToLower() == "desc";
+                    query = request.Sort.ToLower() switch
+                    {
+                        "appointmentdate" => isDescending ? query.OrderByDescending(a => a.AppointmentDate) : query.OrderBy(a => a.AppointmentDate),
+                        "status" => isDescending ? query.OrderByDescending(a => a.Status) : query.OrderBy(a => a.Status),
+                        "createdat" => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt),
+                        _ => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt)
+                    };
+                }
+                else
+                {
+                    query = query.OrderByDescending(a => a.AppointmentDate);
+                }
+
+                // Apply pagination
+                var appointments = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var appointmentResponses = appointments.Select(MapToAppointmentResponse).ToList();
+
+                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} booking appointments for patient {PatientId}", 
+                    methodName, appointmentResponses.Count, patientId);
+
+                return new DynamicResponse<AppointmentResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    SystemCode = "SUCCESS",
+                    Message = "Booking appointments retrieved successfully",
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount,
+                        CurrentPageSize = appointmentResponses.Count
+                    },
+                    Data = appointmentResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving booking appointments for patient {PatientId}", methodName, patientId);
+                return new DynamicResponse<AppointmentResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = $"Error retrieving booking appointments: {ex.Message}",
                     MetaData = new PagingMetaData(),
                     Data = new List<AppointmentResponse>()
                 };

@@ -52,6 +52,14 @@ namespace FSCMS.Service.Interfaces
         Task<DynamicResponse<AppointmentResponse>> GetAppointmentsByDoctorIdAsync(Guid doctorId, GetAppointmentsRequest request);
 
         /// <summary>
+        /// Get booking appointments for a specific patient
+        /// </summary>
+        /// <param name="patientId">The unique identifier of the patient</param>
+        /// <param name="request">Request parameters for filtering and pagination</param>
+        /// <returns>DynamicResponse containing paginated booking appointment list</returns>
+        Task<DynamicResponse<AppointmentResponse>> GetAppointmentsBookingByPatientIdAsync(Guid patientId, GetAppointmentsRequest request);
+
+        /// <summary>
         /// Get appointments for a specific slot
         /// </summary>
         /// <param name="slotId">The unique identifier of the slot</param>
