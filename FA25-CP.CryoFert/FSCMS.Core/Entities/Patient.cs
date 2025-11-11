@@ -7,7 +7,7 @@ namespace FSCMS.Core.Entities
 {
     // Bảng Patient: Thông tin hồ sơ bệnh nhân.
     // Quan hệ:
-    // - 1-1 với Account (AccountId)
+    // - 1-1 với Account (Shared PK: Id == Account.Id)
     // - 1-n với Treatment (bệnh nhân có nhiều đợt điều trị)
     // - 1-n với LabSample (nhiều mẫu xét nghiệm/lab)
     // - 1-n với CryoStorageContract (nhiều hợp đồng lưu trữ cryo)
@@ -34,7 +34,6 @@ namespace FSCMS.Core.Entities
         public decimal? Weight { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Notes { get; set; }
-        public Guid AccountId { get; set; }
 
         //Navigate properties
         public virtual Account? Account { get; set; }

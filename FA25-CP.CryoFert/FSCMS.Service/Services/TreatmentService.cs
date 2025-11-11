@@ -182,11 +182,11 @@ namespace FSCMS.Service.Services
 
                 var detail = entity.ToDetailResponseModel();
 
-                // Attach IUI if exists (1-1 by TreatmentId)
+                // Attach IUI if exists (1-1 by shared PK: IUI.Id == Treatment.Id)
                 var iui = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
                     .AsNoTracking()
-                    .Where(x => x.TreatmentId == id && !x.IsDeleted)
+                    .Where(x => x.Id == id && !x.IsDeleted)
                     .FirstOrDefaultAsync();
                 if (iui != null)
                 {
@@ -330,7 +330,7 @@ namespace FSCMS.Service.Services
                 // For safety, also soft delete linked IVF and IUI if present
                 var iui = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
-                    .Where(x => x.TreatmentId == id && !x.IsDeleted)
+                    .Where(x => x.Id == id && !x.IsDeleted)
                     .FirstOrDefaultAsync();
                 if (iui != null)
                 {

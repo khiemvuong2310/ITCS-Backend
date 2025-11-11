@@ -189,7 +189,7 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(d => d.Account)
-                    .Where(d => d.AccountId == accountId && !d.IsDeleted)
+                    .Where(d => d.Id == accountId && !d.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (doctor == null)
@@ -396,7 +396,7 @@ namespace FSCMS.Service.Services
                 // Check if account is already associated with a doctor
                 var existingDoctor = await _unitOfWork.Repository<Doctor>()
                     .AsQueryable()
-                    .Where(d => d.AccountId == request.AccountId && !d.IsDeleted)
+                    .Where(d => d.Id == request.AccountId && !d.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (existingDoctor != null)
@@ -424,8 +424,16 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                // Create doctor entity
-                var doctor = _mapper.Map<Doctor>(request);
+                // Create doctor with shared PK = AccountId, then map other fields
+                var doctor = new Doctor(
+                    request.AccountId,
+                    request.BadgeId,
+                    request.Specialty,
+                    request.YearsOfExperience,
+                    request.JoinDate,
+                    true
+                );
+                _mapper.Map(request, doctor);
 
                 // Save to database
                 await _unitOfWork.Repository<Doctor>().InsertAsync(doctor);

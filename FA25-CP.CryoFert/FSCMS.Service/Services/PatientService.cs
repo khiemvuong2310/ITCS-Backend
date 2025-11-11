@@ -96,7 +96,7 @@ namespace FSCMS.Service.Services
 
                 var existingPatientByAccount = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
-                    .Where(p => p.AccountId == request.AccountId && !p.IsDeleted)
+                    .Where(p => p.Id == request.AccountId && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (existingPatientByAccount != null)
@@ -104,8 +104,9 @@ namespace FSCMS.Service.Services
                     return BaseResponse<PatientResponse>.CreateError("Account is already associated with another patient", StatusCodes.Status409Conflict, "PATIENT_005");
                 }
 
-                // Map and create patient
-                var patient = _mapper.Map<Patient>(request);
+                // Create patient with shared PK = AccountId, then map other fields
+                var patient = new Patient(request.AccountId, request.PatientCode, request.NationalID);
+                _mapper.Map(request, patient);
                 await _unitOfWork.Repository<Patient>().InsertAsync(patient);
                 await _unitOfWork.CommitAsync();
 
@@ -293,7 +294,7 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(p => p.Account)
-                    .Where(p => p.AccountId == accountId && !p.IsDeleted)
+                    .Where(p => p.Id == accountId && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (patient == null)

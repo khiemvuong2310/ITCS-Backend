@@ -103,7 +103,7 @@ namespace FSCMS.Service.Services
 
                 var appointment = await _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
-                    .AsNoTracking()
+                    .AsNoTrackingWithIdentityResolution()
                     .Include(a => a.Patient)
                         .ThenInclude(p => p.Account)
                     .Include(a => a.TreatmentCycle)
