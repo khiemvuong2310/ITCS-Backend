@@ -72,6 +72,9 @@ namespace FSCMS.Service.Services
                     EntityTypeMedia.TreatmentCycle => await _unitOfWork.Repository<TreatmentCycle>()
                                     .AsQueryable()
                                     .AnyAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
+                    EntityTypeMedia.Account => await _unitOfWork.Repository<Account>()
+                    .AsQueryable()
+                    .AnyAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
                     _ => false
                 };
 

@@ -59,25 +59,32 @@ namespace FA25_CP.CryoFert_BE
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
             });
 
-            builder.Services.Configure<CloudinarySettings>(
-                builder.Configuration.GetSection("CloudinarySettings")
-            );
+            //builder.Services.Configure<CloudinarySettings>(
+            //    builder.Configuration.GetSection("CloudinarySettings")
+            //);
 
-            builder.Services.Configure<VnPayOptions>(
-                builder.Configuration.GetSection("VnPay")
-            );
-
-            // builder.Services.Configure<VnPayOptions>(options =>
-            // {
-            //     options.vnp_Url = Environment.GetEnvironmentVariable("VNPAY_URL") ?? "";
-            //     options.vnp_Api = Environment.GetEnvironmentVariable("VNPAY_API") ?? "";
-            //     options.vnp_TmnCode = Environment.GetEnvironmentVariable("VNPAY_TMN_CODE") ?? "";
-            //     options.vnp_HashSecret = Environment.GetEnvironmentVariable("VNPAY_HASH_SECRET") ?? "";
-            //     options.vnp_Returnurl = Environment.GetEnvironmentVariable("VNPAY_RETURNURL") ?? "";
-            // });
+            //builder.Services.Configure<VnPayOptions>(
+            //    builder.Configuration.GetSection("VnPay")
+            //);
 
 
             builder.Services.AddSignalR();
+
+            builder.Services.Configure<CloudinarySettings>(options =>
+            {
+                options.CloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUDNAME") ?? "";
+                options.ApiKey = Environment.GetEnvironmentVariable("CLOUDINARY_APIKEY") ?? "";
+                options.ApiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_APISECRET") ?? "";
+            });
+
+            builder.Services.Configure<VnPayOptions>(options =>
+            {
+                options.vnp_Url = Environment.GetEnvironmentVariable("VNPAY_URL") ?? "";
+                options.vnp_Api = Environment.GetEnvironmentVariable("VNPAY_API") ?? "";
+                options.vnp_TmnCode = Environment.GetEnvironmentVariable("VNPAY_TMNCODE") ?? "";
+                options.vnp_HashSecret = Environment.GetEnvironmentVariable("VNPAY_HASHSECRET") ?? "";
+                options.vnp_Returnurl = Environment.GetEnvironmentVariable("VNPAY_RETURNURL") ?? "";
+            });
 
             // 4. CORS config
             builder.Services.AddCors(options =>
