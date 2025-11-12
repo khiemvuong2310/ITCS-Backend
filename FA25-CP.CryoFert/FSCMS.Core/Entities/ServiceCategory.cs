@@ -1,23 +1,25 @@
 using System;
 using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho danh mục dịch vụ
-    /// One-to-Many với Service
-    /// </summary>
-    public class ServiceCategory : BaseEntity
+    // Bảng ServiceCategory: Danh mục nhóm dịch vụ (khám, xét nghiệm, cryo...).
+    // Quan hệ:
+    // - 1-n tới Service (một nhóm chứa nhiều dịch vụ)
+    public class ServiceCategory : BaseEntity<Guid>
     {
+        protected ServiceCategory() : base() { }
+        public ServiceCategory(Guid id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Code { get; set; }
         public bool IsActive { get; set; } = true;
         public int DisplayOrder { get; set; }
-        public string? Icon { get; set; }
-
-        // Navigation Properties
-        public virtual ICollection<Service>? Services { get; set; } = new List<Service>();
+        public virtual ICollection<Service> Services { get; set; } = new List<Service>();
     }
 }
-

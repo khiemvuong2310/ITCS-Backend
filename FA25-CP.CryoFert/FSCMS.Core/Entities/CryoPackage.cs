@@ -1,28 +1,45 @@
 using System;
 using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
+using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho gói lưu trữ lạnh
-    /// One-to-Many với CryoStorageContract
-    /// </summary>
-    public class CryoPackage : BaseEntity
+    // Bảng CryoPackage: Gói dịch vụ lưu trữ cryo (thời hạn, số mẫu tối đa...).
+    // Quan hệ:
+    // - 1-n tới CryoStorageContract (gói được chọn trong nhiều hợp đồng)
+    public class CryoPackage : BaseEntity<Guid>
     {
-        public string PackageName { get; set; } = string.Empty;
+        protected CryoPackage() : base() { }
+        public CryoPackage(
+            Guid id,
+            string packageName,
+            decimal price,
+            int durationMonths,
+            int maxSamples,
+            SampleType sampleType = SampleType.Sperm,
+            bool isActive = true
+        )
+        {
+            Id = id;
+            PackageName = packageName;
+            Price = price;
+            DurationMonths = durationMonths;
+            MaxSamples = maxSamples;
+            SampleType = sampleType;
+            IsActive = isActive;
+        }
+        public string PackageName { get; set; } = default!;
         public string? Description { get; set; }
         public decimal Price { get; set; }
         public int DurationMonths { get; set; }
-        public int MaxSamples { get; set; } // Số lượng mẫu tối đa
-        public string? SampleType { get; set; } // "Embryo", "Sperm", "Oocyte", "All"
+        public int MaxSamples { get; set; }
+        public SampleType SampleType { get; set; } = SampleType.Sperm;
         public bool IncludesInsurance { get; set; } = false;
         public decimal? InsuranceAmount { get; set; }
         public bool IsActive { get; set; } = true;
-        public string? Benefits { get; set; } // JSON hoặc text mô tả quyền lợi
+        public string? Benefits { get; set; }
         public string? Notes { get; set; }
-
-        // Navigation Properties
-        public virtual ICollection<CryoStorageContract>? CryoStorageContracts { get; set; } = new List<CryoStorageContract>();
+        public virtual ICollection<CryoStorageContract> CryoStorageContracts { get; set; } = new List<CryoStorageContract>();
     }
 }
-

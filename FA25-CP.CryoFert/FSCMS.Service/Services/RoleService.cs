@@ -52,7 +52,7 @@ namespace FSCMS.Service.Services
                 _logger.LogInformation("Roles not in cache, loading from database");
                 var roles = await _unitOfWork.Repository<Role>()
                     .AsQueryable()
-                    .Where(r => !r.IsDelete)
+                    .Where(r => !r.IsDeleted)
                     .OrderBy(r => r.Id)
                     .ToListAsync();
 
@@ -78,7 +78,7 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Get role by ID from cache
         /// </summary>
-        public async Task<Role?> GetRoleByIdAsync(int roleId)
+        public async Task<Role?> GetRoleByIdAsync(Guid roleId)
         {
             try
             {

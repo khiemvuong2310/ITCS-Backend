@@ -1,31 +1,40 @@
 using System;
 using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho hồ sơ bệnh án
-    /// One-to-One với Appointment
-    /// One-to-Many với Prescription
-    /// </summary>
-    public class MedicalRecord : BaseEntity
+    // Bảng MedicalRecord: Bệnh án chi tiết gắn với một cuộc hẹn.
+    // Quan hệ:
+    // - 1-1 tới Appointment (AppointmentId)
+    // - 1-n tới Prescription (các đơn thuốc phát sinh từ bệnh án)
+    public class MedicalRecord : BaseEntity<Guid>
     {
-        public int AppointmentId { get; set; }
-        
-        public string? ChiefComplaint { get; set; } // Lý do khám
-        public string? History { get; set; } // Tiền sử
-        public string? PhysicalExamination { get; set; } // Khám lâm sàng
-        public string? Diagnosis { get; set; } // Chẩn đoán
-        public string? TreatmentPlan { get; set; } // Kế hoạch điều trị
-        public string? FollowUpInstructions { get; set; } // Hướng dẫn theo dõi
-        public string? VitalSigns { get; set; } // Dấu hiệu sinh tồn
-        public string? LabResults { get; set; } // Kết quả xét nghiệm
-        public string? ImagingResults { get; set; } // Kết quả chẩn đoán hình ảnh
+        protected MedicalRecord() : base() { }
+        public MedicalRecord(
+            Guid id,
+            Guid appointmentId,
+            string? diagnosis,
+            string? treatmentPlan
+        )
+        {
+            Id = id;
+            AppointmentId = appointmentId;
+            Diagnosis = diagnosis;
+            TreatmentPlan = treatmentPlan;
+        }
+        public Guid AppointmentId { get; set; }
+        public string? ChiefComplaint { get; set; }
+        public string? History { get; set; }
+        public string? PhysicalExamination { get; set; }
+        public string? Diagnosis { get; set; }
+        public string? TreatmentPlan { get; set; }
+        public string? FollowUpInstructions { get; set; }
+        public string? VitalSigns { get; set; }
+        public string? LabResults { get; set; }
+        public string? ImagingResults { get; set; }
         public string? Notes { get; set; }
-
-        // Navigation Properties
         public virtual Appointment? Appointment { get; set; }
-        public virtual ICollection<Prescription>? Prescriptions { get; set; } = new List<Prescription>();
+        public virtual ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
     }
 }
-

@@ -1,19 +1,22 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho cấu hình hệ thống
-    /// Lưu trữ các thông số cấu hình và quy tắc hoạt động của hệ thống
-    /// </summary>
-    public class SystemConfig : BaseEntity
+    // Bảng SystemConfig: Cấu hình hệ thống (thông tin trung tâm, quy tắc thông báo...).
+    // Không có quan hệ khoá ngoại trực tiếp.
+    public class SystemConfig : BaseEntity<Guid>
     {
-        public string CenterInfo { get; set; }
-        public string NotificationRules { get; set; }
-        public string Settings { get; set; }
+        protected SystemConfig() : base() { }
+        public SystemConfig(Guid id, string centerInfo, string notificationRules, string settings)
+        {
+            Id = id;
+            CenterInfo = centerInfo;
+            NotificationRules = notificationRules;
+            Settings = settings;
+        }
+        public string CenterInfo { get; set; } = string.Empty;
+        public string NotificationRules { get; set; } = string.Empty;
+        public string Settings { get; set; } = string.Empty;
     }
 }

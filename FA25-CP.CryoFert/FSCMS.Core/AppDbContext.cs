@@ -32,8 +32,10 @@ namespace FSCMS.Core
         // ========== Nhóm 3: Điều trị & Bệnh án ==========
         public DbSet<Treatment> Treatments { get; set; }
         public DbSet<TreatmentIVF> TreatmentIVFs { get; set; }
+        public DbSet<TreatmentIUI> TreatmentIUIs { get; set; }
         public DbSet<TreatmentCycle> TreatmentCycles { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<AppointmentDoctor> AppointmentDoctors { get; set; }
         public DbSet<MedicalRecord> MedicalRecords { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionDetail> PrescriptionDetails { get; set; }
@@ -51,6 +53,7 @@ namespace FSCMS.Core
         // ========== Nhóm 5: Hợp đồng & Gói dịch vụ ==========
         public DbSet<CryoPackage> CryoPackages { get; set; }
         public DbSet<CryoStorageContract> CryoStorageContracts { get; set; }
+        public DbSet<Agreement> Agreements { get; set; }
         public DbSet<CPSDetail> CPSDetails { get; set; }
 
         // ========== Nhóm 6: Bảng Phụ trợ ==========
@@ -110,12 +113,12 @@ namespace FSCMS.Core
                 .HasForeignKey(ds => ds.DoctorId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Slot & DoctorSchedule Relationship
-            modelBuilder.Entity<Slot>()
-                .HasOne(s => s.DoctorSchedule)
-                .WithMany(ds => ds.Slots)
-                .HasForeignKey(s => s.DoctorScheduleId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // Slot & DoctorSchedule Relationship (Slot 1 - n DoctorSchedules)
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasOne(ds => ds.Slot)
+                .WithMany(s => s.DoctorSchedules)
+                .HasForeignKey(ds => ds.SlotId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Slot & Appointment Relationship (One-to-One)
             modelBuilder.Entity<Slot>()
@@ -162,6 +165,13 @@ namespace FSCMS.Core
                 .HasForeignKey(t => t.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Appointment & Patient Relationship (Many-to-One)
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Patient)
+                .WithMany(p => p.Appointments)
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Treatment & Doctor Relationship
             modelBuilder.Entity<Treatment>()
                 .HasOne(t => t.Doctor)
@@ -174,6 +184,13 @@ namespace FSCMS.Core
                 .HasOne(tivf => tivf.Treatment)
                 .WithOne(t => t.TreatmentIVF)
                 .HasForeignKey<TreatmentIVF>(tivf => tivf.TreatmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // TreatmentIUI & Treatment Relationship (One-to-One)
+            modelBuilder.Entity<TreatmentIUI>()
+                .HasOne(tiui => tiui.Treatment)
+                .WithOne()
+                .HasForeignKey<TreatmentIUI>(tiui => tiui.TreatmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // TreatmentCycle & Treatment Relationship
@@ -189,6 +206,24 @@ namespace FSCMS.Core
                 .WithMany(tc => tc.Appointments)
                 .HasForeignKey(a => a.TreatmentCycleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Appointment & Doctor Relationship (Many-to-Many through AppointmentDoctor)
+            modelBuilder.Entity<AppointmentDoctor>()
+                .HasOne(ad => ad.Appointment)
+                .WithMany(a => a.AppointmentDoctors)
+                .HasForeignKey(ad => ad.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AppointmentDoctor>()
+                .HasOne(ad => ad.Doctor)
+                .WithMany(d => d.AppointmentDoctors)
+                .HasForeignKey(ad => ad.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique constraint: một Appointment không thể có cùng một Doctor nhiều lần
+            modelBuilder.Entity<AppointmentDoctor>()
+                .HasIndex(ad => new { ad.AppointmentId, ad.DoctorId })
+                .IsUnique();
 
             // MedicalRecord & Appointment Relationship (One-to-One)
             modelBuilder.Entity<MedicalRecord>()
@@ -263,7 +298,7 @@ namespace FSCMS.Core
 
             modelBuilder.Entity<CryoImport>()
                 .HasOne(ci => ci.CryoLocation)
-                .WithMany()
+                .WithMany(cl => cl.CryoImports)
                 .HasForeignKey(ci => ci.CryoLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -276,12 +311,12 @@ namespace FSCMS.Core
 
             modelBuilder.Entity<CryoExport>()
                 .HasOne(ce => ce.CryoLocation)
-                .WithMany()
+                .WithMany(cl => cl.CryoExports)
                 .HasForeignKey(ce => ce.CryoLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ========================================
-            // Nhóm 5: CryoPackage, CryoStorageContract, CPSDetail
+            // Nhóm 5: CryoPackage, CryoStorageContract, Agreement, CPSDetail
             // ========================================
 
             // CryoStorageContract & Patient Relationship
@@ -311,6 +346,19 @@ namespace FSCMS.Core
                 .HasForeignKey(cpsd => cpsd.LabSampleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Agreement Relationships
+            modelBuilder.Entity<Agreement>()
+                .HasOne(a => a.Treatment)
+                .WithMany()
+                .HasForeignKey(a => a.TreatmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Agreement>()
+                .HasOne(a => a.Patient)
+                .WithMany()
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // ========================================
             // Nhóm 6: Transaction & Media
             // ========================================
@@ -321,53 +369,217 @@ namespace FSCMS.Core
             // Seed Data: Roles
             // ========================================
             modelBuilder.Entity<Role>().HasData(
-                new Role
+                new Role(new Guid("00000000-0000-0000-0000-000000000001"), "Admin", "ADMIN") { Description = "System administrator" },
+                new Role(new Guid("00000000-0000-0000-0000-000000000002"), "Doctor", "DOCTOR") { Description = "Medical doctor" },
+                new Role(new Guid("00000000-0000-0000-0000-000000000003"), "Laboratory Technician", "LAB_TECH") { Description = "Lab technician" },
+                new Role(new Guid("00000000-0000-0000-0000-000000000004"), "Receptionist", "RECEPTIONIST") { Description = "Front desk staff" },
+                new Role(new Guid("00000000-0000-0000-0000-000000000005"), "Patient", "PATIENT") { Description = "Patient user" },
+                new Role(new Guid("00000000-0000-0000-0000-000000000006"), "User", "USER") { Description = "General user" }
+            );
+
+
+            // Seed Accounts: Admin, LaboratoryTechnician, Receptionist, Doctor, Patient
+            var roleAdminId = new Guid("00000000-0000-0000-0000-000000000001");
+            var roleLabId = new Guid("00000000-0000-0000-0000-000000000003");
+            var roleReceptionistId = new Guid("00000000-0000-0000-0000-000000000004");
+            var roleDoctorId = new Guid("00000000-0000-0000-0000-000000000002");
+            var rolePatientId = new Guid("00000000-0000-0000-0000-000000000005");
+            // Password for all seed accounts: "12345678"
+            // Generated using: BCrypt.Net.BCrypt.HashPassword("12345678")
+            const string defaultPwdHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S";
+            
+            // Account IDs
+            var adminAccountId = new Guid("00000000-0000-0000-0000-000000010001");
+            var labAccountId = new Guid("00000000-0000-0000-0000-000000010002");
+            var receptionistAccountId = new Guid("00000000-0000-0000-0000-000000010003");
+            var doctor1AccountId = new Guid("00000000-0000-0000-0000-000000010004");
+            var doctor2AccountId = new Guid("00000000-0000-0000-0000-000000010005");
+            var patient1AccountId = new Guid("00000000-0000-0000-0000-000000010006");
+            var patient2AccountId = new Guid("00000000-0000-0000-0000-000000010007");
+            var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010008");
+            
+            modelBuilder.Entity<Account>().HasData(
+                new Account(adminAccountId, "System", "Admin", null, "admin@cryo.com", "admin", defaultPwdHash, "+84900000001", null, null, true, true, null, null) { RoleId = roleAdminId },
+                new Account(labAccountId, "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "+84900000002", null, null, true, true, null, null) { RoleId = roleLabId },
+                new Account(receptionistAccountId, "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "+84900000003", null, null, true, true, null, null) { RoleId = roleReceptionistId },
+                // Doctor accounts
+                new Account(doctor1AccountId, "Nguyen", "Van A", new DateTime(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor2AccountId, "Tran", "Thi B", new DateTime(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                // Patient accounts
+                new Account(patient1AccountId, "Le", "Van C", new DateTime(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", null, true, true, true, null, null) { RoleId = rolePatientId },
+                new Account(patient2AccountId, "Pham", "Thi D", new DateTime(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", null, false, true, true, null, null) { RoleId = rolePatientId },
+                new Account(patient3AccountId, "Hoang", "Van E", new DateTime(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", null, true, true, true, null, null) { RoleId = rolePatientId }
+            );
+
+            // Seed Doctors
+            modelBuilder.Entity<Doctor>().HasData(
+                new Doctor(
+                    new Guid("00000000-0000-0000-0000-000000020001"),
+                    "DOC001",
+                    "Reproductive Endocrinology",
+                    15,
+                    new DateTime(2010, 1, 1),
+                    true
+                ) { AccountId = doctor1AccountId, LicenseNumber = "LIC-DOC-001", Certificates = "Board Certified in Reproductive Medicine" },
+                new Doctor(
+                    new Guid("00000000-0000-0000-0000-000000020002"),
+                    "DOC002",
+                    "Obstetrics and Gynecology",
+                    10,
+                    new DateTime(2015, 6, 1),
+                    true
+                ) { AccountId = doctor2AccountId, LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" }
+            );
+
+            // Seed Patients
+            modelBuilder.Entity<Patient>().HasData(
+                new Patient(
+                    new Guid("00000000-0000-0000-0000-000000030001"),
+                    "PAT001",
+                    "001234567890"
+                ) { AccountId = patient1AccountId, BloodType = "A+", EmergencyContact = "Le Van F", EmergencyPhone = "+84900000009" },
+                new Patient(
+                    new Guid("00000000-0000-0000-0000-000000030002"),
+                    "PAT002",
+                    "001234567891"
+                ) { AccountId = patient2AccountId, BloodType = "B+", EmergencyContact = "Pham Thi G", EmergencyPhone = "+84900000010" },
+                new Patient(
+                    new Guid("00000000-0000-0000-0000-000000030003"),
+                    "PAT003",
+                    "001234567892"
+                ) { AccountId = patient3AccountId, BloodType = "O+", EmergencyContact = "Hoang Van H", EmergencyPhone = "+84900000011" }
+            );
+
+            // ========================================
+            // Seed Data: Service Categories & Services
+            // ========================================
+            var catConsultation = new Guid("10000000-0000-0000-0000-000000000001");
+            var catDiagnostics = new Guid("10000000-0000-0000-0000-000000000002");
+            var catLabProcedures = new Guid("10000000-0000-0000-0000-000000000003");
+            var catCryoStorage = new Guid("10000000-0000-0000-0000-000000000004");
+            var catTreatment = new Guid("10000000-0000-0000-0000-000000000005");
+            var catMedication = new Guid("10000000-0000-0000-0000-000000000006");
+            var catAdministrative = new Guid("10000000-0000-0000-0000-000000000007");
+
+            //Danh mục dịch vụ cốt lõi của hệ thống (phân nhóm: khám, cận lâm sàng, lab, cryo, thủ thuật, thuốc, hành chính)
+            modelBuilder.Entity<ServiceCategory>().HasData(
+                new ServiceCategory(catConsultation, "Consultation") { Code = "CONS", Description = "Clinical consultations", DisplayOrder = 1 },
+                new ServiceCategory(catDiagnostics, "Diagnostics & Imaging") { Code = "DIAG", Description = "Diagnostic tests and imaging", DisplayOrder = 2 },
+                new ServiceCategory(catLabProcedures, "Laboratory Procedures") { Code = "LAB", Description = "Embryology and andrology procedures", DisplayOrder = 3 },
+                new ServiceCategory(catCryoStorage, "Cryostorage & Logistics") { Code = "CRYO", Description = "Cryopreservation and storage services", DisplayOrder = 4 },
+                new ServiceCategory(catTreatment, "Treatment Procedures") { Code = "TRMT", Description = "IUI/IVF related procedures", DisplayOrder = 5 },
+                new ServiceCategory(catMedication, "Medications") { Code = "MED", Description = "Medications and injections", DisplayOrder = 6 },
+                new ServiceCategory(catAdministrative, "Administrative & Others") { Code = "ADMIN", Description = "Administrative fees", DisplayOrder = 7 }
+            );
+
+            // Seed fixed Slots (4 slots in a day)
+            modelBuilder.Entity<Slot>().HasData(
+				new Slot(new Guid("30000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)) { Notes = "Morning Slot 1" },
+				new Slot(new Guid("30000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)) { Notes = "Morning Slot 2" },
+				new Slot(new Guid("30000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0)) { Notes = "Afternoon Slot 1" },
+				new Slot(new Guid("30000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0)) { Notes = "Afternoon Slot 2" }
+            );
+
+            //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
+            modelBuilder.Entity<Service>().HasData(
+                // Consultation (USD) - Tư vấn
+                // Khám tư vấn ban đầu: bác sĩ khai thác bệnh sử, đánh giá khả năng sinh sản
+                new Service(new Guid("20000000-0000-0000-0000-000000000001"), "Initial fertility consultation", 120m, catConsultation) { Code = "CONS-INIT", Unit = "session", Duration = 30, Description = "First-time visit and clinical assessment" },
+                // Khám tái khám: theo dõi tiến triển, điều chỉnh kế hoạch điều trị
+                new Service(new Guid("20000000-0000-0000-0000-000000000002"), "Follow-up consultation", 80m, catConsultation) { Code = "CONS-FUP", Unit = "session", Duration = 20, Description = "Follow-up review and plan" },
+
+                // Diagnostics & Imaging (USD) - Chẩn đoán & Hình ảnh
+                // Siêu âm đầu dò âm đạo: đánh giá buồng trứng, tử cung, niêm mạc
+                new Service(new Guid("20000000-0000-0000-0000-000000000010"), "Transvaginal ultrasound", 60m, catDiagnostics) { Code = "US-TVS", Unit = "scan", Duration = 15 },
+                // Xét nghiệm nội tiết cơ bản: AMH/FSH/LH/E2/PRL để đánh giá dự trữ buồng trứng và trục nội tiết
+                new Service(new Guid("20000000-0000-0000-0000-000000000011"), "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", 150m, catDiagnostics) { Code = "LAB-HORM", Unit = "panel" },
+                // Tinh dịch đồ: đánh giá số lượng, di động, hình dạng tinh trùng
+                new Service(new Guid("20000000-0000-0000-0000-000000000012"), "Semen analysis", 40m, catDiagnostics) { Code = "SA", Unit = "test" },
+
+                // Laboratory Procedures (USD) - Thủ thuật Phòng Lab
+                // Chọc hút noãn (OPU): lấy noãn sau kích thích buồng trứng
+                new Service(new Guid("20000000-0000-0000-0000-000000000020"), "Oocyte retrieval (OPU)", 1500m, catLabProcedures) { Code = "OPU", Unit = "procedure" },
+                // Chuẩn bị tinh trùng: lọc rửa để sử dụng cho IUI/IVF
+                new Service(new Guid("20000000-0000-0000-0000-000000000021"), "Sperm preparation (IUI/IVF)", 90m, catLabProcedures) { Code = "SP-PREP", Unit = "prep" },
+                // Nuôi cấy phôi ngày 1-5: theo dõi và chăm sóc phôi trong labo
+                new Service(new Guid("20000000-0000-0000-0000-000000000022"), "Embryo culture (day 1-5)", 1500m, catLabProcedures) { Code = "EMB-CULT", Unit = "cycle" },
+                // ICSI: tiêm tinh trùng vào bào tương noãn hỗ trợ thụ tinh
+                new Service(new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", 1200m, catLabProcedures) { Code = "ICSI", Unit = "procedure" },
+                // Chuyển phôi (ET): đưa phôi vào buồng tử cung
+                new Service(new Guid("20000000-0000-0000-0000-000000000024"), "Embryo transfer (ET)", 800m, catLabProcedures) { Code = "ET", Unit = "procedure" },
+
+                // Cryostorage & Logistics (USD) - Lưu trữ Đông lạnh & Logistics
+                // Thuỷ tinh hoá noãn: làm lạnh siêu nhanh để bảo tồn noãn
+                new Service(new Guid("20000000-0000-0000-0000-000000000030"), "Oocyte vitrification", 600m, catCryoStorage) { Code = "VIT-OOC", Unit = "procedure" },
+                // Trữ đông tinh trùng
+                new Service(new Guid("20000000-0000-0000-0000-000000000031"), "Sperm cryopreservation", 120m, catCryoStorage) { Code = "CRYO-SP", Unit = "procedure" },
+                // Thuỷ tinh hoá phôi
+                new Service(new Guid("20000000-0000-0000-0000-000000000032"), "Embryo vitrification", 700m, catCryoStorage) { Code = "VIT-EMB", Unit = "procedure" },
+                // Phí lưu trữ hằng năm mỗi mẫu
+                new Service(new Guid("20000000-0000-0000-0000-000000000033"), "Annual storage fee (per specimen)", 150m, catCryoStorage) { Code = "STORE-ANNUAL", Unit = "year" },
+                // Rã đông mẫu lưu trữ
+                new Service(new Guid("20000000-0000-0000-0000-000000000034"), "Specimen thawing", 200m, catCryoStorage) { Code = "THAW", Unit = "procedure" },
+
+                // Treatment Procedures (USD) - Thủ thuật Điều trị
+                // Bơm tinh trùng vào buồng tử cung (IUI)
+                new Service(new Guid("20000000-0000-0000-0000-000000000040"), "Intrauterine insemination (IUI)", 250m, catTreatment) { Code = "IUI", Unit = "cycle" },
+                // Chu kỳ thụ tinh ống nghiệm (IVF)
+                new Service(new Guid("20000000-0000-0000-0000-000000000041"), "In vitro fertilization (IVF) cycle", 12000m, catTreatment) { Code = "IVF", Unit = "cycle" },
+                // Chuyển phôi đông lạnh (FET)
+                new Service(new Guid("20000000-0000-0000-0000-000000000042"), "Frozen embryo transfer (FET)", 3500m, catTreatment) { Code = "FET", Unit = "cycle" },
+
+                // Medications (USD) - Thuốc
+                // Bút thuốc kích thích buồng trứng (Gonadotropin)
+                new Service(new Guid("20000000-0000-0000-0000-000000000050"), "Gonadotropin stimulation (per pen)", 90m, catMedication) { Code = "GONA-PEN", Unit = "pen" },
+                // Mũi tiêm kích rụng trứng (hCG trigger)
+                new Service(new Guid("20000000-0000-0000-0000-000000000051"), "Trigger injection (hCG)", 20m, catMedication) { Code = "HCG", Unit = "dose" },
+
+                // Administrative & Others (USD) - Hành chính & Khác
+                // Phí mở hồ sơ bệnh án ban đầu
+                new Service(new Guid("20000000-0000-0000-0000-000000000060"), "Medical record creation fee", 10m, catAdministrative) { Code = "ADMIN-MR", Unit = "case" },
+                // Cấp giấy tờ/xác nhận/báo cáo theo yêu cầu
+                new Service(new Guid("20000000-0000-0000-0000-000000000061"), "Certificate/Report issuance", 15m, catAdministrative) { Code = "ADMIN-CERT", Unit = "doc" }
+            );
+
+            // Seed Medicines (common items used in fertility treatments)
+            modelBuilder.Entity<Medicine>().HasData(
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000001"), "Follitropin alfa", "300 IU", "Injection")
                 {
-                    Id = 1,
-                    RoleName = "Admin",
-                    Description = "System Administrator with full access to all features",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
+                    GenericName = "Recombinant FSH",
+                    Indication = "Ovarian stimulation",
+                    SideEffects = "Headache, abdominal pain",
+                    Notes = "Pen device"
                 },
-                new Role
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000002"), "Chorionic gonadotropin (hCG)", "5,000 IU", "Injection")
                 {
-                    Id = 2,
-                    RoleName = "Doctor",
-                    Description = "Medical Doctor - Can manage patients, treatments, and medical records",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
+                    GenericName = "hCG",
+                    Indication = "Ovulation trigger",
+                    SideEffects = "Injection site pain",
+                    Notes = "Store refrigerated"
                 },
-                new Role
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000003"), "Progesterone", "200 mg", "Capsule")
                 {
-                    Id = 3,
-                    RoleName = "LaboratoryTechnician",
-                    Description = "Laboratory Technician - Manages lab samples and cryopreservation",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
+                    GenericName = "Progesterone",
+                    Indication = "Luteal phase support",
+                    SideEffects = "Drowsiness",
+                    Notes = "Taken at bedtime"
                 },
-                new Role
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000004"), "Letrozole", "2.5 mg", "Tablet")
                 {
-                    Id = 4,
-                    RoleName = "Receptionist",
-                    Description = "Front Desk Receptionist - Manages appointments and customer service",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
+                    GenericName = "Letrozole",
+                    Indication = "Ovulation induction",
+                    SideEffects = "Fatigue, dizziness"
                 },
-                new Role
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000005"), "Doxycycline", "100 mg", "Tablet")
                 {
-                    Id = 5,
-                    RoleName = "Patient",
-                    Description = "Patient/Customer - Can book appointments and view their records",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
+                    GenericName = "Doxycycline hyclate",
+                    Indication = "Infection prophylaxis",
+                    Contraindication = "Pregnancy"
                 },
-                new Role
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000006"), "Estradiol valerate", "2 mg", "Tablet")
                 {
-                    Id = 6,
-                    RoleName = "User",
-                    Description = "General User - Basic access to the system",
-                    CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsDelete = false
+                    GenericName = "Estradiol",
+                    Indication = "Endometrial preparation"
                 }
             );
         }

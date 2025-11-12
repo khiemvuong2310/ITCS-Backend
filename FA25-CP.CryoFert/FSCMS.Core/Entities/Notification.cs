@@ -1,30 +1,38 @@
 using System;
 using FSCMS.Core.Enum;
+using FSCMS.Core.Enums;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho thông báo
-    /// Quản lý các thông báo gửi đến bệnh nhân và nhân viên qua email, SMS, push notification
-    /// </summary>
-    public class Notification : BaseEntity
+    // Bảng Notification: Thông báo gửi tới người dùng/bệnh nhân.
+    // Quan hệ:
+    // - 0..1 - n tới Patient (PatientId)
+    // - 0..1 - n tới Account (UserId)
+    public class Notification : BaseEntity<Guid>
     {
-        public int? PatientId { get; set; }
-        public int? UserId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
+        protected Notification() : base() { }
+        public Notification(Guid id, string title, string content, NotificationType type)
+        {
+            Id = id;
+            Title = title;
+            Content = content;
+            Type = type;
+        }
+        public Guid? PatientId { get; set; }
+        public Guid? UserId { get; set; }
+        public string Title { get; set; } = default!;
+        public string Content { get; set; } = default!;
         public NotificationType Type { get; set; }
-        public NotificationStatus Status { get; set; }
+        public NotificationStatus Status { get; set; } = NotificationStatus.Delivered;
         public DateTime? ScheduledTime { get; set; }
         public DateTime? SentTime { get; set; }
         public DateTime? ReadTime { get; set; }
-        public string? Channel { get; set; } // Email, SMS, Push, In-App
-        public string? RelatedEntityType { get; set; } // Appointment, Treatment, etc.
-        public int? RelatedEntityId { get; set; }
+        public string? Channel { get; set; }
+        public string? RelatedEntityType { get; set; }
+        public Guid? RelatedEntityId { get; set; }
         public bool IsImportant { get; set; } = false;
         public string? Notes { get; set; }
-
-        // Navigation Properties
         public virtual Patient? Patient { get; set; }
         public virtual Account? User { get; set; }
     }

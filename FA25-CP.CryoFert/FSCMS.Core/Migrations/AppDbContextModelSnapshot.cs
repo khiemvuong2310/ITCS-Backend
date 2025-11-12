@@ -24,64 +24,281 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Account", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Avatar")
+                    b.Property<string>("Address")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<Guid?>("AvatarId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("EmailVerified")
+                    b.Property<DateTime?>("ExpiredRefreshToken")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool?>("Gender")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsVerified")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime?>("LastLogin")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("Phone")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Token")
+                    b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
                     b.HasIndex("RoleId");
 
                     b.ToTable("Accounts");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010001"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2632),
+                            Email = "admin@cryo.com",
+                            FirstName = "System",
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Admin",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000001",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000001"),
+                            Username = "admin"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010002"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2637),
+                            Email = "lab@cryo.com",
+                            FirstName = "Lab",
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Technician",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000002",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000003"),
+                            Username = "lab"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010003"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2638),
+                            Email = "receptionist@cryo.com",
+                            FirstName = "Front",
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Receptionist",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000003",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000004"),
+                            Username = "receptionist"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010004"),
+                            BirthDate = new DateTime(1980, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2645),
+                            Email = "doctor1@cryo.com",
+                            FirstName = "Nguyen",
+                            Gender = true,
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Van A",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000004",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000002"),
+                            Username = "doctor1"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010005"),
+                            BirthDate = new DateTime(1985, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2647),
+                            Email = "doctor2@cryo.com",
+                            FirstName = "Tran",
+                            Gender = false,
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Thi B",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000005",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000002"),
+                            Username = "doctor2"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010006"),
+                            BirthDate = new DateTime(1990, 3, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2649),
+                            Email = "patient1@cryo.com",
+                            FirstName = "Le",
+                            Gender = true,
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Van C",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000006",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000005"),
+                            Username = "patient1"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010007"),
+                            BirthDate = new DateTime(1992, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2650),
+                            Email = "patient2@cryo.com",
+                            FirstName = "Pham",
+                            Gender = false,
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Thi D",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000007",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000005"),
+                            Username = "patient2"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000010008"),
+                            BirthDate = new DateTime(1988, 11, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2654),
+                            Email = "patient3@cryo.com",
+                            FirstName = "Hoang",
+                            Gender = true,
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsVerified = true,
+                            LastName = "Van E",
+                            PasswordHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S",
+                            Phone = "+84900000008",
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000005"),
+                            Username = "patient3"
+                        });
+                });
+
+            modelBuilder.Entity("FSCMS.Core.Entities.Agreement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("AgreementCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FileUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("SignedByDoctor")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("SignedByPatient")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<Guid>("TreatmentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("TreatmentId");
+
+                    b.ToTable("Agreements");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.Appointment", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime>("AppointmentDate")
                         .HasColumnType("datetime(6)");
@@ -92,13 +309,16 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime?>("CheckOutTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Instructions")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsReminderSent")
@@ -107,25 +327,30 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("Reason")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("SlotId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("SlotId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("TreatmentCycleId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("TreatmentCycleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
 
                     b.HasIndex("SlotId")
                         .IsUnique();
@@ -135,25 +360,66 @@ namespace FSCMS.Core.Migrations
                     b.ToTable("Appointments");
                 });
 
-            modelBuilder.Entity("FSCMS.Core.Entities.CPSDetail", b =>
+            modelBuilder.Entity("FSCMS.Core.Entities.AppointmentDoctor", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("CryoStorageContractId")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("LabSampleId")
-                        .HasColumnType("int");
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("AppointmentId", "DoctorId")
+                        .IsUnique();
+
+                    b.ToTable("AppointmentDoctors");
+                });
+
+            modelBuilder.Entity("FSCMS.Core.Entities.CPSDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("CryoStorageContractId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("LabSampleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal?>("MonthlyFee")
                         .HasColumnType("decimal(65,30)");
@@ -171,7 +437,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime>("StorageStartDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -185,17 +451,18 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoExport", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("CryoLocationId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CryoLocationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Destination")
                         .HasColumnType("longtext");
@@ -203,17 +470,17 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime>("ExportDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("ExportedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("ExportedBy")
+                        .HasColumnType("char(36)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsThawed")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("LabSampleId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("LabSampleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
@@ -227,11 +494,11 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("ThawingResult")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("WitnessedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("WitnessedBy")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -244,32 +511,30 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoImport", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("CryoLocationId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CryoLocationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("ImportDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("ImportedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("ImportedBy")
+                        .HasColumnType("char(36)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("LabSampleId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Method")
-                        .HasColumnType("longtext");
+                    b.Property<Guid>("LabSampleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
@@ -280,11 +545,11 @@ namespace FSCMS.Core.Migrations
                     b.Property<decimal?>("Temperature")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("WitnessedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("WitnessedBy")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -297,69 +562,74 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoLocation", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("Capacity")
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Cane")
+                    b.Property<string>("Code")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Canister")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Capacity")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("CurrentOccupancy")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsAvailable")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("LocationCode")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Position")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<string>("TankName")
-                        .HasColumnType("longtext");
+                    b.Property<int>("SampleCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SampleType")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("Temperature")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
 
                     b.ToTable("CryoLocations");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoPackage", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Benefits")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
@@ -377,7 +647,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<int>("MaxSamples")
@@ -393,10 +663,10 @@ namespace FSCMS.Core.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<string>("SampleType")
-                        .HasColumnType("longtext");
+                    b.Property<int>("SampleType")
+                        .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -406,21 +676,22 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoStorageContract", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("ContractNumber")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("CryoPackageId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CryoPackageId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -428,7 +699,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsAutoRenew")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
@@ -437,8 +708,8 @@ namespace FSCMS.Core.Migrations
                     b.Property<decimal?>("PaidAmount")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("SignedBy")
                         .HasColumnType("longtext");
@@ -449,14 +720,13 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -470,14 +740,16 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Doctor", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("AccountId")
-                        .HasColumnType("int");
+                    b.Property<string>("BadgeId")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Biography")
                         .HasColumnType("longtext");
@@ -485,33 +757,32 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Certificates")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Email")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("LicenseNumber")
-                        .HasColumnType("longtext");
+                    b.Property<DateTime>("JoinDate")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Phone")
+                    b.Property<DateTime?>("LeaveDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LicenseNumber")
                         .HasColumnType("longtext");
 
                     b.Property<string>("Specialty")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("YearsOfExperience")
@@ -523,29 +794,57 @@ namespace FSCMS.Core.Migrations
                         .IsUnique();
 
                     b.ToTable("Doctors");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000020001"),
+                            AccountId = new Guid("00000000-0000-0000-0000-000000010004"),
+                            BadgeId = "DOC001",
+                            Certificates = "Board Certified in Reproductive Medicine",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2698),
+                            IsActive = true,
+                            IsDeleted = false,
+                            JoinDate = new DateTime(2010, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            LicenseNumber = "LIC-DOC-001",
+                            Specialty = "Reproductive Endocrinology",
+                            YearsOfExperience = 15
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000020002"),
+                            AccountId = new Guid("00000000-0000-0000-0000-000000010005"),
+                            BadgeId = "DOC002",
+                            Certificates = "Specialist in IVF Procedures",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2702),
+                            IsActive = true,
+                            IsDeleted = false,
+                            JoinDate = new DateTime(2015, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            LicenseNumber = "LIC-DOC-002",
+                            Specialty = "Obstetrics and Gynecology",
+                            YearsOfExperience = 10
+                        });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.DoctorSchedule", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time(6)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Location")
@@ -554,38 +853,41 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time(6)");
+                    b.Property<Guid>("SlotId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("WorkDate")
-                        .HasColumnType("datetime(6)");
+                    b.Property<DateOnly>("WorkDate")
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId");
+
+                    b.HasIndex("SlotId");
 
                     b.ToTable("DoctorSchedules");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.LabSample", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime>("CollectionDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int?>("CryoLocationId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("CryoLocationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("ExpiryDate")
                         .HasColumnType("datetime(6)");
@@ -593,14 +895,14 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Quality")
                         .HasColumnType("longtext");
@@ -618,7 +920,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime?>("StorageDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -632,20 +934,21 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.LabSampleEmbryo", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<int?>("CellCount")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("DayOfDevelopment")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("FertilizationMethod")
                         .HasColumnType("longtext");
@@ -656,14 +959,14 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsBiopsied")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsPGTTested")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("LabSampleId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("LabSampleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Morphology")
                         .HasColumnType("longtext");
@@ -674,7 +977,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("PGTResult")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -687,13 +990,11 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.LabSampleOocyte", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("CumulusCells")
@@ -702,7 +1003,10 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("CytoplasmAppearance")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsMature")
@@ -711,8 +1015,8 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsVitrified")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("LabSampleId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("LabSampleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("MaturityStage")
                         .IsRequired()
@@ -727,7 +1031,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime?>("RetrievalDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("VitrificationDate")
@@ -743,11 +1047,9 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.LabSampleSperm", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Color")
                         .HasColumnType("longtext");
@@ -755,14 +1057,17 @@ namespace FSCMS.Core.Migrations
                     b.Property<decimal?>("Concentration")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("LabSampleId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("LabSampleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Liquefaction")
                         .HasColumnType("longtext");
@@ -776,22 +1081,22 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
+                    b.Property<decimal?>("PH")
+                        .HasColumnType("decimal(65,30)");
+
                     b.Property<decimal?>("ProgressiveMotility")
                         .HasColumnType("decimal(65,30)");
 
                     b.Property<int?>("TotalSpermCount")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Viscosity")
                         .HasColumnType("longtext");
 
                     b.Property<decimal?>("Volume")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal?>("pH")
                         .HasColumnType("decimal(65,30)");
 
                     b.HasKey("Id");
@@ -804,11 +1109,9 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Media", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Category")
                         .HasColumnType("longtext");
@@ -816,7 +1119,10 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("CloudUrl")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
@@ -840,7 +1146,7 @@ namespace FSCMS.Core.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsPublic")
@@ -855,8 +1161,8 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("OriginalFileName")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("RelatedEntityId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("RelatedEntityId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("RelatedEntityType")
                         .HasColumnType("longtext");
@@ -873,7 +1179,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Title")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("UploadDate")
@@ -882,8 +1188,8 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("UploadedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("UploadedByUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("UploadedByUserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -892,19 +1198,20 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.MedicalRecord", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AppointmentId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("ChiefComplaint")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Diagnosis")
@@ -919,7 +1226,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("ImagingResults")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LabResults")
@@ -934,7 +1241,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("TreatmentPlan")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("VitalSigns")
@@ -950,19 +1257,17 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Medicine", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BrandName")
-                        .HasColumnType("longtext");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Contraindication")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Dosage")
@@ -980,11 +1285,8 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Manufacturer")
-                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -993,40 +1295,107 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<decimal?>("Price")
-                        .HasColumnType("decimal(65,30)");
-
                     b.Property<string>("SideEffects")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Storage")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Unit")
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
                     b.ToTable("Medicines");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("40000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2911),
+                            Dosage = "300 IU",
+                            Form = "Injection",
+                            GenericName = "Recombinant FSH",
+                            Indication = "Ovarian stimulation",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Follitropin alfa",
+                            Notes = "Pen device",
+                            SideEffects = "Headache, abdominal pain"
+                        },
+                        new
+                        {
+                            Id = new Guid("40000000-0000-0000-0000-000000000002"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2916),
+                            Dosage = "5,000 IU",
+                            Form = "Injection",
+                            GenericName = "hCG",
+                            Indication = "Ovulation trigger",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Chorionic gonadotropin (hCG)",
+                            Notes = "Store refrigerated",
+                            SideEffects = "Injection site pain"
+                        },
+                        new
+                        {
+                            Id = new Guid("40000000-0000-0000-0000-000000000003"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2918),
+                            Dosage = "200 mg",
+                            Form = "Capsule",
+                            GenericName = "Progesterone",
+                            Indication = "Luteal phase support",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Progesterone",
+                            Notes = "Taken at bedtime",
+                            SideEffects = "Drowsiness"
+                        },
+                        new
+                        {
+                            Id = new Guid("40000000-0000-0000-0000-000000000004"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2919),
+                            Dosage = "2.5 mg",
+                            Form = "Tablet",
+                            GenericName = "Letrozole",
+                            Indication = "Ovulation induction",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Letrozole",
+                            SideEffects = "Fatigue, dizziness"
+                        },
+                        new
+                        {
+                            Id = new Guid("40000000-0000-0000-0000-000000000005"),
+                            Contraindication = "Pregnancy",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2921),
+                            Dosage = "100 mg",
+                            Form = "Tablet",
+                            GenericName = "Doxycycline hyclate",
+                            Indication = "Infection prophylaxis",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Doxycycline"
+                        },
+                        new
+                        {
+                            Id = new Guid("40000000-0000-0000-0000-000000000006"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2922),
+                            Dosage = "2 mg",
+                            Form = "Tablet",
+                            GenericName = "Estradiol",
+                            Indication = "Endometrial preparation",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Estradiol valerate"
+                        });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.Patient", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AccountId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Allergies")
                         .HasColumnType("longtext");
@@ -1034,10 +1403,10 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("BloodType")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("DateOfBirth")
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("EmergencyContact")
@@ -1045,13 +1414,6 @@ namespace FSCMS.Core.Migrations
 
                     b.Property<string>("EmergencyPhone")
                         .HasColumnType("longtext");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Gender")
-                        .HasColumnType("int");
 
                     b.Property<decimal?>("Height")
                         .HasColumnType("decimal(65,30)");
@@ -1062,7 +1424,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MedicalHistory")
@@ -1078,11 +1440,11 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Occupation")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Phone")
+                    b.Property<string>("PatientCode")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<decimal?>("Weight")
@@ -1094,17 +1456,59 @@ namespace FSCMS.Core.Migrations
                         .IsUnique();
 
                     b.ToTable("Patients");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000030001"),
+                            AccountId = new Guid("00000000-0000-0000-0000-000000010006"),
+                            BloodType = "A+",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2723),
+                            EmergencyContact = "Le Van F",
+                            EmergencyPhone = "+84900000009",
+                            IsActive = true,
+                            IsDeleted = false,
+                            NationalID = "001234567890",
+                            PatientCode = "PAT001"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000030002"),
+                            AccountId = new Guid("00000000-0000-0000-0000-000000010007"),
+                            BloodType = "B+",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2727),
+                            EmergencyContact = "Pham Thi G",
+                            EmergencyPhone = "+84900000010",
+                            IsActive = true,
+                            IsDeleted = false,
+                            NationalID = "001234567891",
+                            PatientCode = "PAT002"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000030003"),
+                            AccountId = new Guid("00000000-0000-0000-0000-000000010008"),
+                            BloodType = "O+",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2729),
+                            EmergencyContact = "Hoang Van H",
+                            EmergencyPhone = "+84900000011",
+                            IsActive = true,
+                            IsDeleted = false,
+                            NationalID = "001234567892",
+                            PatientCode = "PAT003"
+                        });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.Prescription", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Diagnosis")
@@ -1116,14 +1520,14 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Instructions")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsFilled")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("MedicalRecordId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MedicalRecordId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
@@ -1131,7 +1535,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime>("PrescriptionDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1143,13 +1547,14 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.PrescriptionDetail", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Dosage")
@@ -1166,22 +1571,22 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Instructions")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("MedicineId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("MedicineId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("PrescriptionId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PrescriptionId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1195,38 +1600,56 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Relationship", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("EstablishedDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("Patient1Id")
-                        .HasColumnType("int");
+                    b.Property<Guid>("Patient1Id")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("Patient2Id")
-                        .HasColumnType("int");
+                    b.Property<Guid>("Patient2Id")
+                        .HasColumnType("char(36)");
 
-                    b.Property<string>("RelationshipType")
-                        .IsRequired()
+                    b.Property<string>("RejectionReason")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<int>("RelationshipType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("RespondedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1240,26 +1663,31 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Role", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("RoleCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("RoleName")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1269,72 +1697,73 @@ namespace FSCMS.Core.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 1,
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "System Administrator with full access to all features",
-                            IsDelete = false,
-                            RoleName = "Admin",
-                            UpdatedDate = new DateTime(2025, 10, 23, 14, 54, 42, 982, DateTimeKind.Utc).AddTicks(165)
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2512),
+                            Description = "System administrator",
+                            IsDeleted = false,
+                            RoleCode = "ADMIN",
+                            RoleName = "Admin"
                         },
                         new
                         {
-                            Id = 2,
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Medical Doctor - Can manage patients, treatments, and medical records",
-                            IsDelete = false,
-                            RoleName = "Doctor",
-                            UpdatedDate = new DateTime(2025, 10, 23, 14, 54, 42, 982, DateTimeKind.Utc).AddTicks(174)
+                            Id = new Guid("00000000-0000-0000-0000-000000000002"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2519),
+                            Description = "Medical doctor",
+                            IsDeleted = false,
+                            RoleCode = "DOCTOR",
+                            RoleName = "Doctor"
                         },
                         new
                         {
-                            Id = 3,
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Laboratory Technician - Manages lab samples and cryopreservation",
-                            IsDelete = false,
-                            RoleName = "LaboratoryTechnician",
-                            UpdatedDate = new DateTime(2025, 10, 23, 14, 54, 42, 982, DateTimeKind.Utc).AddTicks(176)
+                            Id = new Guid("00000000-0000-0000-0000-000000000003"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2521),
+                            Description = "Lab technician",
+                            IsDeleted = false,
+                            RoleCode = "LAB_TECH",
+                            RoleName = "Laboratory Technician"
                         },
                         new
                         {
-                            Id = 4,
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Front Desk Receptionist - Manages appointments and customer service",
-                            IsDelete = false,
-                            RoleName = "Receptionist",
-                            UpdatedDate = new DateTime(2025, 10, 23, 14, 54, 42, 982, DateTimeKind.Utc).AddTicks(177)
+                            Id = new Guid("00000000-0000-0000-0000-000000000004"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2522),
+                            Description = "Front desk staff",
+                            IsDeleted = false,
+                            RoleCode = "RECEPTIONIST",
+                            RoleName = "Receptionist"
                         },
                         new
                         {
-                            Id = 5,
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Patient/Customer - Can book appointments and view their records",
-                            IsDelete = false,
-                            RoleName = "Patient",
-                            UpdatedDate = new DateTime(2025, 10, 23, 14, 54, 42, 982, DateTimeKind.Utc).AddTicks(179)
+                            Id = new Guid("00000000-0000-0000-0000-000000000005"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2524),
+                            Description = "Patient user",
+                            IsDeleted = false,
+                            RoleCode = "PATIENT",
+                            RoleName = "Patient"
                         },
                         new
                         {
-                            Id = 6,
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "General User - Basic access to the system",
-                            IsDelete = false,
-                            RoleName = "User",
-                            UpdatedDate = new DateTime(2025, 10, 23, 14, 54, 42, 982, DateTimeKind.Utc).AddTicks(180)
+                            Id = new Guid("00000000-0000-0000-0000-000000000006"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2525),
+                            Description = "General user",
+                            IsDeleted = false,
+                            RoleCode = "USER",
+                            RoleName = "User"
                         });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.Service", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Code")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
@@ -1346,7 +1775,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
@@ -1359,13 +1788,13 @@ namespace FSCMS.Core.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<int>("ServiceCategoryId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ServiceCategoryId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Unit")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1373,20 +1802,292 @@ namespace FSCMS.Core.Migrations
                     b.HasIndex("ServiceCategoryId");
 
                     b.ToTable("Services");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000001"),
+                            Code = "CONS-INIT",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2811),
+                            Description = "First-time visit and clinical assessment",
+                            Duration = 30,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Initial fertility consultation",
+                            Price = 120m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Unit = "session"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000002"),
+                            Code = "CONS-FUP",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2814),
+                            Description = "Follow-up review and plan",
+                            Duration = 20,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Follow-up consultation",
+                            Price = 80m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Unit = "session"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000010"),
+                            Code = "US-TVS",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2816),
+                            Duration = 15,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Transvaginal ultrasound",
+                            Price = 60m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Unit = "scan"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000011"),
+                            Code = "LAB-HORM",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2817),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Baseline hormone panel (AMH/FSH/LH/E2/PRL)",
+                            Price = 150m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Unit = "panel"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000012"),
+                            Code = "SA",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2819),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Semen analysis",
+                            Price = 40m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Unit = "test"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000020"),
+                            Code = "OPU",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2820),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Oocyte retrieval (OPU)",
+                            Price = 1500m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000021"),
+                            Code = "SP-PREP",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2821),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Sperm preparation (IUI/IVF)",
+                            Price = 90m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Unit = "prep"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000022"),
+                            Code = "EMB-CULT",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2823),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Embryo culture (day 1-5)",
+                            Price = 1500m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Unit = "cycle"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000023"),
+                            Code = "ICSI",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2824),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "ICSI",
+                            Price = 1200m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000024"),
+                            Code = "ET",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2826),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Embryo transfer (ET)",
+                            Price = 800m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000030"),
+                            Code = "VIT-OOC",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2862),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Oocyte vitrification",
+                            Price = 600m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000031"),
+                            Code = "CRYO-SP",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2864),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Sperm cryopreservation",
+                            Price = 120m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000032"),
+                            Code = "VIT-EMB",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2865),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Embryo vitrification",
+                            Price = 700m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000033"),
+                            Code = "STORE-ANNUAL",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2867),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Annual storage fee (per specimen)",
+                            Price = 150m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Unit = "year"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000034"),
+                            Code = "THAW",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2868),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Specimen thawing",
+                            Price = 200m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Unit = "procedure"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000040"),
+                            Code = "IUI",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2869),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Intrauterine insemination (IUI)",
+                            Price = 250m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Unit = "cycle"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000041"),
+                            Code = "IVF",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2871),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "In vitro fertilization (IVF) cycle",
+                            Price = 12000m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Unit = "cycle"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000042"),
+                            Code = "FET",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2872),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Frozen embryo transfer (FET)",
+                            Price = 3500m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Unit = "cycle"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000050"),
+                            Code = "GONA-PEN",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2874),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Gonadotropin stimulation (per pen)",
+                            Price = 90m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000006"),
+                            Unit = "pen"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000051"),
+                            Code = "HCG",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2876),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Trigger injection (hCG)",
+                            Price = 20m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000006"),
+                            Unit = "dose"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000060"),
+                            Code = "ADMIN-MR",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2877),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Medical record creation fee",
+                            Price = 10m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Unit = "case"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000061"),
+                            Code = "ADMIN-CERT",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2879),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Certificate/Report issuance",
+                            Price = 15m,
+                            ServiceCategoryId = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Unit = "doc"
+                        });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.ServiceCategory", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Code")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
@@ -1395,37 +2096,111 @@ namespace FSCMS.Core.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
 
-                    b.Property<string>("Icon")
-                        .HasColumnType("longtext");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
                     b.ToTable("ServiceCategories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Code = "CONS",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2751),
+                            Description = "Clinical consultations",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Consultation"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Code = "DIAG",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2753),
+                            Description = "Diagnostic tests and imaging",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Diagnostics & Imaging"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Code = "LAB",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2754),
+                            Description = "Embryology and andrology procedures",
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Laboratory Procedures"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Code = "CRYO",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2755),
+                            Description = "Cryopreservation and storage services",
+                            DisplayOrder = 4,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Cryostorage & Logistics"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Code = "TRMT",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2756),
+                            Description = "IUI/IVF related procedures",
+                            DisplayOrder = 5,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Treatment Procedures"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000006"),
+                            Code = "MED",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2757),
+                            Description = "Medications and injections",
+                            DisplayOrder = 6,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Medications"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Code = "ADMIN",
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2758),
+                            Description = "Administrative fees",
+                            DisplayOrder = 7,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Administrative & Others"
+                        });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.ServiceRequest", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AppointmentId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("AppointmentId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("ApprovedBy")
                         .HasColumnType("longtext");
@@ -1433,33 +2208,28 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Priority")
-                        .HasColumnType("longtext");
-
                     b.Property<DateTime>("RequestDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("RequestType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1471,19 +2241,20 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.ServiceRequestDetails", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<decimal?>("Discount")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
@@ -1492,11 +2263,11 @@ namespace FSCMS.Core.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<int>("ServiceId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("ServiceRequestId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ServiceRequestId")
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(65,30)");
@@ -1504,7 +2275,7 @@ namespace FSCMS.Core.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1518,25 +2289,20 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Slot", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("DoctorScheduleId")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time(6)");
 
-                    b.Property<bool>("IsBooked")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
@@ -1545,23 +2311,57 @@ namespace FSCMS.Core.Migrations
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time(6)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DoctorScheduleId");
-
                     b.ToTable("Slots");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2783),
+                            EndTime = new TimeSpan(0, 10, 0, 0, 0),
+                            IsDeleted = false,
+                            Notes = "Morning Slot 1",
+                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000002"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2785),
+                            EndTime = new TimeSpan(0, 12, 0, 0, 0),
+                            IsDeleted = false,
+                            Notes = "Morning Slot 2",
+                            StartTime = new TimeSpan(0, 10, 0, 0, 0)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000003"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2786),
+                            EndTime = new TimeSpan(0, 15, 0, 0, 0),
+                            IsDeleted = false,
+                            Notes = "Afternoon Slot 1",
+                            StartTime = new TimeSpan(0, 13, 0, 0, 0)
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000004"),
+                            CreatedAt = new DateTime(2025, 11, 10, 23, 15, 47, 230, DateTimeKind.Utc).AddTicks(2787),
+                            EndTime = new TimeSpan(0, 17, 0, 0, 0),
+                            IsDeleted = false,
+                            Notes = "Afternoon Slot 2",
+                            StartTime = new TimeSpan(0, 15, 0, 0, 0)
+                        });
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.Transaction", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(65,30)");
@@ -1575,24 +2375,27 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("CardType")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("PatientId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("PatientName")
                         .HasColumnType("longtext");
@@ -1612,15 +2415,14 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("ReferenceNumber")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("RelatedEntityId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("RelatedEntityId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("RelatedEntityType")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("TransactionCode")
                         .IsRequired()
@@ -1629,11 +2431,10 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("TransactionType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1643,23 +2444,24 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Treatment", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal?>("ActualCost")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Diagnosis")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -1670,14 +2472,14 @@ namespace FSCMS.Core.Migrations
                     b.Property<string>("Goals")
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime(6)");
@@ -1689,10 +2491,10 @@ namespace FSCMS.Core.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("TreatmentType")
-                        .HasColumnType("longtext");
+                    b.Property<int>("TreatmentType")
+                        .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1706,16 +2508,14 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.TreatmentCycle", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal?>("Cost")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("CycleName")
@@ -1725,10 +2525,13 @@ namespace FSCMS.Core.Migrations
                     b.Property<int>("CycleNumber")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
@@ -1743,10 +2546,10 @@ namespace FSCMS.Core.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("TreatmentId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TreatmentId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
@@ -1756,15 +2559,79 @@ namespace FSCMS.Core.Migrations
                     b.ToTable("TreatmentCycles");
                 });
 
-            modelBuilder.Entity("FSCMS.Core.Entities.TreatmentIVF", b =>
+            modelBuilder.Entity("FSCMS.Core.Entities.TreatmentIUI", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("InseminationDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Medications")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Monitoring")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("MotileSpermCount")
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<int?>("NumberOfAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Outcome")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("OvulationTriggerDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Protocol")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TreatmentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TreatmentId")
+                        .IsUnique();
+
+                    b.ToTable("TreatmentIUIs");
+                });
+
+            modelBuilder.Entity("FSCMS.Core.Entities.TreatmentIVF", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Complications")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int?>("EmbryosCryopreserved")
@@ -1773,13 +2640,16 @@ namespace FSCMS.Core.Migrations
                     b.Property<int?>("EmbryosCultured")
                         .HasColumnType("int");
 
+                    b.Property<int?>("EmbryosFrozen")
+                        .HasColumnType("int");
+
                     b.Property<int?>("EmbryosTransferred")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("FertilizationDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsDelete")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
@@ -1797,9 +2667,15 @@ namespace FSCMS.Core.Migrations
                     b.Property<int?>("OocytesRetrieved")
                         .HasColumnType("int");
 
+                    b.Property<string>("Outcome")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Protocol")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("StimulationStartDate")
                         .HasColumnType("datetime(6)");
@@ -1807,11 +2683,14 @@ namespace FSCMS.Core.Migrations
                     b.Property<DateTime?>("TransferDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("TreatmentId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TreatmentId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<DateTime?>("UpdatedDate")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<bool?>("UsedICSI")
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("Id");
 
@@ -1832,8 +2711,33 @@ namespace FSCMS.Core.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("FSCMS.Core.Entities.Agreement", b =>
+                {
+                    b.HasOne("FSCMS.Core.Entities.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FSCMS.Core.Entities.Treatment", "Treatment")
+                        .WithMany()
+                        .HasForeignKey("TreatmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("Treatment");
+                });
+
             modelBuilder.Entity("FSCMS.Core.Entities.Appointment", b =>
                 {
+                    b.HasOne("FSCMS.Core.Entities.Patient", "Patient")
+                        .WithMany("Appointments")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("FSCMS.Core.Entities.Slot", "Slot")
                         .WithOne("Appointment")
                         .HasForeignKey("FSCMS.Core.Entities.Appointment", "SlotId")
@@ -1842,12 +2746,32 @@ namespace FSCMS.Core.Migrations
                     b.HasOne("FSCMS.Core.Entities.TreatmentCycle", "TreatmentCycle")
                         .WithMany("Appointments")
                         .HasForeignKey("TreatmentCycleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Patient");
 
                     b.Navigation("Slot");
 
                     b.Navigation("TreatmentCycle");
+                });
+
+            modelBuilder.Entity("FSCMS.Core.Entities.AppointmentDoctor", b =>
+                {
+                    b.HasOne("FSCMS.Core.Entities.Appointment", "Appointment")
+                        .WithMany("AppointmentDoctors")
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FSCMS.Core.Entities.Doctor", "Doctor")
+                        .WithMany("AppointmentDoctors")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Doctor");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.CPSDetail", b =>
@@ -1872,7 +2796,7 @@ namespace FSCMS.Core.Migrations
             modelBuilder.Entity("FSCMS.Core.Entities.CryoExport", b =>
                 {
                     b.HasOne("FSCMS.Core.Entities.CryoLocation", "CryoLocation")
-                        .WithMany()
+                        .WithMany("CryoExports")
                         .HasForeignKey("CryoLocationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1891,7 +2815,7 @@ namespace FSCMS.Core.Migrations
             modelBuilder.Entity("FSCMS.Core.Entities.CryoImport", b =>
                 {
                     b.HasOne("FSCMS.Core.Entities.CryoLocation", "CryoLocation")
-                        .WithMany()
+                        .WithMany("CryoImports")
                         .HasForeignKey("CryoLocationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1905,6 +2829,15 @@ namespace FSCMS.Core.Migrations
                     b.Navigation("CryoLocation");
 
                     b.Navigation("LabSample");
+                });
+
+            modelBuilder.Entity("FSCMS.Core.Entities.CryoLocation", b =>
+                {
+                    b.HasOne("FSCMS.Core.Entities.CryoLocation", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoStorageContract", b =>
@@ -1945,7 +2878,15 @@ namespace FSCMS.Core.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("FSCMS.Core.Entities.Slot", "Slot")
+                        .WithMany("DoctorSchedules")
+                        .HasForeignKey("SlotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Doctor");
+
+                    b.Navigation("Slot");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.LabSample", b =>
@@ -2110,17 +3051,6 @@ namespace FSCMS.Core.Migrations
                     b.Navigation("ServiceRequest");
                 });
 
-            modelBuilder.Entity("FSCMS.Core.Entities.Slot", b =>
-                {
-                    b.HasOne("FSCMS.Core.Entities.DoctorSchedule", "DoctorSchedule")
-                        .WithMany("Slots")
-                        .HasForeignKey("DoctorScheduleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DoctorSchedule");
-                });
-
             modelBuilder.Entity("FSCMS.Core.Entities.Treatment", b =>
                 {
                     b.HasOne("FSCMS.Core.Entities.Doctor", "Doctor")
@@ -2151,6 +3081,17 @@ namespace FSCMS.Core.Migrations
                     b.Navigation("Treatment");
                 });
 
+            modelBuilder.Entity("FSCMS.Core.Entities.TreatmentIUI", b =>
+                {
+                    b.HasOne("FSCMS.Core.Entities.Treatment", "Treatment")
+                        .WithOne()
+                        .HasForeignKey("FSCMS.Core.Entities.TreatmentIUI", "TreatmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Treatment");
+                });
+
             modelBuilder.Entity("FSCMS.Core.Entities.TreatmentIVF", b =>
                 {
                     b.HasOne("FSCMS.Core.Entities.Treatment", "Treatment")
@@ -2171,11 +3112,19 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Appointment", b =>
                 {
+                    b.Navigation("AppointmentDoctors");
+
                     b.Navigation("MedicalRecord");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.CryoLocation", b =>
                 {
+                    b.Navigation("Children");
+
+                    b.Navigation("CryoExports");
+
+                    b.Navigation("CryoImports");
+
                     b.Navigation("LabSamples");
                 });
 
@@ -2191,14 +3140,11 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Doctor", b =>
                 {
+                    b.Navigation("AppointmentDoctors");
+
                     b.Navigation("DoctorSchedules");
 
                     b.Navigation("Treatments");
-                });
-
-            modelBuilder.Entity("FSCMS.Core.Entities.DoctorSchedule", b =>
-                {
-                    b.Navigation("Slots");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.LabSample", b =>
@@ -2224,6 +3170,8 @@ namespace FSCMS.Core.Migrations
 
             modelBuilder.Entity("FSCMS.Core.Entities.Patient", b =>
                 {
+                    b.Navigation("Appointments");
+
                     b.Navigation("CryoStorageContracts");
 
                     b.Navigation("LabSamples");
@@ -2263,6 +3211,8 @@ namespace FSCMS.Core.Migrations
             modelBuilder.Entity("FSCMS.Core.Entities.Slot", b =>
                 {
                     b.Navigation("Appointment");
+
+                    b.Navigation("DoctorSchedules");
                 });
 
             modelBuilder.Entity("FSCMS.Core.Entities.Treatment", b =>

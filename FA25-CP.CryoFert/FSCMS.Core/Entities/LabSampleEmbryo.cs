@@ -1,27 +1,38 @@
 using System;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho mẫu phôi (kế thừa từ LabSample)
-    /// Chứa thông tin chi tiết về phôi
-    /// </summary>
-    public class LabSampleEmbryo : BaseEntity
+    // Bảng LabSampleEmbryo: Thông tin chi tiết cho mẫu phôi.
+    // Quan hệ:
+    // - 1-1 tới LabSample (LabSampleId)
+    public class LabSampleEmbryo : BaseEntity<Guid>
     {
-        public int LabSampleId { get; set; }
-        
-        public int DayOfDevelopment { get; set; } // Ngày phát triển (Day 3, Day 5, etc.)
-        public string? Grade { get; set; } // Phân loại chất lượng phôi
+        protected LabSampleEmbryo() : base() { }
+        public LabSampleEmbryo(
+            Guid id,
+            Guid labSampleId,
+            int dayOfDevelopment,
+            string? grade,
+            string? fertilizationMethod
+        )
+        {
+            Id = id;
+            LabSampleId = labSampleId;
+            DayOfDevelopment = dayOfDevelopment;
+            Grade = grade;
+            FertilizationMethod = fertilizationMethod;
+        }
+        public Guid LabSampleId { get; set; }
+        public int DayOfDevelopment { get; set; }
+        public string? Grade { get; set; }
         public int? CellCount { get; set; }
         public string? Morphology { get; set; }
         public bool IsBiopsied { get; set; } = false;
         public bool IsPGTTested { get; set; } = false;
         public string? PGTResult { get; set; }
-        public string? FertilizationMethod { get; set; } // "IVF", "ICSI"
+        public string? FertilizationMethod { get; set; }
         public string? Notes { get; set; }
-
-        // Navigation Properties
         public virtual LabSample? LabSample { get; set; }
     }
 }
-

@@ -1,28 +1,38 @@
 using System;
-using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho lịch làm việc của bác sĩ
-    /// Quản lý thông tin về ngày làm việc và các ca làm việc
-    /// Many-to-One với Doctor
-    /// One-to-Many với Slot
-    /// </summary>
-    public class DoctorSchedule : BaseEntity
+    // Bảng DoctorSchedule: Lịch làm việc theo ngày/giờ của bác sĩ.
+    // Quan hệ:
+    // - n-1 tới Doctor (DoctorId)
+    // - n-1 tới Slot (SlotId) - một lịch làm việc thuộc về một slot cụ thể
+    public class DoctorSchedule : BaseEntity<Guid>
     {
-        public int DoctorId { get; set; }
-        public DateTime WorkDate { get; set; }
-        public TimeSpan StartTime { get; set; }
-        public TimeSpan EndTime { get; set; }
+        protected DoctorSchedule() : base() { }
+        public DoctorSchedule(
+            Guid id,
+            Guid doctorId,
+            Guid slotId,
+            DateOnly workDate,
+            bool isAvailable = true
+        )
+        {
+            Id = id;
+            DoctorId = doctorId;
+            SlotId = slotId;
+            WorkDate = workDate;
+            IsAvailable = isAvailable;
+        }
+        public Guid DoctorId { get; set; }
+        public Guid SlotId { get; set; }
+        public DateOnly WorkDate { get; set; }
         public bool IsAvailable { get; set; } = true;
         public string? Location { get; set; }
         public string? Notes { get; set; }
 
-        // Navigation Properties
+        //Navigation properties
         public virtual Doctor? Doctor { get; set; }
-        public virtual ICollection<Slot>? Slots { get; set; } = new List<Slot>();
+        public virtual Slot? Slot { get; set; }
     }
 }
-
-

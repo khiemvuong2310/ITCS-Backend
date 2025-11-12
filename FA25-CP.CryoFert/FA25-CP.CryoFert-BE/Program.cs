@@ -1,11 +1,14 @@
-﻿using FSCMS.Core; // namespace chứa AppDbContext
+﻿using System.Text.Json.Serialization;
+using DotNetEnv;
+using FA25_CP.CryoFert_BE.AppStarts;
+using FSCMS.Core; // namespace chứa AppDbContext
+using FSCMS.Core.Models;
+using FSCMS.Core.Models.Options;
+using FSCMS.Service.SignalR;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using DotNetEnv;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http.Features;
 using Pomelo.EntityFrameworkCore.MySql;
-using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE
 {
@@ -33,6 +36,12 @@ namespace FA25_CP.CryoFert_BE
             // Exception handler 
             builder.Services.AddProblemDetails();
 
+            builder.Services.AddControllers().AddJsonOptions(opts =>
+            {
+                opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
+
             // 3. DbContext config (MySQL)
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
@@ -50,9 +59,49 @@ namespace FA25_CP.CryoFert_BE
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
             });
 
-            // 4. CORS config - PUBLIC (Development Only)
+            //builder.Services.Configure<CloudinarySettings>(
+            //    builder.Configuration.GetSection("CloudinarySettings")
+            //);
+
+            //builder.Services.Configure<VnPayOptions>(
+            //    builder.Configuration.GetSection("VnPay")
+            //);
+
+
+            builder.Services.AddSignalR();
+
+            builder.Services.Configure<CloudinarySettings>(options =>
+            {
+                options.CloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUDNAME") ?? "";
+                options.ApiKey = Environment.GetEnvironmentVariable("CLOUDINARY_APIKEY") ?? "";
+                options.ApiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_APISECRET") ?? "";
+            });
+
+            builder.Services.Configure<VnPayOptions>(options =>
+            {
+                options.vnp_Url = Environment.GetEnvironmentVariable("VNPAY_URL") ?? "";
+                options.vnp_Api = Environment.GetEnvironmentVariable("VNPAY_API") ?? "";
+                options.vnp_TmnCode = Environment.GetEnvironmentVariable("VNPAY_TMNCODE") ?? "";
+                options.vnp_HashSecret = Environment.GetEnvironmentVariable("VNPAY_HASHSECRET") ?? "";
+                options.vnp_Returnurl = Environment.GetEnvironmentVariable("VNPAY_RETURNURL") ?? "";
+            });
+
+            // 4. CORS config
             builder.Services.AddCors(options =>
             {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.WithOrigins(
+                            "http://localhost:5173", 
+                            "https://fscms.pages.dev",
+                            "https://cryo.devnguyen.xyz",
+                            "https://cryofert.runasp.net"
+                          )
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+                
+                // Public CORS policy for broader access (without credentials)
                 options.AddPolicy("AllowAll", policy =>
                 {
                     policy.AllowAnyOrigin()
@@ -121,13 +170,18 @@ namespace FA25_CP.CryoFert_BE
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
+            app.UseRouting();   
             app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
-            app.UseCors("AllowAll"); // Thay "AllowReactApp" thành "AllowAll"
+            app.UseCors("AllowAll");
+            
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapHub<TransactionHub>("/transactionHub");
+            });
             app.MapControllers();
 
             // 9. Run application

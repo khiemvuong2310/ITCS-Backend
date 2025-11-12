@@ -1,42 +1,61 @@
 using System;
 using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
 using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho liệu trình điều trị
-    /// Many-to-One với Patient và Doctor
-    /// One-to-Many với TreatmentCycle
-    /// One-to-One với TreatmentIVF (nếu có)
-    /// </summary>
-    public class Treatment : BaseEntity
+    // Bảng Treatment: Đợt điều trị của bệnh nhân (IUI/IVF...).
+    // Quan hệ:
+    // - n-1 tới Patient (PatientId)
+    // - n-1 tới Doctor (DoctorId)
+    // - 1-n tới TreatmentCycle (các chu kỳ điều trị)
+    // - 1-1 tới TreatmentIVF (nếu loại điều trị là IVF)
+    public class Treatment : BaseEntity<Guid>
     {
-        public int PatientId { get; set; }
-        public int DoctorId { get; set; }
-        
+        protected Treatment() : base() { }
+        public Treatment(
+            Guid id,
+            Guid patientId,
+            Guid doctorId,
+            string treatmentName,
+            TreatmentType treatmentType,
+            DateTime startDate
+        )
+        {
+            Id = id;
+            PatientId = patientId;
+            DoctorId = doctorId;
+            TreatmentName = treatmentName;
+            TreatmentType = treatmentType;
+            StartDate = startDate;
+            Status = TreatmentStatus.Planned;
+        }
+        public Guid PatientId { get; set; }
+        public Guid DoctorId { get; set; }
+
         public string TreatmentName { get; set; } = string.Empty;
 
-        //Sửa lại thành ENUM cho TreatmentType nếu cần
-        public string? TreatmentType { get; set; } // "IVF", "IUI", "Consultation", etc.
+        public TreatmentType TreatmentType { get; set; }
+
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+
         public TreatmentStatus Status { get; set; }
+
         public string? Diagnosis { get; set; }
         public string? Goals { get; set; }
         public string? Notes { get; set; }
+
         public decimal? EstimatedCost { get; set; }
         public decimal? ActualCost { get; set; }
 
-        // Navigation Properties
+        // Navigation properties
         public virtual Patient? Patient { get; set; }
         public virtual Doctor? Doctor { get; set; }
-        
-        // One-to-Many với TreatmentCycle
-        public virtual ICollection<TreatmentCycle>? TreatmentCycles { get; set; } = new List<TreatmentCycle>();
-        
-        // One-to-One với TreatmentIVF (có thể có hoặc không)
+
+        public virtual ICollection<TreatmentCycle> TreatmentCycles { get; set; } = new List<TreatmentCycle>();
+
         public virtual TreatmentIVF? TreatmentIVF { get; set; }
     }
 }
-

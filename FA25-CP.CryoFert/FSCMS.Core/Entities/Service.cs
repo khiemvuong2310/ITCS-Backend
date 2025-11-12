@@ -1,29 +1,33 @@
 using System;
 using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho dịch vụ y tế trong hệ thống
-    /// Bao gồm các dịch vụ như IVF, IUI, xét nghiệm, v.v.
-    /// Many-to-One với ServiceCategory
-    /// </summary>
-    public class Service : BaseEntity
+    // Bảng Service: Dịch vụ cung cấp (giá, đơn vị, thời lượng...).
+    // Quan hệ:
+    // - n-1 tới ServiceCategory (ServiceCategoryId)
+    // - 1-n tới ServiceRequestDetails (dịch vụ xuất hiện trong nhiều yêu cầu)
+    public class Service : BaseEntity<Guid>
     {
+        protected Service() : base() { }
+        public Service(Guid id, string name, decimal price, Guid serviceCategoryId)
+        {
+            Id = id;
+            Name = name;
+            Price = price;
+            ServiceCategoryId = serviceCategoryId;
+        }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal Price { get; set; }
         public string? Code { get; set; }
-        public string? Unit { get; set; } // "lần", "gói", "mẫu", etc.
-        public int? Duration { get; set; } // Thời gian thực hiện (phút)
+        public string? Unit { get; set; }
+        public int? Duration { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Notes { get; set; }
-
-        // Foreign Keys
-        public int ServiceCategoryId { get; set; }
-
-        // Navigation Properties
+        public Guid ServiceCategoryId { get; set; }
         public virtual ServiceCategory? ServiceCategory { get; set; }
-        public virtual ICollection<ServiceRequestDetails>? ServiceRequestDetails { get; set; } = new List<ServiceRequestDetails>();
+        public virtual ICollection<ServiceRequestDetails> ServiceRequestDetails { get; set; } = new List<ServiceRequestDetails>();
     }
 }

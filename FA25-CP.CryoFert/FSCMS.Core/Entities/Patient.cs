@@ -1,49 +1,48 @@
 using System;
 using System.Collections.Generic;
-using FSCMS.Core.Enum;
+using FSCMS.Core.Models.Bases;
+using FSCMS.Core.Enums;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho bệnh nhân trong hệ thống
-    /// Chứa thông tin cá nhân, y tế và các liên kết đến các chu trình điều trị
-    /// One-to-One với Account
-    /// </summary>
-    public class Patient : BaseEntity
+    // Bảng Patient: Thông tin hồ sơ bệnh nhân.
+    // Quan hệ:
+    // - 1-1 với Account (AccountId)
+    // - 1-n với Treatment (bệnh nhân có nhiều đợt điều trị)
+    // - 1-n với LabSample (nhiều mẫu xét nghiệm/lab)
+    // - 1-n với CryoStorageContract (nhiều hợp đồng lưu trữ cryo)
+    // - n-n tự thân thông qua Relationship (Patient1/Patient2)
+    public class Patient : BaseEntity<Guid>
     {
-        public int AccountId { get; set; }
-        public string FullName { get; set; } = string.Empty;
-        public DateTime DateOfBirth { get; set; }
-        public Gender Gender { get; set; }
-        public string Address { get; set; } = string.Empty;
-        public string Phone { get; set; } = string.Empty;
+        protected Patient() : base() { }
+        public Patient(Guid id, string patientCode, string nationalId)
+        {
+            Id = id;
+            PatientCode = patientCode;
+            NationalID = nationalId;
+        }
+        public string PatientCode { get; set; } = default!;
+        public string NationalID { get; set; } = default!;
         public string? EmergencyContact { get; set; }
         public string? EmergencyPhone { get; set; }
-        public string NationalID { get; set; } = string.Empty;
-        public string? MedicalHistory { get; set; }
-        public string? Allergies { get; set; }
         public string? Insurance { get; set; }
         public string? Occupation { get; set; }
-        public decimal? Height { get; set; } // cm
-        public decimal? Weight { get; set; } // kg
+        public string? MedicalHistory { get; set; }
+        public string? Allergies { get; set; }
         public string? BloodType { get; set; }
+        public decimal? Height { get; set; }
+        public decimal? Weight { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Notes { get; set; }
+        public Guid AccountId { get; set; }
 
-        // Navigation Properties
+        //Navigate properties
         public virtual Account? Account { get; set; }
-        
-        // One-to-Many với Treatment
-        public virtual ICollection<Treatment>? Treatments { get; set; } = new List<Treatment>();
-        
-        // One-to-Many với LabSample
-        public virtual ICollection<LabSample>? LabSamples { get; set; } = new List<LabSample>();
-        
-        // One-to-Many với CryoStorageContract
-        public virtual ICollection<CryoStorageContract>? CryoStorageContracts { get; set; } = new List<CryoStorageContract>();
-        
-        // Many-to-Many với chính nó (thông qua Relationship)
-        public virtual ICollection<Relationship>? RelationshipsAsPatient1 { get; set; } = new List<Relationship>();
-        public virtual ICollection<Relationship>? RelationshipsAsPatient2 { get; set; } = new List<Relationship>();
+        public virtual ICollection<Treatment> Treatments { get; set; } = new List<Treatment>();
+        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+        public virtual ICollection<LabSample> LabSamples { get; set; } = new List<LabSample>();
+        public virtual ICollection<CryoStorageContract> CryoStorageContracts { get; set; } = new List<CryoStorageContract>();
+        public virtual ICollection<Relationship> RelationshipsAsPatient1 { get; set; } = new List<Relationship>();
+        public virtual ICollection<Relationship> RelationshipsAsPatient2 { get; set; } = new List<Relationship>();
     }
 }

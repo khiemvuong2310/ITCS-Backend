@@ -1,31 +1,31 @@
 using System;
 using System.Collections.Generic;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho thuốc trong hệ thống
-    /// Danh mục thuốc độc lập
-    /// </summary>
-    public class Medicine : BaseEntity
+    // Bảng Medicine: Danh mục thuốc/sản phẩm y tế.
+    // Quan hệ:
+    // - 1-n tới PrescriptionDetail (thuốc xuất hiện trong nhiều chi tiết đơn)
+    public class Medicine : BaseEntity<Guid>
     {
-        public string Name { get; set; } = string.Empty;
+        protected Medicine() : base() { }
+        public Medicine(Guid id, string name, string? dosage, string? form)
+        {
+            Id = id;
+            Name = name;
+            Dosage = dosage;
+            Form = form;
+        }
+        public string Name { get; set; } = default!;
         public string? GenericName { get; set; }
-        public string? BrandName { get; set; }
-        public string? Manufacturer { get; set; }
-        public string? Dosage { get; set; } // "500mg", "10ml", etc.
-        public string? Form { get; set; } // "Viên nén", "Viên nang", "Siro", etc.
-        public string? Unit { get; set; } // "viên", "vỉ", "lọ", etc.
-        public decimal? Price { get; set; }
-        public string? Indication { get; set; } // Chỉ định
-        public string? Contraindication { get; set; } // Chống chỉ định
-        public string? SideEffects { get; set; } // Tác dụng phụ
-        public string? Storage { get; set; } // Bảo quản
+        public string? Dosage { get; set; }
+        public string? Form { get; set; }
+        public string? Indication { get; set; }
+        public string? Contraindication { get; set; }
+        public string? SideEffects { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Notes { get; set; }
-
-        // Navigation Properties
-        public virtual ICollection<PrescriptionDetail>? PrescriptionDetails { get; set; } = new List<PrescriptionDetail>();
+        public virtual ICollection<PrescriptionDetail> PrescriptionDetails { get; set; } = new List<PrescriptionDetail>();
     }
 }
-

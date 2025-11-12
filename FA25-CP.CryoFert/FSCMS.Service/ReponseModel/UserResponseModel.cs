@@ -8,7 +8,7 @@ namespace FSCMS.Service.ReponseModel
 {
     public class UserResponse
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string? UserName { get; set; }
         public int? Age { get; set; }
         public string Email { get; set; }
@@ -18,7 +18,7 @@ namespace FSCMS.Service.ReponseModel
         public string? Image { get; set; }
         public bool? Status { get; set; }
         public bool EmailVerified { get; set; }
-        public int RoleId { get; set; }
+        public Guid RoleId { get; set; }
         public string? RoleName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

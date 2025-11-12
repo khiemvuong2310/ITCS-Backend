@@ -24,6 +24,10 @@ namespace FSCMS.Service.RequestModel
         [Required(ErrorMessage = "Phone number is required.")]
         [RegularExpression(@"^\+?[0-9]{10,15}$", ErrorMessage = "Phone number must be between 10 and 15 digits and may start with a '+' sign.")]
         public string Phone { get; set; }
+        
+        [Required(ErrorMessage = "Role ID is required.")]
+        public Guid RoleId { get; set; }
+        
         public bool? Status { get; set; }
 
     }

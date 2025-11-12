@@ -1,30 +1,32 @@
-using System;
+    using System;
 using System.Collections.Generic;
+using FSCMS.Core.Enum;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho yêu cầu dịch vụ
-    /// Many-to-One với Appointment
-    /// One-to-Many với ServiceRequestDetails
-    /// </summary>
-    public class ServiceRequest : BaseEntity
+    // Bảng ServiceRequest: Yêu cầu dịch vụ gắn với cuộc hẹn (nếu có).
+    // Quan hệ:
+    // - 0..1 - n tới Appointment (AppointmentId có thể null)
+    // - 1-n tới ServiceRequestDetails (các dòng dịch vụ)
+    public class ServiceRequest : BaseEntity<Guid>
     {
-        public int? AppointmentId { get; set; }
-        
+        protected ServiceRequest() : base() { }
+        public ServiceRequest(Guid id, DateTime requestDate)
+        {
+            Id = id;
+            RequestDate = requestDate;
+        }
+        public Guid? AppointmentId { get; set; }
         public DateTime RequestDate { get; set; }
-        public string RequestType { get; set; } = string.Empty; // "Treatment", "Lab Test", "Consultation", etc.
-        public string Status { get; set; } = string.Empty; // "Pending", "Approved", "Rejected", "Completed", "Cancelled"
-        public string? Priority { get; set; } // "Normal", "Urgent", "Emergency"
+        public ServiceRequestStatus Status { get; set; } = ServiceRequestStatus.Pending;
         public decimal? TotalAmount { get; set; }
         public string? Notes { get; set; }
         public DateTime? ApprovedDate { get; set; }
         public string? ApprovedBy { get; set; }
 
-        // Navigation Properties
+        //Navigate properties
         public virtual Appointment? Appointment { get; set; }
-        
-        // One-to-Many với ServiceRequestDetails
-        public virtual ICollection<ServiceRequestDetails>? ServiceRequestDetails { get; set; } = new List<ServiceRequestDetails>();
+        public virtual ICollection<ServiceRequestDetails> ServiceRequestDetails { get; set; } = new List<ServiceRequestDetails>();
     }
 }

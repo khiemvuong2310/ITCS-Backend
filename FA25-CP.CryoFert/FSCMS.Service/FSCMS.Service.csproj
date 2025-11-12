@@ -10,6 +10,7 @@
 		<PackageReference Include="AutoMapper" Version="13.0.1" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.27.8" />
 		<PackageReference Include="FirebaseAdmin" Version="3.2.0" />
 		<PackageReference Include="Google.Cloud.Storage.V1" Version="4.13.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
@@ -25,7 +26,10 @@
 	  <ProjectReference Include="..\FSCMS.Data\FSCMS.Data.csproj" />
 	</ItemGroup>
 
+	<!-- Copy Templates folder to output directory -->
 	<ItemGroup>
-	  <Folder Include="Mapping\" />
+		<None Update="Templates\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>

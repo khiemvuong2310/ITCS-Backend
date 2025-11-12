@@ -1,30 +1,43 @@
 using System;
+using FSCMS.Core.Models.Bases;
+using FSCMS.Core.Enum;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho phác đồ IVF chi tiết của một liệu trình
-    /// One-to-One với Treatment
-    /// </summary>
-    public class TreatmentIVF : BaseEntity
+    // Bảng TreatmentIVF: Thông tin chuyên sâu cho phác đồ IVF.
+    // Quan hệ:
+    // - 1-1 tới Treatment (TreatmentId)
+    public class TreatmentIVF : BaseEntity<Guid>
     {
-        public int TreatmentId { get; set; }
-        
-        public string Protocol { get; set; } = string.Empty; // "Long", "Short", "Antagonist", etc.
+        protected TreatmentIVF() : base() { }
+        public TreatmentIVF(Guid id, Guid treatmentId, string protocol)
+        {
+            Id = id;
+            TreatmentId = treatmentId;
+            Protocol = protocol;
+        }
+        public Guid TreatmentId { get; set; }
+
+        public string Protocol { get; set; } = string.Empty;
+
         public DateTime? StimulationStartDate { get; set; }
         public DateTime? OocyteRetrievalDate { get; set; }
         public DateTime? FertilizationDate { get; set; }
         public DateTime? TransferDate { get; set; }
+
         public int? OocytesRetrieved { get; set; }
         public int? OocytesMature { get; set; }
         public int? OocytesFertilized { get; set; }
         public int? EmbryosCultured { get; set; }
         public int? EmbryosTransferred { get; set; }
         public int? EmbryosCryopreserved { get; set; }
-        public string? Notes { get; set; }
+        public int? EmbryosFrozen { get; set; }
 
-        // Navigation Properties
+        public string? Notes { get; set; }
+        public string? Outcome { get; set; }
+        public bool? UsedICSI { get; set; }
+        public string? Complications { get; set; }
+        public IVFCycleStatus Status { get; set; } = IVFCycleStatus.Planned;
         public virtual Treatment? Treatment { get; set; }
     }
 }
-

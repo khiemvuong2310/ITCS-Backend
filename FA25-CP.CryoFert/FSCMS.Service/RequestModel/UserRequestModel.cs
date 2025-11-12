@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FSCMS.Service.ReponseModel;
 
 namespace FSCMS.Service.RequestModel
 {
@@ -36,7 +37,7 @@ namespace FSCMS.Service.RequestModel
         public string? Image { get; set; }
 
         [Required(ErrorMessage = "RoleId is required.")]
-        public int RoleId { get; set; }
+        public Guid RoleId { get; set; }
 
         public bool? Status { get; set; } = true;
     }
@@ -61,7 +62,7 @@ namespace FSCMS.Service.RequestModel
 
         public string? Image { get; set; }
 
-        public int? RoleId { get; set; }
+        public Guid? RoleId { get; set; }
 
         public bool? Status { get; set; }
     }
@@ -89,16 +90,8 @@ namespace FSCMS.Service.RequestModel
     public class GetUsersRequest : PagingModel
     {
         public string? SearchTerm { get; set; }
-        public int? RoleId { get; set; }
+        public Guid? RoleId { get; set; }
         public bool? Status { get; set; }
         public bool? EmailVerified { get; set; }
-    }
-
-    public class PagingModel
-    {
-        public int Page { get; set; } = 1;
-        public int Size { get; set; } = 50;
-        public string? Sort { get; set; }
-        public string? Order { get; set; }
     }
 }

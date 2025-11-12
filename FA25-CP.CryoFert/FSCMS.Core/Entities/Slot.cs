@@ -1,23 +1,31 @@
 using System;
+using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
 {
-    /// <summary>
-    /// Entity đại diện cho khe hẹn (time slot) trong lịch làm việc của bác sĩ
-    /// Many-to-One với DoctorSchedule
-    /// One-to-One với Appointment
-    /// </summary>
-    public class Slot : BaseEntity
+    // Bảng Slot: Khung giờ hẹn cố định (4 slot).
+    // Quan hệ:
+    // - 1-n với DoctorSchedule (một slot có thể được sử dụng bởi nhiều lịch làm việc)
+    // - 1-1 với Appointment (một slot gắn với tối đa 1 cuộc hẹn)
+    public class Slot : BaseEntity<Guid>
     {
-        public int DoctorScheduleId { get; set; }
+        protected Slot() : base() { }
+        public Slot(
+            Guid id,
+            TimeSpan startTime,
+			TimeSpan endTime
+        )
+        {
+            Id = id;
+            StartTime = startTime;
+            EndTime = endTime;
+        }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
-        public bool IsBooked { get; set; } = false;
         public string? Notes { get; set; }
 
-        // Navigation Properties
-        public virtual DoctorSchedule? DoctorSchedule { get; set; }
+        //Navigation properties
+        public virtual ICollection<DoctorSchedule> DoctorSchedules { get; set; } = new List<DoctorSchedule>();
         public virtual Appointment? Appointment { get; set; }
     }
 }
-
