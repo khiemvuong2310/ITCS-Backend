@@ -1640,6 +1640,97 @@ namespace FSCMS.Service.Services
             }
         }
 
+        /// <summary>
+        /// Get busy schedule dates for a doctor
+        /// </summary>
+        public async Task<BaseResponse<BusyScheduleDateResponse>> GetBusyScheduleDateAsync(GetBusyScheduleDateRequest request)
+        {
+            const string methodName = nameof(GetBusyScheduleDateAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                if (request == null)
+                {
+                    _logger.LogWarning("{MethodName}: Request is null", methodName);
+                    return BaseResponse<BusyScheduleDateResponse>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
+                }
+
+                if (request.DoctorId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid doctor ID provided - {DoctorId}", methodName, request.DoctorId);
+                    return BaseResponse<BusyScheduleDateResponse>.CreateError("Doctor ID cannot be empty or invalid", StatusCodes.Status400BadRequest, "INVALID_DOCTOR_ID");
+                }
+
+                // Validate date range if both dates are provided
+                if (request.FromDate.HasValue && request.ToDate.HasValue)
+                {
+                    if (request.FromDate.Value > request.ToDate.Value)
+                    {
+                        _logger.LogWarning("{MethodName}: FromDate cannot be greater than ToDate", methodName);
+                        return BaseResponse<BusyScheduleDateResponse>.CreateError("FromDate cannot be greater than ToDate", StatusCodes.Status400BadRequest, "INVALID_DATE_RANGE");
+                    }
+                }
+
+                // Verify doctor exists
+                var doctorExists = await DoctorExistsAsync(request.DoctorId);
+                if (!doctorExists)
+                {
+                    _logger.LogWarning("{MethodName}: Doctor not found with ID: {DoctorId}", methodName, request.DoctorId);
+                    return BaseResponse<BusyScheduleDateResponse>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
+                }
+
+                // Build query to get distinct work dates
+                var query = _unitOfWork.Repository<DoctorSchedule>()
+                    .AsQueryable()
+                    .AsNoTracking()
+                    .Where(ds => ds.DoctorId == request.DoctorId && !ds.IsDeleted);
+
+                // Apply date filters based on request
+                if (request.FromDate.HasValue && request.ToDate.HasValue)
+                {
+                    // Both dates provided: filter by date range
+                    var fromDate = DateOnly.FromDateTime(request.FromDate.Value.Date);
+                    var toDate = DateOnly.FromDateTime(request.ToDate.Value.Date);
+                    query = query.Where(ds => ds.WorkDate >= fromDate && ds.WorkDate <= toDate);
+                }
+                else if (request.FromDate.HasValue)
+                {
+                    // Only FromDate provided: get all dates from FromDate onwards
+                    var fromDate = DateOnly.FromDateTime(request.FromDate.Value.Date);
+                    query = query.Where(ds => ds.WorkDate >= fromDate);
+                }
+                // If both are null, get all work dates (no additional filter)
+
+                // Get distinct work dates
+                var workDates = await query
+                    .Select(ds => ds.WorkDate)
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .ToListAsync();
+
+                // Convert DateOnly to DateTime for response
+                var workDateTimes = workDates
+                    .Select(d => d.ToDateTime(TimeOnly.MinValue))
+                    .ToList();
+
+                var response = new BusyScheduleDateResponse
+                {
+                    DoctorId = request.DoctorId,
+                    WorkDates = workDateTimes
+                };
+
+                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} work dates for doctor {DoctorId}", methodName, workDateTimes.Count, request.DoctorId);
+
+                return BaseResponse<BusyScheduleDateResponse>.CreateSuccess(response, "Busy schedule dates retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving busy schedule dates", methodName);
+                return BaseResponse<BusyScheduleDateResponse>.CreateError($"Error retrieving busy schedule dates: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         #endregion
 
         #region Slot CRUD Operations

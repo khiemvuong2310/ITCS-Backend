@@ -143,6 +143,13 @@ namespace FSCMS.Service.Interfaces
         /// <returns>BaseResponse indicating success or failure</returns>
         Task<BaseResponse> UpdateScheduleAvailabilityAsync(Guid scheduleId, bool isAvailable);
 
+        /// <summary>
+        /// Get busy schedule dates for a doctor
+        /// </summary>
+        /// <param name="request">Request parameters containing doctor ID and optional date range</param>
+        /// <returns>BaseResponse containing list of work dates</returns>
+        Task<BaseResponse<BusyScheduleDateResponse>> GetBusyScheduleDateAsync(GetBusyScheduleDateRequest request);
+
         #endregion
 
         #region Slot CRUD Operations

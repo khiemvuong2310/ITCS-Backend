@@ -310,4 +310,19 @@ namespace FSCMS.Service.ReponseModel
         [JsonPropertyName("averageExperience")]
         public double AverageExperience { get; set; }
     }
+
+    /// <summary>
+    /// Response model for busy schedule dates
+    /// </summary>
+    public class BusyScheduleDateResponse
+    {
+        [JsonPropertyName("doctorId")]
+        public Guid DoctorId { get; set; }
+
+        [JsonPropertyName("workDates")]
+        public List<DateTime> WorkDates { get; set; } = new List<DateTime>();
+
+        [JsonPropertyName("totalDates")]
+        public int TotalDates => WorkDates.Count;
+    }
 }

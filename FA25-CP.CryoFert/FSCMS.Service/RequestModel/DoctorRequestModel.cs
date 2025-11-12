@@ -280,4 +280,20 @@ namespace FSCMS.Service.RequestModel
         [JsonPropertyName("timeTo")]
         public TimeSpan? TimeTo { get; set; }
     }
+
+    /// <summary>
+    /// Request model for getting busy schedule dates for a doctor
+    /// </summary>
+    public class GetBusyScheduleDateRequest
+    {
+        [Required(ErrorMessage = "Doctor ID is required.")]
+        [JsonPropertyName("doctorId")]
+        public Guid DoctorId { get; set; }
+
+        [JsonPropertyName("fromDate")]
+        public DateTime? FromDate { get; set; }
+
+        [JsonPropertyName("toDate")]
+        public DateTime? ToDate { get; set; }
+    }
 }
