@@ -89,7 +89,7 @@ namespace FA25_CP.CryoFert_BE
             // 4. CORS config
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowReactApp", policy =>
+                options.AddPolicy("AllowAll", policy =>
                 {
                     policy.WithOrigins(
                             "http://localhost:5173", 
@@ -98,8 +98,7 @@ namespace FA25_CP.CryoFert_BE
                             "https://cryofert.runasp.net"
                           )
                           .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials();
+                          .AllowAnyMethod();
                 });
                 
                 // Public CORS policy for broader access (without credentials)
