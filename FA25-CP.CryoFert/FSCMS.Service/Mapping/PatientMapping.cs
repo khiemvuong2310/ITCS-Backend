@@ -50,7 +50,7 @@ namespace FSCMS.Service.Mapping
 
             // Request to Entity mappings
             CreateMap<CreatePatientRequest, Patient>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
@@ -66,7 +66,6 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
-                .ForMember(dest => dest.AccountId, opt => opt.Ignore())
                 .ForMember(dest => dest.Account, opt => opt.Ignore())
                 .ForMember(dest => dest.Treatments, opt => opt.Ignore())
                 .ForMember(dest => dest.LabSamples, opt => opt.Ignore())

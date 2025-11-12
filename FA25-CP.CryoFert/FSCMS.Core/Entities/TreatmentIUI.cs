@@ -6,17 +6,15 @@ namespace FSCMS.Core.Entities
 {
     // Bảng TreatmentIUI: Thông tin chuyên sâu cho phác đồ IUI.
     // Quan hệ:
-    // - 1-1 tới Treatment (TreatmentId)
+    // - 1-1 tới Treatment (Shared PK: Id == Treatment.Id)
     public class TreatmentIUI : BaseEntity<Guid>
     {
         protected TreatmentIUI() : base() { }
-        public TreatmentIUI(Guid id, Guid treatmentId, string protocol)
+        public TreatmentIUI(Guid id, string protocol)
         {
             Id = id;
-            TreatmentId = treatmentId;
             Protocol = protocol;
         }
-        public Guid TreatmentId { get; set; }
         public string Protocol { get; set; } = string.Empty;
         public string? Medications { get; set; }
         public string? Monitoring { get; set; }

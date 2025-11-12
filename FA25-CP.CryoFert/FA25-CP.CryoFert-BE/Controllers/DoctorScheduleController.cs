@@ -288,6 +288,34 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        /// <summary>
+        /// Get busy schedule dates for a doctor
+        /// </summary>
+        /// <param name="request">Request containing doctor ID and optional date range</param>
+        /// <returns>List of work dates for the doctor</returns>
+        [HttpGet("busy-dates")]
+        [Authorize]
+        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetBusyScheduleDate([FromBody] GetBusyScheduleDateRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<BusyScheduleDateResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    SystemCode = "INVALID_INPUT",
+                    Message = "Invalid input data"
+                });
+            }
+
+            var result = await _doctorService.GetBusyScheduleDateAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         #endregion
     }
 }

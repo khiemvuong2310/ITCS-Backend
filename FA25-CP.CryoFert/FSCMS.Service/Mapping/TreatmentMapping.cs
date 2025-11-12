@@ -97,7 +97,6 @@ namespace FSCMS.Service.Mapping
             return new TreatmentIVFResponseModel
             {
                 Id = entity.Id,
-                TreatmentId = entity.TreatmentId,
                 Protocol = entity.Protocol,
                 StimulationStartDate = entity.StimulationStartDate,
                 OocyteRetrievalDate = entity.OocyteRetrievalDate,
@@ -122,7 +121,7 @@ namespace FSCMS.Service.Mapping
 
         public static TreatmentIVF ToEntity(this TreatmentIVFCreateUpdateRequest request)
         {
-            return new TreatmentIVF(Guid.NewGuid(), request.TreatmentId, request.Protocol)
+            return new TreatmentIVF(request.TreatmentId, request.Protocol)
             {
                 StimulationStartDate = request.StimulationStartDate,
                 OocyteRetrievalDate = request.OocyteRetrievalDate,
@@ -172,7 +171,6 @@ namespace FSCMS.Service.Mapping
             return new TreatmentIUIResponseModel
             {
                 Id = entity.Id,
-                TreatmentId = entity.TreatmentId,
                 Protocol = entity.Protocol,
                 Medications = entity.Medications,
                 Monitoring = entity.Monitoring,
@@ -190,7 +188,7 @@ namespace FSCMS.Service.Mapping
 
         public static TreatmentIUI ToEntity(this TreatmentIUICreateUpdateRequest request)
         {
-            return new TreatmentIUI(Guid.NewGuid(), request.TreatmentId, request.Protocol)
+            return new TreatmentIUI(request.TreatmentId, request.Protocol)
             {
                 Medications = request.Medications,
                 Monitoring = request.Monitoring,

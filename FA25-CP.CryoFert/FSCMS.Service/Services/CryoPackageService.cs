@@ -210,7 +210,7 @@ namespace FSCMS.Service.Services
                     };
 
                 _mapper.Map(request, package);
-                package.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                package.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<CryoPackage>().UpdateGuid(package, id);
                 await _unitOfWork.CommitAsync();
@@ -257,7 +257,7 @@ namespace FSCMS.Service.Services
                     };
 
                 package.IsDeleted = true;
-                package.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                package.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<CryoPackage>().UpdateGuid(package, id);
                 await _unitOfWork.CommitAsync();

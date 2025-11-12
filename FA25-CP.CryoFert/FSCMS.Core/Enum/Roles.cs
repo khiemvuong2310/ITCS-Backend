@@ -6,7 +6,6 @@
         Doctor = 2,
         LaboratoryTechnician = 3,
         Receptionist = 4,
-        Patient = 5,
-        User = 6    
+        Patient = 5
     }
 }

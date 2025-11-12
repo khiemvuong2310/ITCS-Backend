@@ -96,6 +96,7 @@ namespace FSCMS.Service.RequestModel
     /// </summary>
     public class GetDoctorsRequest : PagingModel
     {
+
         [JsonPropertyName("searchTerm")]
         public string? SearchTerm { get; set; }
 
@@ -116,6 +117,24 @@ namespace FSCMS.Service.RequestModel
 
         [JsonPropertyName("joinDateTo")]
         public DateTime? JoinDateTo { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for querying doctors by availability
+    /// </summary>
+    public class GetAvailableDoctorsRequest : PagingModel
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("workDate")]
+        public DateTime? WorkDate { get; set; }
+
+        [JsonPropertyName("slotId")]
+        public Guid? SlotId { get; set; }
+
+        [JsonPropertyName("includeInactive")]
+        public bool IncludeInactive { get; set; } = false;
     }
 
     /// <summary>
@@ -260,5 +279,21 @@ namespace FSCMS.Service.RequestModel
 
         [JsonPropertyName("timeTo")]
         public TimeSpan? TimeTo { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for getting busy schedule dates for a doctor
+    /// </summary>
+    public class GetBusyScheduleDateRequest
+    {
+        [Required(ErrorMessage = "Doctor ID is required.")]
+        [JsonPropertyName("doctorId")]
+        public Guid DoctorId { get; set; }
+
+        [JsonPropertyName("fromDate")]
+        public DateTime? FromDate { get; set; }
+
+        [JsonPropertyName("toDate")]
+        public DateTime? ToDate { get; set; }
     }
 }

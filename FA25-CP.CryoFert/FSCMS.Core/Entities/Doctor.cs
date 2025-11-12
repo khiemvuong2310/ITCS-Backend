@@ -6,7 +6,7 @@ namespace FSCMS.Core.Entities
 {
     // Bảng Doctor: Thông tin bác sĩ.
     // Quan hệ:
-    // - 1-1 với Account (AccountId)
+    // - 1-1 với Account (Shared PK: Id == Account.Id)
     // - 1-n với DoctorSchedule (lịch làm việc của bác sĩ)
     // - 1-n với Treatment (bác sĩ phụ trách nhiều đợt điều trị)
     // - n-n với Appointment (thông qua AppointmentDoctor) - một bác sĩ có thể phụ trách nhiều cuộc hẹn
@@ -38,7 +38,6 @@ namespace FSCMS.Core.Entities
         public string? Biography { get; set; }
         public DateTime JoinDate { get; set; }
         public DateTime? LeaveDate { get; set; }
-        public Guid AccountId { get; set; }
 
         //Navigation properties
         public virtual Account? Account { get; set; }

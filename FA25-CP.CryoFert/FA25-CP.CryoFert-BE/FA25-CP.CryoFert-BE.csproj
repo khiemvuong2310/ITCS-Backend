@@ -44,14 +44,10 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</None>
-		<!-- Exclude Templates folder from publish (templates are copied from FSCMS.Service) -->
-		<Content Update="Templates\**\*">
-			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		<!-- Include Templates folder and copy to output directory -->
+		<Content Include="Templates\*.html">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
-		<None Update="Templates\**\*">
-			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
-		</None>
 	</ItemGroup>
 </Project>

@@ -37,7 +37,7 @@ namespace FSCMS.Service.Services
                 var entity = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.TreatmentId == treatmentId && !x.IsDeleted);
+                    .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
 
                 if (entity == null)
                 {
@@ -80,13 +80,15 @@ namespace FSCMS.Service.Services
 
                 var exists = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
-                    .AnyAsync(x => x.TreatmentId == request.TreatmentId && !x.IsDeleted);
+                    .AnyAsync(x => x.Id == request.TreatmentId && !x.IsDeleted);
                 if (exists)
                 {
                     return BaseResponse<TreatmentIUIResponseModel>.CreateError("IUI info already exists for this treatment", StatusCodes.Status400BadRequest, "IUI_EXISTS");
                 }
 
-                var entity = request.ToEntity();
+                // Create entity with shared PK = TreatmentId, then map remaining fields
+                var entity = new TreatmentIUI(request.TreatmentId, request.Protocol);
+                entity.UpdateEntity(request);
                 await _unitOfWork.Repository<TreatmentIUI>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
 
@@ -126,14 +128,14 @@ namespace FSCMS.Service.Services
 
                 var treatment = await _unitOfWork.Repository<Treatment>()
                     .GetQueryable()
-                    .FirstOrDefaultAsync(t => t.Id == entity.TreatmentId && !t.IsDeleted);
+                    .FirstOrDefaultAsync(t => t.Id == entity.Id && !t.IsDeleted);
                 if (treatment == null || treatment.TreatmentType != TreatmentType.IUI)
                 {
                     return BaseResponse<TreatmentIUIResponseModel>.CreateError("Invalid treatment for IUI info", StatusCodes.Status400BadRequest, "INVALID_TREATMENT");
                 }
 
                 entity.UpdateEntity(request);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
@@ -172,8 +174,8 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 

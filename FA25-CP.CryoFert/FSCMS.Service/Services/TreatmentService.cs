@@ -182,11 +182,11 @@ namespace FSCMS.Service.Services
 
                 var detail = entity.ToDetailResponseModel();
 
-                // Attach IUI if exists (1-1 by TreatmentId)
+                // Attach IUI if exists (1-1 by shared PK: IUI.Id == Treatment.Id)
                 var iui = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
                     .AsNoTracking()
-                    .Where(x => x.TreatmentId == id && !x.IsDeleted)
+                    .Where(x => x.Id == id && !x.IsDeleted)
                     .FirstOrDefaultAsync();
                 if (iui != null)
                 {
@@ -286,7 +286,7 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.UpdateEntity(request);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<Treatment>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
@@ -330,27 +330,27 @@ namespace FSCMS.Service.Services
                 // For safety, also soft delete linked IVF and IUI if present
                 var iui = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
-                    .Where(x => x.TreatmentId == id && !x.IsDeleted)
+                    .Where(x => x.Id == id && !x.IsDeleted)
                     .FirstOrDefaultAsync();
                 if (iui != null)
                 {
                     iui.IsDeleted = true;
-                    iui.DeletedAt = DateTime.UtcNow.AddHours(7);
-                    iui.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                    iui.DeletedAt = DateTime.UtcNow;
+                    iui.UpdatedAt = DateTime.UtcNow;
                     await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(iui, iui.Id);
                 }
 
                 if (entity.TreatmentIVF != null && !entity.TreatmentIVF.IsDeleted)
                 {
                     entity.TreatmentIVF.IsDeleted = true;
-                    entity.TreatmentIVF.DeletedAt = DateTime.UtcNow.AddHours(7);
-                    entity.TreatmentIVF.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                    entity.TreatmentIVF.DeletedAt = DateTime.UtcNow;
+                    entity.TreatmentIVF.UpdatedAt = DateTime.UtcNow;
                     await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(entity.TreatmentIVF, entity.TreatmentIVF.Id);
                 }
 
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<Treatment>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 

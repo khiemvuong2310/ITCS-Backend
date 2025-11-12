@@ -79,14 +79,14 @@ namespace FSCMS.Core
             modelBuilder.Entity<Account>()
                 .HasOne(a => a.Patient)
                 .WithOne(p => p.Account)
-                .HasForeignKey<Patient>(p => p.AccountId)
+                .HasForeignKey<Patient>(p => p.Id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Account & Doctor Relationship (One-to-One)
             modelBuilder.Entity<Account>()
                 .HasOne(a => a.Doctor)
                 .WithOne(d => d.Account)
-                .HasForeignKey<Doctor>(d => d.AccountId)
+                .HasForeignKey<Doctor>(d => d.Id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Relationship (Patient to Patient Many-to-Many)
@@ -183,14 +183,14 @@ namespace FSCMS.Core
             modelBuilder.Entity<TreatmentIVF>()
                 .HasOne(tivf => tivf.Treatment)
                 .WithOne(t => t.TreatmentIVF)
-                .HasForeignKey<TreatmentIVF>(tivf => tivf.TreatmentId)
+                .HasForeignKey<TreatmentIVF>(tivf => tivf.Id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // TreatmentIUI & Treatment Relationship (One-to-One)
             modelBuilder.Entity<TreatmentIUI>()
                 .HasOne(tiui => tiui.Treatment)
                 .WithOne()
-                .HasForeignKey<TreatmentIUI>(tiui => tiui.TreatmentId)
+                .HasForeignKey<TreatmentIUI>(tiui => tiui.Id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // TreatmentCycle & Treatment Relationship
@@ -414,40 +414,40 @@ namespace FSCMS.Core
             // Seed Doctors
             modelBuilder.Entity<Doctor>().HasData(
                 new Doctor(
-                    new Guid("00000000-0000-0000-0000-000000020001"),
+                    doctor1AccountId,
                     "DOC001",
                     "Reproductive Endocrinology",
                     15,
                     new DateTime(2010, 1, 1),
                     true
-                ) { AccountId = doctor1AccountId, LicenseNumber = "LIC-DOC-001", Certificates = "Board Certified in Reproductive Medicine" },
+                ) { LicenseNumber = "LIC-DOC-001", Certificates = "Board Certified in Reproductive Medicine" },
                 new Doctor(
-                    new Guid("00000000-0000-0000-0000-000000020002"),
+                    doctor2AccountId,
                     "DOC002",
                     "Obstetrics and Gynecology",
                     10,
                     new DateTime(2015, 6, 1),
                     true
-                ) { AccountId = doctor2AccountId, LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" }
+                ) { LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" }
             );
 
             // Seed Patients
             modelBuilder.Entity<Patient>().HasData(
                 new Patient(
-                    new Guid("00000000-0000-0000-0000-000000030001"),
+                    patient1AccountId,
                     "PAT001",
                     "001234567890"
-                ) { AccountId = patient1AccountId, BloodType = "A+", EmergencyContact = "Le Van F", EmergencyPhone = "+84900000009" },
+                ) { BloodType = "A+", EmergencyContact = "Le Van F", EmergencyPhone = "+84900000009" },
                 new Patient(
-                    new Guid("00000000-0000-0000-0000-000000030002"),
+                    patient2AccountId,
                     "PAT002",
                     "001234567891"
-                ) { AccountId = patient2AccountId, BloodType = "B+", EmergencyContact = "Pham Thi G", EmergencyPhone = "+84900000010" },
+                ) { BloodType = "B+", EmergencyContact = "Pham Thi G", EmergencyPhone = "+84900000010" },
                 new Patient(
-                    new Guid("00000000-0000-0000-0000-000000030003"),
+                    patient3AccountId,
                     "PAT003",
                     "001234567892"
-                ) { AccountId = patient3AccountId, BloodType = "O+", EmergencyContact = "Hoang Van H", EmergencyPhone = "+84900000011" }
+                ) { BloodType = "O+", EmergencyContact = "Hoang Van H", EmergencyPhone = "+84900000011" }
             );
 
             // ========================================
@@ -474,10 +474,10 @@ namespace FSCMS.Core
 
             // Seed fixed Slots (4 slots in a day)
             modelBuilder.Entity<Slot>().HasData(
-				new Slot(new Guid("30000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)) { Notes = "Morning Slot 1" },
-				new Slot(new Guid("30000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)) { Notes = "Morning Slot 2" },
-				new Slot(new Guid("30000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0)) { Notes = "Afternoon Slot 1" },
-				new Slot(new Guid("30000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0)) { Notes = "Afternoon Slot 2" }
+				new Slot(new Guid("00000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)) { Notes = "Morning Slot 1" },
+				new Slot(new Guid("00000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)) { Notes = "Morning Slot 2" },
+				new Slot(new Guid("00000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0)) { Notes = "Afternoon Slot 1" },
+				new Slot(new Guid("00000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0)) { Notes = "Afternoon Slot 2" }
             );
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)

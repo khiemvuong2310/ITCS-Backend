@@ -189,7 +189,7 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .AsNoTracking()
                     .Include(d => d.Account)
-                    .Where(d => d.AccountId == accountId && !d.IsDeleted)
+                    .Where(d => d.Id == accountId && !d.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (doctor == null)
@@ -352,6 +352,176 @@ namespace FSCMS.Service.Services
         }
 
         /// <summary>
+        /// Get doctors who are available based on optional filters
+        /// </summary>
+        public async Task<DynamicResponse<DoctorResponse>> GetAvailableDoctorsAsync(GetAvailableDoctorsRequest request)
+        {
+            const string methodName = nameof(GetAvailableDoctorsAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                request ??= new GetAvailableDoctorsRequest();
+                request.Normalize();
+
+                if (request.SlotId.HasValue && request.SlotId.Value == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid slot ID provided", methodName);
+                    return new DynamicResponse<DoctorResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_SLOT_ID",
+                        Message = "Slot ID cannot be empty or invalid",
+                        MetaData = new PagingMetaData
+                        {
+                            Page = request.Page,
+                            Size = request.Size,
+                            Total = 0,
+                            CurrentPageSize = 0
+                        },
+                        Data = new List<DoctorResponse>()
+                    };
+                }
+
+                if (request.SlotId.HasValue && !request.WorkDate.HasValue)
+                {
+                    _logger.LogWarning("{MethodName}: Slot filter requires work date", methodName);
+                    return new DynamicResponse<DoctorResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_FILTER_COMBINATION",
+                        Message = "Work date must be provided when filtering by slot",
+                        MetaData = new PagingMetaData
+                        {
+                            Page = request.Page,
+                            Size = request.Size,
+                            Total = 0,
+                            CurrentPageSize = 0
+                        },
+                        Data = new List<DoctorResponse>()
+                    };
+                }
+
+                var query = _unitOfWork.Repository<Doctor>()
+                    .AsQueryable()
+                    .AsNoTracking()
+                    .Include(d => d.Account)
+                    .Where(d => !d.IsDeleted);
+
+                if (!request.IncludeInactive)
+                {
+                    query = query.Where(d => d.IsActive);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var searchTerm = request.Name.Trim().ToLowerInvariant();
+                    query = query.Where(d => d.Account != null &&
+                        (
+                            (d.Account.FirstName ?? string.Empty).ToLower().Contains(searchTerm) ||
+                            (d.Account.LastName ?? string.Empty).ToLower().Contains(searchTerm) ||
+                            ((d.Account.FirstName ?? string.Empty) + " " + (d.Account.LastName ?? string.Empty)).ToLower().Contains(searchTerm) ||
+                            ((d.Account.LastName ?? string.Empty) + " " + (d.Account.FirstName ?? string.Empty)).ToLower().Contains(searchTerm)
+                        ));
+                }
+
+                if (request.WorkDate.HasValue)
+                {
+                    var workDate = DateOnly.FromDateTime(request.WorkDate.Value.Date);
+                    query = query.Where(d => d.DoctorSchedules.Any(ds =>
+                        !ds.IsDeleted &&
+                        ds.IsAvailable &&
+                        ds.WorkDate == workDate &&
+                        ds.Slot != null &&
+                        !ds.Slot.IsDeleted &&
+                        ds.Slot.Appointment == null &&
+                        (!request.SlotId.HasValue || ds.SlotId == request.SlotId.Value)));
+                }
+
+                var totalCount = await query.CountAsync();
+
+                var isDescending = request.Order == "desc";
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    switch (request.Sort.ToLower())
+                    {
+                        case "name":
+                            query = isDescending
+                                ? query
+                                    .OrderByDescending(d => d.Account != null ? d.Account.LastName : string.Empty)
+                                    .ThenByDescending(d => d.Account != null ? d.Account.FirstName : string.Empty)
+                                : query
+                                    .OrderBy(d => d.Account != null ? d.Account.LastName : string.Empty)
+                                    .ThenBy(d => d.Account != null ? d.Account.FirstName : string.Empty);
+                            break;
+                        case "experience":
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.YearsOfExperience)
+                                : query.OrderBy(d => d.YearsOfExperience);
+                            break;
+                        case "joindate":
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.JoinDate)
+                                : query.OrderBy(d => d.JoinDate);
+                            break;
+                        case "createdat":
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.CreatedAt)
+                                : query.OrderBy(d => d.CreatedAt);
+                            break;
+                        default:
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.CreatedAt)
+                                : query.OrderBy(d => d.CreatedAt);
+                            break;
+                    }
+                }
+                else
+                {
+                    query = query
+                        .OrderBy(d => d.Account != null ? d.Account.LastName : string.Empty)
+                        .ThenBy(d => d.Account != null ? d.Account.FirstName : string.Empty);
+                }
+
+                var doctors = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var doctorResponses = _mapper.Map<List<DoctorResponse>>(doctors);
+
+                _logger.LogInformation("{MethodName}: Retrieved {Count} available doctors", methodName, doctorResponses.Count);
+
+                return new DynamicResponse<DoctorResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    SystemCode = "SUCCESS",
+                    Message = "Available doctors retrieved successfully",
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount,
+                        CurrentPageSize = doctorResponses.Count
+                    },
+                    Data = doctorResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving available doctors", methodName);
+                return new DynamicResponse<DoctorResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = $"An internal error occurred while retrieving available doctors: {ex.Message}",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<DoctorResponse>()
+                };
+            }
+        }
+
+        /// <summary>
         /// Create new doctor
         /// </summary>
         public async Task<BaseResponse<DoctorResponse>> CreateDoctorAsync(CreateDoctorRequest request)
@@ -396,7 +566,7 @@ namespace FSCMS.Service.Services
                 // Check if account is already associated with a doctor
                 var existingDoctor = await _unitOfWork.Repository<Doctor>()
                     .AsQueryable()
-                    .Where(d => d.AccountId == request.AccountId && !d.IsDeleted)
+                    .Where(d => d.Id == request.AccountId && !d.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (existingDoctor != null)
@@ -424,8 +594,16 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                // Create doctor entity
-                var doctor = _mapper.Map<Doctor>(request);
+                // Create doctor with shared PK = AccountId, then map other fields
+                var doctor = new Doctor(
+                    request.AccountId,
+                    request.BadgeId,
+                    request.Specialty,
+                    request.YearsOfExperience,
+                    request.JoinDate,
+                    true
+                );
+                _mapper.Map(request, doctor);
 
                 // Save to database
                 await _unitOfWork.Repository<Doctor>().InsertAsync(doctor);
@@ -610,8 +788,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 doctor.IsDeleted = true;
-                doctor.DeletedAt = DateTime.UtcNow.AddHours(7);
-                doctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                doctor.DeletedAt = DateTime.UtcNow;
+                doctor.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Doctor>().UpdateGuid(doctor, doctor.Id);
                 await _unitOfWork.CommitAsync();
@@ -675,7 +853,7 @@ namespace FSCMS.Service.Services
                 }
 
                 doctor.IsActive = isActive;
-                doctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                doctor.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Doctor>().UpdateGuid(doctor, doctor.Id);
                 await _unitOfWork.CommitAsync();
@@ -1333,7 +1511,7 @@ namespace FSCMS.Service.Services
                     schedule.Notes = request.Notes;
                 if (request.IsAvailable.HasValue)
                     schedule.IsAvailable = request.IsAvailable.Value;
-                schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                schedule.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<DoctorSchedule>().UpdateGuid(schedule, scheduleId);
                 await _unitOfWork.CommitAsync();
@@ -1401,8 +1579,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 schedule.IsDeleted = true;
-                schedule.DeletedAt = DateTime.UtcNow.AddHours(7);
-                schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                schedule.DeletedAt = DateTime.UtcNow;
+                schedule.UpdatedAt = DateTime.UtcNow;
 
                 // Note: Slots are global and not deleted when a schedule is deleted
 
@@ -1447,7 +1625,7 @@ namespace FSCMS.Service.Services
                 }
 
                 schedule.IsAvailable = isAvailable;
-                schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                schedule.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<DoctorSchedule>().UpdateGuid(schedule, scheduleId);
                 await _unitOfWork.CommitAsync();
@@ -1459,6 +1637,97 @@ namespace FSCMS.Service.Services
             {
                 _logger.LogError(ex, "{MethodName}: Error updating schedule availability {ScheduleId}", methodName, scheduleId);
                 return BaseResponse.CreateError($"Error updating schedule availability: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
+        /// <summary>
+        /// Get busy schedule dates for a doctor
+        /// </summary>
+        public async Task<BaseResponse<BusyScheduleDateResponse>> GetBusyScheduleDateAsync(GetBusyScheduleDateRequest request)
+        {
+            const string methodName = nameof(GetBusyScheduleDateAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                if (request == null)
+                {
+                    _logger.LogWarning("{MethodName}: Request is null", methodName);
+                    return BaseResponse<BusyScheduleDateResponse>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
+                }
+
+                if (request.DoctorId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid doctor ID provided - {DoctorId}", methodName, request.DoctorId);
+                    return BaseResponse<BusyScheduleDateResponse>.CreateError("Doctor ID cannot be empty or invalid", StatusCodes.Status400BadRequest, "INVALID_DOCTOR_ID");
+                }
+
+                // Validate date range if both dates are provided
+                if (request.FromDate.HasValue && request.ToDate.HasValue)
+                {
+                    if (request.FromDate.Value > request.ToDate.Value)
+                    {
+                        _logger.LogWarning("{MethodName}: FromDate cannot be greater than ToDate", methodName);
+                        return BaseResponse<BusyScheduleDateResponse>.CreateError("FromDate cannot be greater than ToDate", StatusCodes.Status400BadRequest, "INVALID_DATE_RANGE");
+                    }
+                }
+
+                // Verify doctor exists
+                var doctorExists = await DoctorExistsAsync(request.DoctorId);
+                if (!doctorExists)
+                {
+                    _logger.LogWarning("{MethodName}: Doctor not found with ID: {DoctorId}", methodName, request.DoctorId);
+                    return BaseResponse<BusyScheduleDateResponse>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
+                }
+
+                // Build query to get distinct work dates
+                var query = _unitOfWork.Repository<DoctorSchedule>()
+                    .AsQueryable()
+                    .AsNoTracking()
+                    .Where(ds => ds.DoctorId == request.DoctorId && !ds.IsDeleted);
+
+                // Apply date filters based on request
+                if (request.FromDate.HasValue && request.ToDate.HasValue)
+                {
+                    // Both dates provided: filter by date range
+                    var fromDate = DateOnly.FromDateTime(request.FromDate.Value.Date);
+                    var toDate = DateOnly.FromDateTime(request.ToDate.Value.Date);
+                    query = query.Where(ds => ds.WorkDate >= fromDate && ds.WorkDate <= toDate);
+                }
+                else if (request.FromDate.HasValue)
+                {
+                    // Only FromDate provided: get all dates from FromDate onwards
+                    var fromDate = DateOnly.FromDateTime(request.FromDate.Value.Date);
+                    query = query.Where(ds => ds.WorkDate >= fromDate);
+                }
+                // If both are null, get all work dates (no additional filter)
+
+                // Get distinct work dates
+                var workDates = await query
+                    .Select(ds => ds.WorkDate)
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .ToListAsync();
+
+                // Convert DateOnly to DateTime for response
+                var workDateTimes = workDates
+                    .Select(d => d.ToDateTime(TimeOnly.MinValue))
+                    .ToList();
+
+                var response = new BusyScheduleDateResponse
+                {
+                    DoctorId = request.DoctorId,
+                    WorkDates = workDateTimes
+                };
+
+                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} work dates for doctor {DoctorId}", methodName, workDateTimes.Count, request.DoctorId);
+
+                return BaseResponse<BusyScheduleDateResponse>.CreateSuccess(response, "Busy schedule dates retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving busy schedule dates", methodName);
+                return BaseResponse<BusyScheduleDateResponse>.CreateError($"Error retrieving busy schedule dates: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
         }
 
@@ -1988,7 +2257,7 @@ namespace FSCMS.Service.Services
                 if (request.Notes != null)
                     slot.Notes = request.Notes;
 
-                slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                slot.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slotId);
                 await _unitOfWork.CommitAsync();
@@ -2049,8 +2318,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 slot.IsDeleted = true;
-                slot.DeletedAt = DateTime.UtcNow.AddHours(7);
-                slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                slot.DeletedAt = DateTime.UtcNow;
+                slot.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slotId);
                 await _unitOfWork.CommitAsync();
