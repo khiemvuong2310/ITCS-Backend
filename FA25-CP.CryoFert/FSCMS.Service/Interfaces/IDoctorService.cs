@@ -44,6 +44,13 @@ namespace FSCMS.Service.Interfaces
         Task<DynamicResponse<DoctorResponse>> GetAllDoctorsAsync(GetDoctorsRequest request);
 
         /// <summary>
+        /// Get doctors who are available based on optional filters
+        /// </summary>
+        /// <param name="request">Request parameters for availability filtering and pagination</param>
+        /// <returns>DynamicResponse containing paginated doctor list</returns>
+        Task<DynamicResponse<DoctorResponse>> GetAvailableDoctorsAsync(GetAvailableDoctorsRequest request);
+
+        /// <summary>
         /// Create new doctor
         /// </summary>
         /// <param name="request">Doctor creation request</param>

@@ -92,6 +92,23 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
+        /// Get doctors who are available based on optional filters
+        /// </summary>
+        /// <param name="request">Availability filter parameters</param>
+        /// <returns>Paginated list of available doctors</returns>
+        [HttpGet("available")]
+        [Authorize]
+        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAvailableDoctors([FromQuery] GetAvailableDoctorsRequest request)
+        {
+            var result = await _doctorService.GetAvailableDoctorsAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
         /// Create new doctor
         /// </summary>
         /// <param name="request">Doctor creation request</param>

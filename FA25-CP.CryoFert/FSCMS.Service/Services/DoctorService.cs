@@ -352,6 +352,176 @@ namespace FSCMS.Service.Services
         }
 
         /// <summary>
+        /// Get doctors who are available based on optional filters
+        /// </summary>
+        public async Task<DynamicResponse<DoctorResponse>> GetAvailableDoctorsAsync(GetAvailableDoctorsRequest request)
+        {
+            const string methodName = nameof(GetAvailableDoctorsAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                request ??= new GetAvailableDoctorsRequest();
+                request.Normalize();
+
+                if (request.SlotId.HasValue && request.SlotId.Value == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid slot ID provided", methodName);
+                    return new DynamicResponse<DoctorResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_SLOT_ID",
+                        Message = "Slot ID cannot be empty or invalid",
+                        MetaData = new PagingMetaData
+                        {
+                            Page = request.Page,
+                            Size = request.Size,
+                            Total = 0,
+                            CurrentPageSize = 0
+                        },
+                        Data = new List<DoctorResponse>()
+                    };
+                }
+
+                if (request.SlotId.HasValue && !request.WorkDate.HasValue)
+                {
+                    _logger.LogWarning("{MethodName}: Slot filter requires work date", methodName);
+                    return new DynamicResponse<DoctorResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_FILTER_COMBINATION",
+                        Message = "Work date must be provided when filtering by slot",
+                        MetaData = new PagingMetaData
+                        {
+                            Page = request.Page,
+                            Size = request.Size,
+                            Total = 0,
+                            CurrentPageSize = 0
+                        },
+                        Data = new List<DoctorResponse>()
+                    };
+                }
+
+                var query = _unitOfWork.Repository<Doctor>()
+                    .AsQueryable()
+                    .AsNoTracking()
+                    .Include(d => d.Account)
+                    .Where(d => !d.IsDeleted);
+
+                if (!request.IncludeInactive)
+                {
+                    query = query.Where(d => d.IsActive);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var searchTerm = request.Name.Trim().ToLowerInvariant();
+                    query = query.Where(d => d.Account != null &&
+                        (
+                            (d.Account.FirstName ?? string.Empty).ToLower().Contains(searchTerm) ||
+                            (d.Account.LastName ?? string.Empty).ToLower().Contains(searchTerm) ||
+                            ((d.Account.FirstName ?? string.Empty) + " " + (d.Account.LastName ?? string.Empty)).ToLower().Contains(searchTerm) ||
+                            ((d.Account.LastName ?? string.Empty) + " " + (d.Account.FirstName ?? string.Empty)).ToLower().Contains(searchTerm)
+                        ));
+                }
+
+                if (request.WorkDate.HasValue)
+                {
+                    var workDate = DateOnly.FromDateTime(request.WorkDate.Value.Date);
+                    query = query.Where(d => d.DoctorSchedules.Any(ds =>
+                        !ds.IsDeleted &&
+                        ds.IsAvailable &&
+                        ds.WorkDate == workDate &&
+                        ds.Slot != null &&
+                        !ds.Slot.IsDeleted &&
+                        ds.Slot.Appointment == null &&
+                        (!request.SlotId.HasValue || ds.SlotId == request.SlotId.Value)));
+                }
+
+                var totalCount = await query.CountAsync();
+
+                var isDescending = request.Order == "desc";
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    switch (request.Sort.ToLower())
+                    {
+                        case "name":
+                            query = isDescending
+                                ? query
+                                    .OrderByDescending(d => d.Account != null ? d.Account.LastName : string.Empty)
+                                    .ThenByDescending(d => d.Account != null ? d.Account.FirstName : string.Empty)
+                                : query
+                                    .OrderBy(d => d.Account != null ? d.Account.LastName : string.Empty)
+                                    .ThenBy(d => d.Account != null ? d.Account.FirstName : string.Empty);
+                            break;
+                        case "experience":
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.YearsOfExperience)
+                                : query.OrderBy(d => d.YearsOfExperience);
+                            break;
+                        case "joindate":
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.JoinDate)
+                                : query.OrderBy(d => d.JoinDate);
+                            break;
+                        case "createdat":
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.CreatedAt)
+                                : query.OrderBy(d => d.CreatedAt);
+                            break;
+                        default:
+                            query = isDescending
+                                ? query.OrderByDescending(d => d.CreatedAt)
+                                : query.OrderBy(d => d.CreatedAt);
+                            break;
+                    }
+                }
+                else
+                {
+                    query = query
+                        .OrderBy(d => d.Account != null ? d.Account.LastName : string.Empty)
+                        .ThenBy(d => d.Account != null ? d.Account.FirstName : string.Empty);
+                }
+
+                var doctors = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var doctorResponses = _mapper.Map<List<DoctorResponse>>(doctors);
+
+                _logger.LogInformation("{MethodName}: Retrieved {Count} available doctors", methodName, doctorResponses.Count);
+
+                return new DynamicResponse<DoctorResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    SystemCode = "SUCCESS",
+                    Message = "Available doctors retrieved successfully",
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount,
+                        CurrentPageSize = doctorResponses.Count
+                    },
+                    Data = doctorResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving available doctors", methodName);
+                return new DynamicResponse<DoctorResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = $"An internal error occurred while retrieving available doctors: {ex.Message}",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<DoctorResponse>()
+                };
+            }
+        }
+
+        /// <summary>
         /// Create new doctor
         /// </summary>
         public async Task<BaseResponse<DoctorResponse>> CreateDoctorAsync(CreateDoctorRequest request)
