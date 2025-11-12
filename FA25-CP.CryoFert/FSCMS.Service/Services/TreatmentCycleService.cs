@@ -234,7 +234,7 @@ namespace FSCMS.Service.Services
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
                 entity.UpdateEntity(request);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Update", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
@@ -274,8 +274,8 @@ namespace FSCMS.Service.Services
 
                 // If there are appointments or (future) samples/transactions, we soft-delete (always here)
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Delete", JsonSerializer.Serialize(entity.ToResponseModel()), null);
@@ -310,7 +310,7 @@ namespace FSCMS.Service.Services
 
                 if (request?.StartDate.HasValue == true) entity.StartDate = request.StartDate.Value;
                 entity.Status = TreatmentStatus.InProgress;
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Start", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
@@ -340,9 +340,9 @@ namespace FSCMS.Service.Services
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
                 entity.Status = TreatmentStatus.Completed;
-                if (request?.EndDate.HasValue == true) entity.EndDate = request.EndDate.Value; else entity.EndDate = DateTime.UtcNow.AddHours(7);
+                if (request?.EndDate.HasValue == true) entity.EndDate = request.EndDate.Value; else entity.EndDate = DateTime.UtcNow;
                 if (!string.IsNullOrWhiteSpace(request?.Notes)) entity.Notes = (entity.Notes == null ? request!.Notes : entity.Notes + "\n" + request!.Notes);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Complete", oldValues, JsonSerializer.Serialize(new { entity, request?.Outcome }));
@@ -373,7 +373,7 @@ namespace FSCMS.Service.Services
 
                 entity.Status = TreatmentStatus.Cancelled;
                 entity.Notes = (entity.Notes == null ? $"Cancelled: {request?.Reason}" : entity.Notes + $"\nCancelled: {request?.Reason}");
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Cancel", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));

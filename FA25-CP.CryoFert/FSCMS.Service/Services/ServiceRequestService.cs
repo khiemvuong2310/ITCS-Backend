@@ -383,16 +383,16 @@ namespace FSCMS.Service.Services
                     foreach (var detail in entity.ServiceRequestDetails.Where(d => !d.IsDeleted))
                     {
                         detail.IsDeleted = true;
-                        detail.DeletedAt = DateTime.UtcNow.AddHours(7);
-                        detail.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                        detail.DeletedAt = DateTime.UtcNow;
+                        detail.UpdatedAt = DateTime.UtcNow;
                         await _unitOfWork.Repository<ServiceRequestDetails>().UpdateGuid(detail, detail.Id);
                     }
                 }
 
                 // Soft delete
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
@@ -508,7 +508,7 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.Status = ServiceRequestStatus.Approved;
-                entity.ApprovedDate = DateTime.UtcNow.AddHours(7);
+                entity.ApprovedDate = DateTime.UtcNow;
                 entity.ApprovedBy = approvedBy;
 
                 await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(entity, id);

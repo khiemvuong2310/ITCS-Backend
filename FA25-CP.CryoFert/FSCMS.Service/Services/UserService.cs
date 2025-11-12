@@ -543,7 +543,7 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 account.IsDeleted = true;
-                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                account.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
@@ -624,7 +624,7 @@ namespace FSCMS.Service.Services
                 }
 
                 account.IsVerified = true;
-                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                account.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
@@ -676,7 +676,7 @@ namespace FSCMS.Service.Services
                 }
 
                 account.IsActive = status;
-                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                account.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();

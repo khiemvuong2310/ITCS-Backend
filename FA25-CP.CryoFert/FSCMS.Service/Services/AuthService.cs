@@ -843,7 +843,7 @@ namespace FSCMS.Service.Services
 
                 // Hash and save new password
                 account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                account.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
@@ -890,7 +890,7 @@ namespace FSCMS.Service.Services
 
                 // Clear refresh token to invalidate it
                 account.RefreshToken = null;
-                account.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                account.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();

@@ -539,7 +539,7 @@ namespace FSCMS.Service.Services
 
                 // Update patient properties
                 _mapper.Map(request, existingPatient);
-                existingPatient.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                existingPatient.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Patient>().UpdateGuid(existingPatient, patientId);
                 await _unitOfWork.CommitAsync();
@@ -590,7 +590,7 @@ namespace FSCMS.Service.Services
                 }
 
                 existingPatient.IsActive = request.IsActive;
-                existingPatient.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                existingPatient.UpdatedAt = DateTime.UtcNow;
                     
                 if (!string.IsNullOrWhiteSpace(request.Reason))
                 {
@@ -654,7 +654,7 @@ namespace FSCMS.Service.Services
                 }
 
                 existingPatient.IsDeleted = true;
-                existingPatient.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                existingPatient.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Patient>().UpdateGuid(existingPatient, patientId);
                 await _unitOfWork.CommitAsync();
@@ -1049,7 +1049,7 @@ namespace FSCMS.Service.Services
 
                 // Update relationship properties
                 _mapper.Map(request, existingRelationship);
-                existingRelationship.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                existingRelationship.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Relationship>().UpdateGuid(existingRelationship, relationshipId);
                 await _unitOfWork.CommitAsync();
@@ -1095,7 +1095,7 @@ namespace FSCMS.Service.Services
                 }
 
                 existingRelationship.IsDeleted = true;
-                existingRelationship.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                existingRelationship.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Relationship>().UpdateGuid(existingRelationship, relationshipId);
                 await _unitOfWork.CommitAsync();
@@ -1481,7 +1481,7 @@ namespace FSCMS.Service.Services
                 foreach (var patient in patients)
                 {
                     patient.IsActive = isActive;
-                    patient.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                    patient.UpdatedAt = DateTime.UtcNow;
 
                     if (!string.IsNullOrWhiteSpace(reason))
                     {
@@ -1559,7 +1559,7 @@ namespace FSCMS.Service.Services
                 foreach (var patient in patients)
                 {
                     patient.IsDeleted = true;
-                    patient.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                    patient.UpdatedAt = DateTime.UtcNow;
 
                     await _unitOfWork.Repository<Patient>().UpdateGuid(patient, patient.Id);
                     deleteCount++;

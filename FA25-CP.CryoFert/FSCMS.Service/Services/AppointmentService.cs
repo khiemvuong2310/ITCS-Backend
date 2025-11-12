@@ -913,7 +913,7 @@ namespace FSCMS.Service.Services
                 if (request.IsReminderSent.HasValue)
                     appointment.IsReminderSent = request.IsReminderSent.Value;
 
-                appointment.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointment.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointmentId);
                 await _unitOfWork.CommitAsync();
@@ -984,8 +984,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete appointment
                 appointment.IsDeleted = true;
-                appointment.DeletedAt = DateTime.UtcNow.AddHours(7);
-                appointment.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointment.DeletedAt = DateTime.UtcNow;
+                appointment.UpdatedAt = DateTime.UtcNow;
 
                 // Soft delete appointment doctors
                 var appointmentDoctors = await _unitOfWork.Repository<AppointmentDoctor>()
@@ -996,8 +996,8 @@ namespace FSCMS.Service.Services
                 foreach (var appointmentDoctor in appointmentDoctors)
                 {
                     appointmentDoctor.IsDeleted = true;
-                    appointmentDoctor.DeletedAt = DateTime.UtcNow.AddHours(7);
-                    appointmentDoctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                    appointmentDoctor.DeletedAt = DateTime.UtcNow;
+                    appointmentDoctor.UpdatedAt = DateTime.UtcNow;
                 }
 
                 await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointmentId);
@@ -1045,7 +1045,7 @@ namespace FSCMS.Service.Services
                 }
 
                 appointment.Status = status;
-                appointment.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointment.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointmentId);
                 await _unitOfWork.CommitAsync();
@@ -1087,9 +1087,9 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
-                appointment.CheckInTime = DateTime.UtcNow.AddHours(7);
+                appointment.CheckInTime = DateTime.UtcNow;
                 appointment.Status = AppointmentStatus.CheckedIn;
-                appointment.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointment.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointmentId);
                 await _unitOfWork.CommitAsync();
@@ -1137,9 +1137,9 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Cannot check out without checking in first", StatusCodes.Status400BadRequest, "NOT_CHECKED_IN");
                 }
 
-                appointment.CheckOutTime = DateTime.UtcNow.AddHours(7);
+                appointment.CheckOutTime = DateTime.UtcNow;
                 appointment.Status = AppointmentStatus.Completed;
-                appointment.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointment.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointmentId);
                 await _unitOfWork.CommitAsync();
@@ -1203,7 +1203,7 @@ namespace FSCMS.Service.Services
                         ? $"Cancelled: {cancellationReason}"
                         : $"{appointment.Notes}\nCancelled: {cancellationReason}";
                 }
-                appointment.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointment.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointmentId);
                 await _unitOfWork.CommitAsync();
@@ -1336,8 +1336,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 appointmentDoctor.IsDeleted = true;
-                appointmentDoctor.DeletedAt = DateTime.UtcNow.AddHours(7);
-                appointmentDoctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointmentDoctor.DeletedAt = DateTime.UtcNow;
+                appointmentDoctor.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<AppointmentDoctor>().UpdateGuid(appointmentDoctor, appointmentDoctor.Id);
                 await _unitOfWork.CommitAsync();
@@ -1388,7 +1388,7 @@ namespace FSCMS.Service.Services
                 appointmentDoctor.Role = role;
                 if (notes != null)
                     appointmentDoctor.Notes = notes;
-                appointmentDoctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                appointmentDoctor.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<AppointmentDoctor>().UpdateGuid(appointmentDoctor, appointmentDoctor.Id);
                 await _unitOfWork.CommitAsync();

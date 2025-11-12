@@ -354,8 +354,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<Core.Entities.Service>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 

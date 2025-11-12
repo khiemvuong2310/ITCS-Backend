@@ -135,7 +135,7 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.UpdateEntity(request);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
@@ -174,8 +174,8 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 

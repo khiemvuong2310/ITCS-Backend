@@ -386,7 +386,7 @@ namespace FSCMS.Service.Services
                 if (request.Notes != null)
                     entity.Notes = request.Notes;
 
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<AppointmentDoctor>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
 
@@ -434,8 +434,8 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow.AddHours(7);
-                entity.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                entity.DeletedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<AppointmentDoctor>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();

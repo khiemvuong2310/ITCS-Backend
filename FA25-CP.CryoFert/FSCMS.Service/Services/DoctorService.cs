@@ -618,8 +618,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 doctor.IsDeleted = true;
-                doctor.DeletedAt = DateTime.UtcNow.AddHours(7);
-                doctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                doctor.DeletedAt = DateTime.UtcNow;
+                doctor.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Doctor>().UpdateGuid(doctor, doctor.Id);
                 await _unitOfWork.CommitAsync();
@@ -683,7 +683,7 @@ namespace FSCMS.Service.Services
                 }
 
                 doctor.IsActive = isActive;
-                doctor.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                doctor.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Doctor>().UpdateGuid(doctor, doctor.Id);
                 await _unitOfWork.CommitAsync();
@@ -1341,7 +1341,7 @@ namespace FSCMS.Service.Services
                     schedule.Notes = request.Notes;
                 if (request.IsAvailable.HasValue)
                     schedule.IsAvailable = request.IsAvailable.Value;
-                schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                schedule.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<DoctorSchedule>().UpdateGuid(schedule, scheduleId);
                 await _unitOfWork.CommitAsync();
@@ -1409,8 +1409,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 schedule.IsDeleted = true;
-                schedule.DeletedAt = DateTime.UtcNow.AddHours(7);
-                schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                schedule.DeletedAt = DateTime.UtcNow;
+                schedule.UpdatedAt = DateTime.UtcNow;
 
                 // Note: Slots are global and not deleted when a schedule is deleted
 
@@ -1455,7 +1455,7 @@ namespace FSCMS.Service.Services
                 }
 
                 schedule.IsAvailable = isAvailable;
-                schedule.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                schedule.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<DoctorSchedule>().UpdateGuid(schedule, scheduleId);
                 await _unitOfWork.CommitAsync();
@@ -1996,7 +1996,7 @@ namespace FSCMS.Service.Services
                 if (request.Notes != null)
                     slot.Notes = request.Notes;
 
-                slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                slot.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slotId);
                 await _unitOfWork.CommitAsync();
@@ -2057,8 +2057,8 @@ namespace FSCMS.Service.Services
 
                 // Soft delete
                 slot.IsDeleted = true;
-                slot.DeletedAt = DateTime.UtcNow.AddHours(7);
-                slot.UpdatedAt = DateTime.UtcNow.AddHours(7);
+                slot.DeletedAt = DateTime.UtcNow;
+                slot.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<Slot>().UpdateGuid(slot, slotId);
                 await _unitOfWork.CommitAsync();
