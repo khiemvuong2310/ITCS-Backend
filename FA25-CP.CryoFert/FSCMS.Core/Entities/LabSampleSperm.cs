@@ -8,7 +8,14 @@ namespace FSCMS.Core.Entities
     // - 1-1 tới LabSample (LabSampleId)
     public class LabSampleSperm : BaseEntity<Guid>
     {
-        protected LabSampleSperm() : base() { }
+        public LabSampleSperm() : base() { }
+
+        public LabSampleSperm(
+            Guid id
+        )
+        {
+            Id = id;
+        }
         public LabSampleSperm(
             Guid id,
             Guid labSampleId,

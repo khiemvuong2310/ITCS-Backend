@@ -43,7 +43,7 @@ namespace FSCMS.Service.Services
         }
 
         #region Create Transaction & Redirect VNPay
-        public async Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request, HttpContext httpContext)
+        public async Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace FSCMS.Service.Services
                     Currency = "VND",
                     PatientId = patient.Id,
                     PatientName = $"{patient.Account.FirstName} {patient.Account.LastName}",
-                    Description = request.Description ?? $"{patient.Account.FirstName} {patient.Account.LastName} payment for {request.RelatedEntityType}",
+                    Description = $"{patient.Account.FirstName} {patient.Account.LastName} payment for {request.RelatedEntityType}",
                     RelatedEntityType = request.RelatedEntityType.ToString(),
                     RelatedEntityId = request.RelatedEntityId,
                     Status = TransactionStatus.Pending,
@@ -92,7 +92,7 @@ namespace FSCMS.Service.Services
                 string paymentUrl = null;
                 if (transaction.Currency == "VND")
                 {
-                    paymentUrl = _paymentGateway.CreateVnPayUrl(transaction, httpContext);
+                    paymentUrl = _paymentGateway.CreateVnPayUrl(transaction);
                     transaction.PaymentGateway = "VNPay";
                     transaction.PaymentMethod = "Online";
                     transaction.ReferenceNumber = transaction.TransactionCode;
@@ -129,6 +129,7 @@ namespace FSCMS.Service.Services
             try
             {
                 var vnpay = new VnPay();
+
                 foreach (var key in query.Keys)
                     vnpay.AddResponseData(key, query[key]!);
 
@@ -154,20 +155,36 @@ namespace FSCMS.Service.Services
                         Message = "Transaction not found"
                     };
 
-                string responseCode = vnpay.GetResponseData("vnp_ResponseCode");
-                transaction.Status = responseCode == "00" ? TransactionStatus.Completed : TransactionStatus.Failed;
-                transaction.ProcessedDate = DateTime.UtcNow;
+                string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
+                string vnp_TransactionStatus = vnpay.GetResponseData("vnp_TransactionStatus");
+                string bankCode = vnpay.GetResponseData("vnp_BankCode");
 
+                transaction.ProcessedDate = DateTime.UtcNow;
+                transaction.BankTranNo = vnpay.GetResponseData("vnp_TransactionNo");
+                transaction.BankName = bankCode;
+                if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
+                {
+                    transaction.Status = TransactionStatus.Completed;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    await _unitOfWork.CommitAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status200OK,
+                        Message = "Transaction processed",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }
+
+                transaction.Status = TransactionStatus.Failed;
                 await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                 await _unitOfWork.CommitAsync();
-
                 // Push SignalR
                 await _hubContext.Clients.User(transaction.PatientId.ToString())
                     .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
 
                 return new BaseResponse<TransactionResponseModel>
                 {
-                    Code = StatusCodes.Status200OK,
+                    Code = StatusCodes.Status500InternalServerError,
                     Message = "Transaction processed",
                     Data = _mapper.Map<TransactionResponseModel>(transaction)
                 };
@@ -194,6 +211,7 @@ namespace FSCMS.Service.Services
                 EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
                 EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
                 EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
+                EntityTypeTransaction.Patient => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
                 _ => false
             };
         }

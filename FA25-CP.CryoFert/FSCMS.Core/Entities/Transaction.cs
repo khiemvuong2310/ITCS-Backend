@@ -30,7 +30,7 @@ namespace FSCMS.Core.Entities
         public string TransactionCode { get; set; } = string.Empty;
 
         public TransactionType TransactionType { get; set; }
-
+        
         public decimal Amount { get; set; }
 
         public string Currency { get; set; } = "VND";
@@ -42,6 +42,7 @@ namespace FSCMS.Core.Entities
         public string? PaymentMethod { get; set; } // "Cash", "Card", "Transfer", "Insurance"
 
         public string? PaymentGateway { get; set; }
+        public string? BankTranNo { get; set; } // Code Transaction from Bank
 
         public string? ReferenceNumber { get; set; }
         public Guid RelatedEntityId { get; set; } // e.g., Invoice, Contract, ServiceRequest

@@ -18,8 +18,8 @@ namespace FSCMS.Service.RequestModel
         [Required(ErrorMessage = "PatientId is required.")]
         public Guid PatientId { get; set; }
 
-        [StringLength(1000)]
-        public string? Description { get; set; }
+        //[StringLength(1000)]
+        //public string? Description { get; set; }
         [Required(ErrorMessage = "RelatedEntityType is required.")]
         public EntityTypeTransaction RelatedEntityType { get; set; }
         [Required(ErrorMessage = "RelatedEntityId is required.")]
@@ -50,6 +50,7 @@ namespace FSCMS.Service.RequestModel
     {
         ServiceRequest = 0,
         Appointment = 1,
-        CryoStorageContract = 2
+        CryoStorageContract = 2,
+        Patient = 3
     }
 }

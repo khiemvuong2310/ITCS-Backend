@@ -10,6 +10,12 @@ namespace FSCMS.Core.Entities
     {
         protected LabSampleEmbryo() : base() { }
         public LabSampleEmbryo(
+            Guid id
+        )
+        {
+            Id = id;
+        }
+        public LabSampleEmbryo(
             Guid id,
             Guid labSampleId,
             int dayOfDevelopment,
