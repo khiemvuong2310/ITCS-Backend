@@ -10,6 +10,12 @@ namespace FSCMS.Core.Entities
     {
         protected LabSampleOocyte() : base() { }
         public LabSampleOocyte(
+            Guid id
+        )
+        {
+            Id = id;
+        }
+        public LabSampleOocyte(
             Guid id,
             Guid labSampleId,
             string maturityStage,
