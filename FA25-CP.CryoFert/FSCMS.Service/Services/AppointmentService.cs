@@ -62,6 +62,14 @@ namespace FSCMS.Service.Services
                         .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
+                    .Include(a => a.Slot)
+                        .ThenInclude(s => s.Appointments)
+                            .ThenInclude(ap => ap.Patient)
+                                .ThenInclude(p => p.Account)
+                    .Include(a => a.Slot)
+                        .ThenInclude(s => s.Appointments)
+                            .ThenInclude(ap => ap.Patient)
+                                .ThenInclude(p => p.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
@@ -184,6 +192,10 @@ namespace FSCMS.Service.Services
                         .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
+                    .Include(a => a.Slot)
+                        .ThenInclude(s => s.Appointments)
+                            .ThenInclude(ap => ap.Patient)
+                                .ThenInclude(p => p.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
@@ -490,6 +502,10 @@ namespace FSCMS.Service.Services
                         .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
+                    .Include(a => a.Slot)
+                        .ThenInclude(s => s.Appointments)
+                            .ThenInclude(ap => ap.Patient)
+                                .ThenInclude(p => p.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
@@ -611,6 +627,10 @@ namespace FSCMS.Service.Services
                         .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
+                    .Include(a => a.Slot)
+                        .ThenInclude(s => s.Appointments)
+                            .ThenInclude(ap => ap.Patient)
+                                .ThenInclude(p => p.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
@@ -692,13 +712,18 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                     }
 
-                    // Check if slot is already booked (by existing appointment)
-                    var existingAppointment = await _unitOfWork.Repository<Appointment>()
+                    // Check if slot is already booked for the same day (by an active appointment)
+                    var appointmentDate = request.AppointmentDate.Date;
+                    var slotAlreadyBooked = await _unitOfWork.Repository<Appointment>()
                         .AsQueryable()
-                        .Where(a => a.SlotId == request.SlotId.Value && !a.IsDeleted)
-                        .FirstOrDefaultAsync();
+                        .AnyAsync(a =>
+                            a.SlotId == request.SlotId.Value &&
+                            !a.IsDeleted &&
+                            a.AppointmentDate.Date == appointmentDate &&
+                            a.Status != AppointmentStatus.Cancelled &&
+                            a.Status != AppointmentStatus.Rescheduled);
 
-                    if (existingAppointment != null)
+                    if (slotAlreadyBooked)
                     {
                         _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
                         return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
@@ -706,7 +731,7 @@ namespace FSCMS.Service.Services
 
                     // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
                     var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
-                    var workDate = DateOnly.FromDateTime(request.AppointmentDate.Date);
+                    var workDate = DateOnly.FromDateTime(appointmentDate);
                     if (primaryDoctorId.HasValue)
                     {
                         var existingSchedule = await _unitOfWork.Repository<DoctorSchedule>()
@@ -1506,7 +1531,12 @@ namespace FSCMS.Service.Services
                     Id = appointment.Slot.Id,
                     StartTime = appointment.Slot.StartTime,
                     EndTime = appointment.Slot.EndTime,
-                    IsBooked = appointment.Slot.Appointment != null
+                    IsBooked = appointment.Slot.Appointments.Any(a =>
+                        !a.IsDeleted &&
+                        a.Status != AppointmentStatus.Cancelled &&
+                        a.Status != AppointmentStatus.Rescheduled &&
+                        a.Status != AppointmentStatus.Completed &&
+                        a.Status != AppointmentStatus.NoShow)
                 };
 
                 // Map Schedule: pick schedule for the appointment date if available, otherwise first by date

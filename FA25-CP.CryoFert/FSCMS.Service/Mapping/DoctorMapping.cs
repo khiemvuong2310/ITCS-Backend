@@ -1,5 +1,6 @@
 using AutoMapper;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using System;
@@ -81,8 +82,8 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.StartTime : TimeSpan.Zero))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.EndTime : TimeSpan.Zero))
                 .ForMember(dest => dest.TotalSlots, opt => opt.MapFrom(src => src.Slot != null ? 1 : 0))
-                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointment == null && !src.Slot.IsDeleted ? 1 : 0))
-                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointment != null && !src.Slot.IsDeleted ? 1 : 0));
+                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointments.All(a => a.IsDeleted || a.Status == AppointmentStatus.Cancelled || a.Status == AppointmentStatus.Rescheduled || a.Status == AppointmentStatus.Completed || a.Status == AppointmentStatus.NoShow) && !src.Slot.IsDeleted ? 1 : 0))
+                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointments.Any(a => !a.IsDeleted && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Rescheduled && a.Status != AppointmentStatus.Completed && a.Status != AppointmentStatus.NoShow) && !src.Slot.IsDeleted ? 1 : 0));
 
             // Map DoctorSchedule entity to DoctorScheduleDetailResponse
             CreateMap<DoctorSchedule, DoctorScheduleDetailResponse>()
@@ -118,24 +119,40 @@ namespace FSCMS.Service.Mapping
             // Map Slot entity to SlotResponse
             CreateMap<Slot, SlotResponse>()
                 .ForMember(dest => dest.DoctorScheduleId, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).Select(ds => ds.Id).FirstOrDefault()))
-                .ForMember(dest => dest.Schedule, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault()));
+                .ForMember(dest => dest.Schedule, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault()))
+                .ForMember(dest => dest.IsBooked, opt => opt.MapFrom(src => src.Appointments.Any(a =>
+                    !a.IsDeleted &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    a.Status != AppointmentStatus.Rescheduled &&
+                    a.Status != AppointmentStatus.Completed &&
+                    a.Status != AppointmentStatus.NoShow)));
 
             // Map Slot entity to SlotDetailResponse
             CreateMap<Slot, SlotDetailResponse>()
                 .IncludeBase<Slot, SlotResponse>()
-                .ForMember(dest => dest.Appointment, opt => opt.MapFrom(src => src.Appointment));
+                .ForMember(dest => dest.Appointment, opt => opt.MapFrom(src =>
+                    src.Appointments
+                        .Where(a =>
+                            !a.IsDeleted &&
+                            a.Status != AppointmentStatus.Cancelled &&
+                            a.Status != AppointmentStatus.Rescheduled &&
+                            a.Status != AppointmentStatus.Completed &&
+                            a.Status != AppointmentStatus.NoShow)
+                        .OrderBy(a => a.AppointmentDate)
+                        .FirstOrDefault()));
 
             // Map DoctorSchedule entity to SlotScheduleInfo
             CreateMap<DoctorSchedule, SlotScheduleInfo>()
                 .ForMember(dest => dest.WorkDate, opt => opt.MapFrom(src => src.WorkDate.ToDateTime(TimeOnly.MinValue)))
                 .ForMember(dest => dest.Doctor, opt => opt.MapFrom(src => src.Doctor));
 
-            // Map Appointment entity to SlotAppointmentInfo (if Appointment entity exists)
-            // CreateMap<Appointment, SlotAppointmentInfo>()
-            //     .ForMember(dest => dest.PatientName, opt => opt.MapFrom(src => 
-            //         src.Patient != null && src.Patient.Account != null 
-            //             ? $"{src.Patient.Account.FirstName} {src.Patient.Account.LastName}".Trim() 
-            //             : string.Empty));
+            // Map Appointment entity to SlotAppointmentInfo (active appointment info for slot detail)
+            CreateMap<Appointment, SlotAppointmentInfo>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PatientName, opt => opt.MapFrom(src =>
+                    src.Patient != null && src.Patient.Account != null
+                        ? $"{src.Patient.Account.FirstName} {src.Patient.Account.LastName}".Trim()
+                        : string.Empty));
 
             // Map CreateSlotRequest to Slot entity
             CreateMap<CreateSlotRequest, Slot>()
@@ -145,7 +162,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.DoctorSchedules, opt => opt.Ignore())
-                .ForMember(dest => dest.Appointment, opt => opt.Ignore());
+                .ForMember(dest => dest.Appointments, opt => opt.Ignore());
 
             // Map UpdateSlotRequest to Slot entity
             CreateMap<UpdateSlotRequest, Slot>()
@@ -155,7 +172,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.DoctorSchedules, opt => opt.Ignore())
-                .ForMember(dest => dest.Appointment, opt => opt.Ignore())
+                .ForMember(dest => dest.Appointments, opt => opt.Ignore())
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             #endregion

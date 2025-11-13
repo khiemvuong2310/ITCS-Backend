@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace FSCMS.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialEntities : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,10 +23,13 @@ namespace FSCMS.Core.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Name = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    Code = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Type = table.Column<int>(type: "int", nullable: false),
                     SampleType = table.Column<int>(type: "int", nullable: false),
                     ParentId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
                     Capacity = table.Column<int>(type: "int", nullable: true),
+                    SampleCount = table.Column<int>(type: "int", nullable: false),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Temperature = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     Notes = table.Column<string>(type: "longtext", nullable: true)
@@ -209,6 +214,26 @@ namespace FSCMS.Core.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Slots",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    StartTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
+                    Notes = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Slots", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Transactions",
                 columns: table => new
                 {
@@ -227,10 +252,10 @@ namespace FSCMS.Core.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ReferenceNumber = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    RelatedEntityId = table.Column<int>(type: "int", nullable: true),
+                    RelatedEntityId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     RelatedEntityType = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PatientId = table.Column<int>(type: "int", nullable: true),
+                    PatientId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     PatientName = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "longtext", nullable: true)
@@ -360,7 +385,6 @@ namespace FSCMS.Core.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     JoinDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     LeaveDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -370,8 +394,8 @@ namespace FSCMS.Core.Migrations
                 {
                     table.PrimaryKey("PK_Doctors", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Doctors_Accounts_AccountId",
-                        column: x => x.AccountId,
+                        name: "FK_Doctors_Accounts_Id",
+                        column: x => x.Id,
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -406,7 +430,6 @@ namespace FSCMS.Core.Migrations
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Notes = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -416,8 +439,8 @@ namespace FSCMS.Core.Migrations
                 {
                     table.PrimaryKey("PK_Patients", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Patients_Accounts_AccountId",
-                        column: x => x.AccountId,
+                        name: "FK_Patients_Accounts_Id",
+                        column: x => x.Id,
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -430,9 +453,8 @@ namespace FSCMS.Core.Migrations
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     DoctorId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    WorkDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    StartTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
-                    EndTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
+                    SlotId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    WorkDate = table.Column<DateOnly>(type: "date", nullable: false),
                     IsAvailable = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Location = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -452,6 +474,12 @@ namespace FSCMS.Core.Migrations
                         principalTable: "Doctors",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DoctorSchedules_Slots_SlotId",
+                        column: x => x.SlotId,
+                        principalTable: "Slots",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -552,6 +580,13 @@ namespace FSCMS.Core.Migrations
                     Notes = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    RequestedBy = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    RespondedBy = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    RespondedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    RejectionReason = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -614,34 +649,6 @@ namespace FSCMS.Core.Migrations
                         name: "FK_Treatments_Patients_PatientId",
                         column: x => x.PatientId,
                         principalTable: "Patients",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "Slots",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    DoctorScheduleId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    StartTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
-                    EndTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
-                    IsBooked = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Notes = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Slots", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Slots_DoctorSchedules_DoctorScheduleId",
-                        column: x => x.DoctorScheduleId,
-                        principalTable: "DoctorSchedules",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -878,6 +885,46 @@ namespace FSCMS.Core.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Agreements",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    AgreementCode = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TreatmentId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    PatientId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    StartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    SignedByPatient = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    SignedByDoctor = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    FileUrl = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Agreements", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Agreements_Patients_PatientId",
+                        column: x => x.PatientId,
+                        principalTable: "Patients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Agreements_Treatments_TreatmentId",
+                        column: x => x.TreatmentId,
+                        principalTable: "Treatments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "TreatmentCycles",
                 columns: table => new
                 {
@@ -912,11 +959,47 @@ namespace FSCMS.Core.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "TreatmentIUIs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Protocol = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Medications = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Monitoring = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    OvulationTriggerDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    InseminationDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    MotileSpermCount = table.Column<int>(type: "int", nullable: true),
+                    NumberOfAttempts = table.Column<int>(type: "int", nullable: true),
+                    Outcome = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Notes = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TreatmentIUIs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TreatmentIUIs_Treatments_Id",
+                        column: x => x.Id,
+                        principalTable: "Treatments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "TreatmentIVFs",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    TreatmentId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Protocol = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     StimulationStartDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
@@ -947,8 +1030,8 @@ namespace FSCMS.Core.Migrations
                 {
                     table.PrimaryKey("PK_TreatmentIVFs", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TreatmentIVFs_Treatments_TreatmentId",
-                        column: x => x.TreatmentId,
+                        name: "FK_TreatmentIVFs_Treatments_Id",
+                        column: x => x.Id,
                         principalTable: "Treatments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -960,7 +1043,8 @@ namespace FSCMS.Core.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    TreatmentCycleId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    PatientId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    TreatmentCycleId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
                     SlotId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
                     Type = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
@@ -983,6 +1067,12 @@ namespace FSCMS.Core.Migrations
                 {
                     table.PrimaryKey("PK_Appointments", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_Appointments_Patients_PatientId",
+                        column: x => x.PatientId,
+                        principalTable: "Patients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
                         name: "FK_Appointments_Slots_SlotId",
                         column: x => x.SlotId,
                         principalTable: "Slots",
@@ -994,6 +1084,40 @@ namespace FSCMS.Core.Migrations
                         principalTable: "TreatmentCycles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "AppointmentDoctors",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    AppointmentId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    DoctorId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Role = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Notes = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppointmentDoctors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AppointmentDoctors_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
+                        principalTable: "Appointments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AppointmentDoctors_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -1179,16 +1303,155 @@ namespace FSCMS.Core.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
+            migrationBuilder.InsertData(
+                table: "Medicines",
+                columns: new[] { "Id", "Contraindication", "CreatedAt", "DeletedAt", "Dosage", "Form", "GenericName", "Indication", "IsActive", "IsDeleted", "Name", "Notes", "SideEffects", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("40000000-0000-0000-0000-000000000001"), null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2764), null, "300 IU", "Injection", "Recombinant FSH", "Ovarian stimulation", true, false, "Follitropin alfa", "Pen device", "Headache, abdominal pain", null },
+                    { new Guid("40000000-0000-0000-0000-000000000002"), null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2767), null, "5,000 IU", "Injection", "hCG", "Ovulation trigger", true, false, "Chorionic gonadotropin (hCG)", "Store refrigerated", "Injection site pain", null },
+                    { new Guid("40000000-0000-0000-0000-000000000003"), null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2770), null, "200 mg", "Capsule", "Progesterone", "Luteal phase support", true, false, "Progesterone", "Taken at bedtime", "Drowsiness", null },
+                    { new Guid("40000000-0000-0000-0000-000000000004"), null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2771), null, "2.5 mg", "Tablet", "Letrozole", "Ovulation induction", true, false, "Letrozole", null, "Fatigue, dizziness", null },
+                    { new Guid("40000000-0000-0000-0000-000000000005"), "Pregnancy", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2773), null, "100 mg", "Tablet", "Doxycycline hyclate", "Infection prophylaxis", true, false, "Doxycycline", null, null, null },
+                    { new Guid("40000000-0000-0000-0000-000000000006"), null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2775), null, "2 mg", "Tablet", "Estradiol", "Endometrial preparation", true, false, "Estradiol valerate", null, null, null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Roles",
+                columns: new[] { "Id", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "RoleCode", "RoleName", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("00000000-0000-0000-0000-000000000001"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2276), null, "System administrator", false, "ADMIN", "Admin", null },
+                    { new Guid("00000000-0000-0000-0000-000000000002"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2285), null, "Medical doctor", false, "DOCTOR", "Doctor", null },
+                    { new Guid("00000000-0000-0000-0000-000000000003"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2286), null, "Lab technician", false, "LAB_TECH", "Laboratory Technician", null },
+                    { new Guid("00000000-0000-0000-0000-000000000004"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2288), null, "Front desk staff", false, "RECEPTIONIST", "Receptionist", null },
+                    { new Guid("00000000-0000-0000-0000-000000000005"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2289), null, "Patient user", false, "PATIENT", "Patient", null },
+                    { new Guid("00000000-0000-0000-0000-000000000006"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2290), null, "General user", false, "USER", "User", null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "ServiceCategories",
+                columns: new[] { "Id", "Code", "CreatedAt", "DeletedAt", "Description", "DisplayOrder", "IsActive", "IsDeleted", "Name", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("10000000-0000-0000-0000-000000000001"), "CONS", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2593), null, "Clinical consultations", 1, true, false, "Consultation", null },
+                    { new Guid("10000000-0000-0000-0000-000000000002"), "DIAG", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2595), null, "Diagnostic tests and imaging", 2, true, false, "Diagnostics & Imaging", null },
+                    { new Guid("10000000-0000-0000-0000-000000000003"), "LAB", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2596), null, "Embryology and andrology procedures", 3, true, false, "Laboratory Procedures", null },
+                    { new Guid("10000000-0000-0000-0000-000000000004"), "CRYO", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2597), null, "Cryopreservation and storage services", 4, true, false, "Cryostorage & Logistics", null },
+                    { new Guid("10000000-0000-0000-0000-000000000005"), "TRMT", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2598), null, "IUI/IVF related procedures", 5, true, false, "Treatment Procedures", null },
+                    { new Guid("10000000-0000-0000-0000-000000000006"), "MED", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2599), null, "Medications and injections", 6, true, false, "Medications", null },
+                    { new Guid("10000000-0000-0000-0000-000000000007"), "ADMIN", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2600), null, "Administrative fees", 7, true, false, "Administrative & Others", null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Slots",
+                columns: new[] { "Id", "CreatedAt", "DeletedAt", "EndTime", "IsDeleted", "Notes", "StartTime", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("00000000-0000-0000-0000-000000000001"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2628), null, new TimeSpan(0, 10, 0, 0, 0), false, "Morning Slot 1", new TimeSpan(0, 8, 0, 0, 0), null },
+                    { new Guid("00000000-0000-0000-0000-000000000002"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2630), null, new TimeSpan(0, 12, 0, 0, 0), false, "Morning Slot 2", new TimeSpan(0, 10, 0, 0, 0), null },
+                    { new Guid("00000000-0000-0000-0000-000000000003"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2632), null, new TimeSpan(0, 15, 0, 0, 0), false, "Afternoon Slot 1", new TimeSpan(0, 13, 0, 0, 0), null },
+                    { new Guid("00000000-0000-0000-0000-000000000004"), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2633), null, new TimeSpan(0, 17, 0, 0, 0), false, "Afternoon Slot 2", new TimeSpan(0, 15, 0, 0, 0), null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Accounts",
+                columns: new[] { "Id", "Address", "AvatarId", "BirthDate", "CreatedAt", "DeletedAt", "Email", "ExpiredRefreshToken", "FirstName", "Gender", "IpAddress", "IsActive", "IsDeleted", "IsVerified", "LastLogin", "LastName", "PasswordHash", "Phone", "RefreshToken", "RoleId", "UpdatedAt", "Username" },
+                values: new object[,]
+                {
+                    { new Guid("00000000-0000-0000-0000-000000010001"), null, null, null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2434), null, "admin@cryo.com", null, "System", null, null, true, false, true, null, "Admin", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000001", null, new Guid("00000000-0000-0000-0000-000000000001"), null, "admin" },
+                    { new Guid("00000000-0000-0000-0000-000000010002"), null, null, null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2439), null, "lab@cryo.com", null, "Lab", null, null, true, false, true, null, "Technician", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000002", null, new Guid("00000000-0000-0000-0000-000000000003"), null, "lab" },
+                    { new Guid("00000000-0000-0000-0000-000000010003"), null, null, null, new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2441), null, "receptionist@cryo.com", null, "Front", null, null, true, false, true, null, "Receptionist", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000003", null, new Guid("00000000-0000-0000-0000-000000000004"), null, "receptionist" },
+                    { new Guid("00000000-0000-0000-0000-000000010004"), null, null, new DateTime(1980, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2448), null, "doctor1@cryo.com", null, "Nguyen", true, null, true, false, true, null, "Van A", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000004", null, new Guid("00000000-0000-0000-0000-000000000002"), null, "doctor1" },
+                    { new Guid("00000000-0000-0000-0000-000000010005"), null, null, new DateTime(1985, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2451), null, "doctor2@cryo.com", null, "Tran", false, null, true, false, true, null, "Thi B", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000005", null, new Guid("00000000-0000-0000-0000-000000000002"), null, "doctor2" },
+                    { new Guid("00000000-0000-0000-0000-000000010006"), null, null, new DateTime(1990, 3, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2453), null, "patient1@cryo.com", null, "Le", true, null, true, false, true, null, "Van C", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000006", null, new Guid("00000000-0000-0000-0000-000000000005"), null, "patient1" },
+                    { new Guid("00000000-0000-0000-0000-000000010007"), null, null, new DateTime(1992, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2455), null, "patient2@cryo.com", null, "Pham", false, null, true, false, true, null, "Thi D", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000007", null, new Guid("00000000-0000-0000-0000-000000000005"), null, "patient2" },
+                    { new Guid("00000000-0000-0000-0000-000000010008"), null, null, new DateTime(1988, 11, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2456), null, "patient3@cryo.com", null, "Hoang", true, null, true, false, true, null, "Van E", "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S", "+84900000008", null, new Guid("00000000-0000-0000-0000-000000000005"), null, "patient3" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Services",
+                columns: new[] { "Id", "Code", "CreatedAt", "DeletedAt", "Description", "Duration", "IsActive", "IsDeleted", "Name", "Notes", "Price", "ServiceCategoryId", "Unit", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("20000000-0000-0000-0000-000000000001"), "CONS-INIT", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2660), null, "First-time visit and clinical assessment", 30, true, false, "Initial fertility consultation", null, 120m, new Guid("10000000-0000-0000-0000-000000000001"), "session", null },
+                    { new Guid("20000000-0000-0000-0000-000000000002"), "CONS-FUP", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2664), null, "Follow-up review and plan", 20, true, false, "Follow-up consultation", null, 80m, new Guid("10000000-0000-0000-0000-000000000001"), "session", null },
+                    { new Guid("20000000-0000-0000-0000-000000000010"), "US-TVS", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2666), null, null, 15, true, false, "Transvaginal ultrasound", null, 60m, new Guid("10000000-0000-0000-0000-000000000002"), "scan", null },
+                    { new Guid("20000000-0000-0000-0000-000000000011"), "LAB-HORM", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2668), null, null, null, true, false, "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", null, 150m, new Guid("10000000-0000-0000-0000-000000000002"), "panel", null },
+                    { new Guid("20000000-0000-0000-0000-000000000012"), "SA", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2669), null, null, null, true, false, "Semen analysis", null, 40m, new Guid("10000000-0000-0000-0000-000000000002"), "test", null },
+                    { new Guid("20000000-0000-0000-0000-000000000020"), "OPU", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2670), null, null, null, true, false, "Oocyte retrieval (OPU)", null, 1500m, new Guid("10000000-0000-0000-0000-000000000003"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000021"), "SP-PREP", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2671), null, null, null, true, false, "Sperm preparation (IUI/IVF)", null, 90m, new Guid("10000000-0000-0000-0000-000000000003"), "prep", null },
+                    { new Guid("20000000-0000-0000-0000-000000000022"), "EMB-CULT", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2673), null, null, null, true, false, "Embryo culture (day 1-5)", null, 1500m, new Guid("10000000-0000-0000-0000-000000000003"), "cycle", null },
+                    { new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2674), null, null, null, true, false, "ICSI", null, 1200m, new Guid("10000000-0000-0000-0000-000000000003"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000024"), "ET", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2675), null, null, null, true, false, "Embryo transfer (ET)", null, 800m, new Guid("10000000-0000-0000-0000-000000000003"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000030"), "VIT-OOC", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2676), null, null, null, true, false, "Oocyte vitrification", null, 600m, new Guid("10000000-0000-0000-0000-000000000004"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000031"), "CRYO-SP", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2678), null, null, null, true, false, "Sperm cryopreservation", null, 120m, new Guid("10000000-0000-0000-0000-000000000004"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000032"), "VIT-EMB", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2679), null, null, null, true, false, "Embryo vitrification", null, 700m, new Guid("10000000-0000-0000-0000-000000000004"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000033"), "STORE-ANNUAL", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2680), null, null, null, true, false, "Annual storage fee (per specimen)", null, 150m, new Guid("10000000-0000-0000-0000-000000000004"), "year", null },
+                    { new Guid("20000000-0000-0000-0000-000000000034"), "THAW", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2681), null, null, null, true, false, "Specimen thawing", null, 200m, new Guid("10000000-0000-0000-0000-000000000004"), "procedure", null },
+                    { new Guid("20000000-0000-0000-0000-000000000040"), "IUI", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2682), null, null, null, true, false, "Intrauterine insemination (IUI)", null, 250m, new Guid("10000000-0000-0000-0000-000000000005"), "cycle", null },
+                    { new Guid("20000000-0000-0000-0000-000000000041"), "IVF", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2684), null, null, null, true, false, "In vitro fertilization (IVF) cycle", null, 12000m, new Guid("10000000-0000-0000-0000-000000000005"), "cycle", null },
+                    { new Guid("20000000-0000-0000-0000-000000000042"), "FET", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2686), null, null, null, true, false, "Frozen embryo transfer (FET)", null, 3500m, new Guid("10000000-0000-0000-0000-000000000005"), "cycle", null },
+                    { new Guid("20000000-0000-0000-0000-000000000050"), "GONA-PEN", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2687), null, null, null, true, false, "Gonadotropin stimulation (per pen)", null, 90m, new Guid("10000000-0000-0000-0000-000000000006"), "pen", null },
+                    { new Guid("20000000-0000-0000-0000-000000000051"), "HCG", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2689), null, null, null, true, false, "Trigger injection (hCG)", null, 20m, new Guid("10000000-0000-0000-0000-000000000006"), "dose", null },
+                    { new Guid("20000000-0000-0000-0000-000000000060"), "ADMIN-MR", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2690), null, null, null, true, false, "Medical record creation fee", null, 10m, new Guid("10000000-0000-0000-0000-000000000007"), "case", null },
+                    { new Guid("20000000-0000-0000-0000-000000000061"), "ADMIN-CERT", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2722), null, null, null, true, false, "Certificate/Report issuance", null, 15m, new Guid("10000000-0000-0000-0000-000000000007"), "doc", null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Doctors",
+                columns: new[] { "Id", "BadgeId", "Biography", "Certificates", "CreatedAt", "DeletedAt", "IsActive", "IsDeleted", "JoinDate", "LeaveDate", "LicenseNumber", "Specialty", "UpdatedAt", "YearsOfExperience" },
+                values: new object[,]
+                {
+                    { new Guid("00000000-0000-0000-0000-000000010004"), "DOC001", null, "Board Certified in Reproductive Medicine", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2483), null, true, false, new DateTime(2010, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "LIC-DOC-001", "Reproductive Endocrinology", null, 15 },
+                    { new Guid("00000000-0000-0000-0000-000000010005"), "DOC002", null, "Specialist in IVF Procedures", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2486), null, true, false, new DateTime(2015, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "LIC-DOC-002", "Obstetrics and Gynecology", null, 10 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Patients",
+                columns: new[] { "Id", "Allergies", "BloodType", "CreatedAt", "DeletedAt", "EmergencyContact", "EmergencyPhone", "Height", "Insurance", "IsActive", "IsDeleted", "MedicalHistory", "NationalID", "Notes", "Occupation", "PatientCode", "UpdatedAt", "Weight" },
+                values: new object[,]
+                {
+                    { new Guid("00000000-0000-0000-0000-000000010006"), null, "A+", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2509), null, "Le Van F", "+84900000009", null, null, true, false, null, "001234567890", null, null, "PAT001", null, null },
+                    { new Guid("00000000-0000-0000-0000-000000010007"), null, "B+", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2513), null, "Pham Thi G", "+84900000010", null, null, true, false, null, "001234567891", null, null, "PAT002", null, null },
+                    { new Guid("00000000-0000-0000-0000-000000010008"), null, "O+", new DateTime(2025, 11, 13, 22, 5, 58, 430, DateTimeKind.Utc).AddTicks(2566), null, "Hoang Van H", "+84900000011", null, null, true, false, null, "001234567892", null, null, "PAT003", null, null }
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Accounts_RoleId",
                 table: "Accounts",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Agreements_PatientId",
+                table: "Agreements",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Agreements_TreatmentId",
+                table: "Agreements",
+                column: "TreatmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppointmentDoctors_AppointmentId_DoctorId",
+                table: "AppointmentDoctors",
+                columns: new[] { "AppointmentId", "DoctorId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppointmentDoctors_DoctorId",
+                table: "AppointmentDoctors",
+                column: "DoctorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Appointments_PatientId",
+                table: "Appointments",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Appointments_SlotId",
                 table: "Appointments",
-                column: "SlotId",
-                unique: true);
+                column: "SlotId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_TreatmentCycleId",
@@ -1241,15 +1504,14 @@ namespace FSCMS.Core.Migrations
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Doctors_AccountId",
-                table: "Doctors",
-                column: "AccountId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_DoctorSchedules_DoctorId",
                 table: "DoctorSchedules",
                 column: "DoctorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DoctorSchedules_SlotId",
+                table: "DoctorSchedules",
+                column: "SlotId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LabSampleEmbryos_LabSampleId",
@@ -1283,12 +1545,6 @@ namespace FSCMS.Core.Migrations
                 name: "IX_MedicalRecords_AppointmentId",
                 table: "MedicalRecords",
                 column: "AppointmentId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Patients_AccountId",
-                table: "Patients",
-                column: "AccountId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1337,20 +1593,9 @@ namespace FSCMS.Core.Migrations
                 column: "ServiceCategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Slots_DoctorScheduleId",
-                table: "Slots",
-                column: "DoctorScheduleId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_TreatmentCycles_TreatmentId",
                 table: "TreatmentCycles",
                 column: "TreatmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TreatmentIVFs_TreatmentId",
-                table: "TreatmentIVFs",
-                column: "TreatmentId",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Treatments_DoctorId",
@@ -1367,6 +1612,12 @@ namespace FSCMS.Core.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Agreements");
+
+            migrationBuilder.DropTable(
+                name: "AppointmentDoctors");
+
+            migrationBuilder.DropTable(
                 name: "CPSDetails");
 
             migrationBuilder.DropTable(
@@ -1374,6 +1625,9 @@ namespace FSCMS.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "CryoImports");
+
+            migrationBuilder.DropTable(
+                name: "DoctorSchedules");
 
             migrationBuilder.DropTable(
                 name: "LabSampleEmbryos");
@@ -1398,6 +1652,9 @@ namespace FSCMS.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "Transactions");
+
+            migrationBuilder.DropTable(
+                name: "TreatmentIUIs");
 
             migrationBuilder.DropTable(
                 name: "TreatmentIVFs");
@@ -1440,9 +1697,6 @@ namespace FSCMS.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "TreatmentCycles");
-
-            migrationBuilder.DropTable(
-                name: "DoctorSchedules");
 
             migrationBuilder.DropTable(
                 name: "Treatments");
