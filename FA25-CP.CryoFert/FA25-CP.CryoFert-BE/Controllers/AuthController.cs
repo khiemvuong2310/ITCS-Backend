@@ -6,6 +6,7 @@ using FSCMS.Service.ReponseModel;
 using System.Security.Claims;
 using FSCMS.Service.Interfaces;
 using FA25_CP.CryoFert_BE.AppStarts;
+using FA25_CP.CryoFert_BE.Common.Attributes;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -28,7 +29,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// User login with email and password
         /// </summary>
         [HttpPost("login")]
-        [ApiDefaultResponse(typeof(LoginResponseModel), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(LoginResponseModel), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
             if (!ModelState.IsValid)
@@ -51,7 +52,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// User registration
         /// </summary>
         [HttpPost("register")]
-        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> Register([FromBody] RegisterRequestModel registerModel)
         {
             if (!ModelState.IsValid)
@@ -71,7 +72,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Refresh JWT token using refresh token
         /// </summary>
         [HttpPost("refresh-token")]
-        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest refreshTokenRequest)
         {
             if (!ModelState.IsValid)
@@ -91,7 +92,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Send verification email
         /// </summary>
         [HttpPost("send-verification-email")]
-        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> SendVerificationEmail([FromBody] EmailRequest emailRequest)
         {
             if (!ModelState.IsValid)
@@ -111,7 +112,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Verify email with verification code
         /// </summary>
         [HttpPost("verify-email")]
-        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> VerifyEmail([FromBody] EmailVerificationModel verificationModel)
         {
             if (!ModelState.IsValid)
@@ -131,7 +132,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Forgot password - send reset password email
         /// </summary>
         [HttpPost("forgot-password")]
-        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest forgotPasswordRequest)
         {
             if (!ModelState.IsValid)
@@ -152,7 +153,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("change-password")]
         [Authorize]
-        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest changePasswordRequest)
         {
             if (!ModelState.IsValid)
@@ -183,7 +184,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("logout")]
         [Authorize]
-        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> Logout()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -205,7 +206,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("admin/create-account")]
         [Authorize(Roles = "Admin")]
-        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> AdminCreateAccount([FromBody] AdminCreateAccountModel adminCreateAccountModel)
         {
             if (!ModelState.IsValid)
@@ -226,7 +227,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("admin/send-account/{userId}")]
         [Authorize(Roles = "Admin")]
-        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> SendAccount(Guid userId)
         {
             if (userId == null)
@@ -247,7 +248,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("admin/set-email-verified")]
         [Authorize(Roles = "Admin")]
-        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false, IncludeForbidden = true)]
         public async Task<IActionResult> SetEmailVerified([FromBody] EmailRequest emailRequest)
         {
             if (!ModelState.IsValid)

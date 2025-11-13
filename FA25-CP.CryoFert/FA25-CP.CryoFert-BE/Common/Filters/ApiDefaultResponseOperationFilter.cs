@@ -1,8 +1,9 @@
-﻿using FSCMS.Service.ReponseModel;
+﻿using FA25_CP.CryoFert_BE.Common.Attributes;
+using FSCMS.Service.ReponseModel;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace FA25_CP.CryoFert_BE.AppStarts
+namespace FA25_CP.CryoFert_BE.Common.Filters
 {
     public class ApiDefaultResponseOperationFilter : IOperationFilter
     {
@@ -43,7 +44,10 @@ namespace FA25_CP.CryoFert_BE.AppStarts
 
             var okSchema = schemaGenerator.GenerateSchema(okResponseType, schemaRepository);
             var errorSchema = schemaGenerator.GenerateSchema(badResponseType, schemaRepository);
-
+            if (attr.IncludeForbidden)
+            {
+                AddOrReplaceResponse(operation, "403", "Forbidden", errorSchema);
+            }
             // thêm/ghi đè 200, 400, 401, 404, 500
             AddOrReplaceResponse(operation, "200", "OK", okSchema);
             AddOrReplaceResponse(operation, "400", "Bad Request", errorSchema);
