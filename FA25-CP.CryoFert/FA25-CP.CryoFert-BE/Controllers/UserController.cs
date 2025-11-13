@@ -5,6 +5,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using System.Security.Claims;
 using FSCMS.Service.Interfaces;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -30,12 +31,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="userId">User ID</param>
         /// <returns>User information</returns>
         [HttpGet("{userId}")]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetUserById(Guid userId)
         {
             if (userId == null)
@@ -82,11 +78,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="email">Email address</param>
         /// <returns>User information</returns>
         [HttpGet("by-email")]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetUserByEmail([FromQuery] string email)
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -108,11 +100,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="userId">User ID</param>
         /// <returns>Detailed user information</returns>
         [HttpGet("{userId}/details")]
-        [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserDetailResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetUserDetailById(Guid userId)
         {
             if (userId == null)
@@ -135,10 +123,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of users</returns>
         [HttpGet]
         [Authorize(Roles = "Admin,Doctor")] // Only Admin and Doctor can view all users
-        [ProducesResponseType(typeof(DynamicResponse<UserResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<UserResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(DynamicResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse))]
         public async Task<IActionResult> GetAllUsers([FromQuery] GetUsersRequest request)
         {
             var result = await _userService.GetAllUsersAsync(request);
@@ -152,11 +137,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of matching users</returns>
         [HttpGet("search")]
         [Authorize(Roles = "Admin,Doctor")] // Only Admin and Doctor can search users
-        [ProducesResponseType(typeof(BaseResponse<List<UserResponse>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<UserResponse>>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<List<UserResponse>>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<List<UserResponse>>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<List<UserResponse>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<UserResponse>), UseDynamicWrapper = false)]
         public async Task<IActionResult> SearchUsers([FromQuery] string userName)
         {
             if (string.IsNullOrWhiteSpace(userName))
@@ -179,11 +160,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created user information</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")] // Only Admin can create users
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest createUserRequest)
         {
             if (!ModelState.IsValid)
@@ -206,11 +183,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="updateUserRequest">Updated user information</param>
         /// <returns>Updated user information</returns>
         [HttpPut("{userId}")]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateUser(Guid userId, [FromBody] UpdateUserRequest updateUserRequest)
         {
             if (!ModelState.IsValid)
@@ -252,12 +225,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Deletion result</returns>
         [HttpDelete("{userId}")]
         [Authorize(Roles = "Admin")] // Only Admin can delete users
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteUser(Guid userId)
         {
             if (userId == null)
@@ -279,10 +247,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="email">Email address</param>
         /// <returns>Email existence status</returns>
         [HttpGet("email-exists")]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> CheckEmailExists([FromQuery] string email)
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -310,12 +275,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Email verification result</returns>
         [HttpPost("{userId}/verify-email")]
         [Authorize(Roles = "Admin")] // Only Admin can verify emails
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> VerifyUserEmail(Guid userId)
         {
             if (userId == null)
@@ -339,12 +299,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Status update result</returns>
         [HttpPut("{userId}/status")]
         [Authorize(Roles = "Admin")] // Only Admin can change user status
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateUserStatus(Guid userId, [FromBody] bool status)
         {
             if (userId == null)
@@ -365,9 +320,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <returns>Current user information</returns>
         [HttpGet("profile")]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetCurrentUserProfile()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -390,10 +343,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="updateUserRequest">Updated profile information</param>
         /// <returns>Updated user information</returns>
         [HttpPut("profile")]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<UserResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(UserResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateCurrentUserProfile([FromBody] UpdateUserRequest updateUserRequest)
         {
             if (!ModelState.IsValid)

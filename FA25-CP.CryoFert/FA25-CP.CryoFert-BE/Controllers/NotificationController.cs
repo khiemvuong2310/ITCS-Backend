@@ -6,6 +6,7 @@ using FSCMS.Service.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -29,10 +30,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get notification by ID
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(NotificationResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetNotificationById(Guid id)
         {
             if (id == Guid.Empty)
@@ -52,8 +50,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get list of notifications with filtering and pagination
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<NotificationResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<NotificationResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(NotificationResponse))]
         public async Task<IActionResult> GetNotifications([FromQuery] GetNotificationsRequest request)
         {
             var result = await _notificationService.GetNotificationsAsync(request);
@@ -64,9 +61,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create new notification
         /// </summary>
         [HttpPost]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(NotificationResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationRequest request)
         {
             if (!ModelState.IsValid)
@@ -86,10 +81,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update existing notification
         /// </summary>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<NotificationResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(NotificationResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateNotification(Guid id, [FromBody] UpdateNotificationRequest request)
         {
             if (!ModelState.IsValid)
@@ -118,9 +110,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Delete notification (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteNotification(Guid id)
         {
             if (id == Guid.Empty)

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -21,9 +22,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(DynamicResponse<TreatmentResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<TreatmentResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<TreatmentResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentsRequest request)
         {
             request ??= new GetTreatmentsRequest();
@@ -33,10 +32,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentDetailResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentDetailResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentDetailResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentDetailResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _treatmentService.GetByIdAsync(id);
@@ -45,10 +41,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] TreatmentCreateUpdateRequest request)
         {
             if (!ModelState.IsValid)
@@ -61,10 +54,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentCreateUpdateRequest request)
         {
             if (!ModelState.IsValid)
@@ -77,10 +67,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _treatmentService.DeleteAsync(id);

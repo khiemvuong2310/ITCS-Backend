@@ -7,6 +7,7 @@ using FSCMS.Core.Entities;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -31,9 +32,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpGet]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(DynamicResponse<Medicine>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<Medicine>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<Medicine>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(Medicine))]
         public async Task<IActionResult> GetAll([FromQuery] PagingModel request)
         {
             var result = await _medicineService.GetAllAsync(request);
@@ -45,11 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(Medicine), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _medicineService.GetByIdAsync(id);
@@ -61,10 +56,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(Medicine), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateMedicineRequest request)
         {
             if (!ModelState.IsValid)
@@ -96,11 +88,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<Medicine>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(Medicine), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMedicineRequest request)
         {
             if (!ModelState.IsValid)
@@ -133,11 +121,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _medicineService.DeleteAsync(id);

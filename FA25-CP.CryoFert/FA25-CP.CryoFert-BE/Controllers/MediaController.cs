@@ -5,6 +5,7 @@ using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -28,9 +29,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Upload media file
         /// </summary>
         [HttpPost("upload")]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UploadMedia([FromForm] UploadMediaRequest request)
         {
             if (request.File == null)
@@ -50,9 +49,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get media by ID
         /// </summary>
         [HttpGet("{mediaId}")]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetMediaById(Guid mediaId)
         {
             var result = await _mediaService.GetMediaByIdAsync(mediaId);
@@ -63,9 +60,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update media metadata
         /// </summary>
         [HttpPut("{mediaId}")]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<MediaResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateMedia(Guid mediaId, [FromBody] UpdateMediaRequest request)
         {
             var result = await _mediaService.UpdateMediaAsync(mediaId, request);
@@ -76,9 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Delete media (soft delete)
         /// </summary>
         [HttpDelete("{mediaId}")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteMedia(Guid mediaId)
         {
             var result = await _mediaService.DeleteMediaAsync(mediaId);
@@ -89,8 +82,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get all media with filtering, sorting, and pagination
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<MediaResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<MediaResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(MediaResponse))]
         public async Task<IActionResult> GetAllMedias([FromQuery] GetMediasRequest request)
         {
             var result = await _mediaService.GetAllMediasAsync(request);

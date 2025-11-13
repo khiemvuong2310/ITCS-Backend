@@ -6,6 +6,7 @@ using FSCMS.Service.ReponseModel;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Threading.Tasks;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -29,10 +30,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get CryoImport by ID
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoImportResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             if (id == Guid.Empty)
@@ -52,8 +50,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get all CryoImports with pagination and filtering
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<CryoImportResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoImportResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoImportResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetCryoImportsRequest request)
         {
             var result = await _cryoImportService.GetAllAsync(request);
@@ -64,9 +61,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create a new CryoImport
         /// </summary>
         [HttpPost]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoImportResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromQuery] CreateCryoImportRequest request)
         {
             if (!ModelState.IsValid)
@@ -86,10 +81,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update an existing CryoImport
         /// </summary>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<CryoImportResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoImportResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCryoImportRequest request)
         {
             if (!ModelState.IsValid)
@@ -109,9 +101,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Delete CryoImport (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             if (id == Guid.Empty)

@@ -4,6 +4,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using System.Security.Claims;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -31,11 +32,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Doctor schedule information</returns>
         [HttpGet("{id}")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorScheduleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorScheduleById(Guid id)
         {
             var result = await _doctorService.GetDoctorScheduleByIdAsync(id);
@@ -49,11 +46,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Detailed doctor schedule information</returns>
         [HttpGet("{id}/details")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleDetailResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleDetailResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleDetailResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleDetailResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorScheduleDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorScheduleDetails(Guid id)
         {
             var result = await _doctorService.GetDoctorScheduleDetailByIdAsync(id);
@@ -67,9 +60,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of doctor schedules</returns>
         [HttpGet]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorScheduleResponse))]
         public async Task<IActionResult> GetAllDoctorSchedules([FromQuery] GetDoctorSchedulesRequest request)
         {
             var result = await _doctorService.GetAllDoctorSchedulesAsync(request);
@@ -84,10 +75,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of doctor schedules</returns>
         [HttpGet("doctor/{doctorId}")]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorScheduleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorScheduleResponse))]
         public async Task<IActionResult> GetDoctorSchedulesByDoctorId(Guid doctorId, [FromQuery] GetDoctorSchedulesRequest request)
         {
             var result = await _doctorService.GetDoctorSchedulesByDoctorIdAsync(doctorId, request);
@@ -101,11 +89,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created schedule information</returns>
         [HttpPost]
         [Authorize(Roles = "Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorScheduleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateDoctorSchedule([FromBody] CreateDoctorScheduleRequest request)
         {
             if (!ModelState.IsValid)
@@ -149,12 +133,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated schedule information</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorScheduleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorScheduleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateDoctorSchedule(Guid id, [FromBody] UpdateDoctorScheduleRequest request)
         {
             if (!ModelState.IsValid)
@@ -204,12 +183,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Success or error response</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Doctor")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteDoctorSchedule(Guid id)
         {
             // Check if user is trying to delete their own schedule or is admin
@@ -250,12 +224,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Success or error response</returns>
         [HttpPatch("{id}/availability")]
         [Authorize(Roles = "Doctor")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateScheduleAvailability(Guid id, [FromBody] bool isAvailable)
         {
             // Check if user is trying to update their own schedule or is admin
@@ -295,11 +264,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of work dates for the doctor</returns>
         [HttpGet("busy-dates")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<BusyScheduleDateResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(BusyScheduleDateResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetBusyScheduleDate([FromBody] GetBusyScheduleDateRequest request)
         {
             if (!ModelState.IsValid)

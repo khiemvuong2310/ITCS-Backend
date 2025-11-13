@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -26,10 +27,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Service request detail response</returns>
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceRequestDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _serviceRequestDetailsService.GetByIdAsync(id);
@@ -43,10 +41,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of service request details</returns>
         [HttpGet("service-request/{serviceRequestId:guid}")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<ServiceRequestDetailResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByServiceRequest(Guid serviceRequestId)
         {
             var result = await _serviceRequestDetailsService.GetByServiceRequestAsync(serviceRequestId);
@@ -60,10 +55,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of service request details</returns>
         [HttpGet("service/{serviceId:guid}")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceRequestDetailResponseModel>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<ServiceRequestDetailResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByService(Guid serviceId)
         {
             var result = await _serviceRequestDetailsService.GetByServiceAsync(serviceId);
@@ -78,11 +70,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created service request detail response</returns>
         [HttpPost("service-request/{serviceRequestId:guid}")]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceRequestDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create(Guid serviceRequestId, [FromBody] ServiceRequestDetailCreateRequestModel request)
         {
             if (!ModelState.IsValid)
@@ -106,11 +94,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated service request detail response</returns>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceRequestDetailResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceRequestDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceRequestDetailUpdateRequestModel request)
         {
             if (!ModelState.IsValid)
@@ -133,11 +117,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _serviceRequestDetailsService.DeleteAsync(id);

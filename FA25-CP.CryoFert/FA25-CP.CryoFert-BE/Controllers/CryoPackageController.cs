@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -28,11 +29,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Cryo Package ID</param>
         /// <returns>Cryo Package details</returns>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoPackageResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             if (id == Guid.Empty)
@@ -55,8 +52,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of Cryo Packages</returns>
         [HttpGet]
         [AllowAnonymous] // Allow both Admin and public access (optional)
-        [ProducesResponseType(typeof(DynamicResponse<CryoPackageResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoPackageResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoPackageResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetCryoPackagesRequest request)
         {
             var result = await _cryoPackageService.GetAllAsync(request);
@@ -69,11 +65,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Cryo Package creation data</param>
         /// <returns>Created Cryo Package details</returns>
         [HttpPost]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoPackageResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromQuery] CreateCryoPackageRequest request)
         {
             if (!ModelState.IsValid)
@@ -96,11 +88,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Cryo Package update data</param>
         /// <returns>Updated Cryo Package details</returns>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<CryoPackageResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(CryoPackageResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCryoPackageRequest request)
         {
             if (id == Guid.Empty)
@@ -131,12 +119,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Cryo Package ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             if (id == Guid.Empty)

@@ -4,6 +4,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using System.Security.Claims;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -28,11 +29,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Doctor information</returns>
         [HttpGet("{id}")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorById(Guid id)
         {
             var result = await _doctorService.GetDoctorByIdAsync(id);
@@ -46,11 +43,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Detailed doctor information</returns>
         [HttpGet("{id}/details")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<DoctorDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorDetailResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorDetailResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorDetailResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorDetailResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorDetails(Guid id)
         {
             var result = await _doctorService.GetDoctorDetailByIdAsync(id);
@@ -64,11 +57,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Doctor information</returns>
         [HttpGet("account/{accountId}")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorByAccountId(Guid accountId)
         {
             var result = await _doctorService.GetDoctorByAccountIdAsync(accountId);
@@ -82,9 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of doctors</returns>
         [HttpGet]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorResponse))]
         public async Task<IActionResult> GetAllDoctors([FromQuery] GetDoctorsRequest request)
         {
             var result = await _doctorService.GetAllDoctorsAsync(request);
@@ -98,10 +85,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of available doctors</returns>
         [HttpGet("available")]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorResponse))]
         public async Task<IActionResult> GetAvailableDoctors([FromQuery] GetAvailableDoctorsRequest request)
         {
             var result = await _doctorService.GetAvailableDoctorsAsync(request);
@@ -115,11 +99,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created doctor information</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorRequest request)
         {
             if (!ModelState.IsValid)
@@ -144,12 +124,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated doctor information</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateDoctor(Guid id, [FromBody] UpdateDoctorRequest request)
         {
             if (!ModelState.IsValid)
@@ -197,12 +172,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Success or error response</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteDoctor(Guid id)
         {
             var result = await _doctorService.DeleteDoctorAsync(id);
@@ -217,12 +187,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Success or error response</returns>
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateDoctorStatus(Guid id, [FromBody] bool isActive)
         {
             var result = await _doctorService.UpdateDoctorStatusAsync(id, isActive);
@@ -239,10 +204,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Doctor statistics</returns>
         [HttpGet("statistics")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse<DoctorStatisticsResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorStatisticsResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorStatisticsResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<DoctorStatisticsResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DoctorStatisticsResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorStatistics()
         {
             var result = await _doctorService.GetDoctorStatisticsAsync();
@@ -255,9 +217,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of available specialties</returns>
         [HttpGet("specialties")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<List<string>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<string>>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<List<string>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<string>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAvailableSpecialties()
         {
             var result = await _doctorService.GetAvailableSpecialtiesAsync();
@@ -271,9 +231,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Boolean indicating if doctor exists</returns>
         [HttpGet("{id}/exists")]
         [Authorize]
-        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> DoctorExists(Guid id)
         {
             try
@@ -300,10 +258,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Boolean indicating if badge ID is unique</returns>
         [HttpGet("badge/{badgeId}/unique")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> IsBadgeIdUnique(string badgeId, [FromQuery] Guid? excludeDoctorId = null)
         {
             try
