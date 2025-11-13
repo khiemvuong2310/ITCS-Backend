@@ -48,5 +48,8 @@
 
 		<!-- ❌ Bỏ qua Templates folder để tránh trùng khi publish -->
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Common\Constants\" />
+	</ItemGroup>
 
 </Project>
