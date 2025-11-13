@@ -39,7 +39,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 });
             }
 
-            var result = await _transactionService.CreateTransactionAsync(request, HttpContext);
+            var result = await _transactionService.CreateTransactionAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

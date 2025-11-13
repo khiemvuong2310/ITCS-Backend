@@ -17,7 +17,7 @@ namespace FSCMS.Service.Interfaces
         /// <param name="request">Thông tin transaction cần tạo</param>
         /// <param name="httpContext">HttpContext để lấy IP và build URL</param>
         /// <returns>BaseResponse với TransactionResponseModel</returns>
-        Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request, HttpContext httpContext);
+        Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request);
 
         /// <summary>
         /// Xử lý callback từ VNPay sau khi người dùng thanh toán

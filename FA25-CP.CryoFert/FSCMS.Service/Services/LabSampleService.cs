@@ -203,6 +203,7 @@ namespace FSCMS.Service.Services
                 entity.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 entity.PatientId = request.PatientId;
                 entity.Patient = patient;
+                entity.LabSampleSperm = new LabSampleSperm(entity.Id);
                 entity.LabSampleSperm = _mapper.Map<LabSampleSperm>(request);
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
@@ -255,6 +256,7 @@ namespace FSCMS.Service.Services
                 entity.SampleCode = GenerateSampleCode(SampleType.Oocyte);
                 entity.PatientId = request.PatientId;
                 entity.Patient = patient;
+                entity.LabSampleOocyte = new LabSampleOocyte(entity.Id);
                 entity.LabSampleOocyte = _mapper.Map<LabSampleOocyte>(request);
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
@@ -308,6 +310,7 @@ namespace FSCMS.Service.Services
                 entity.PatientId = request.PatientId;
                 entity.Patient = patient;
 
+                entity.LabSampleEmbryo = new LabSampleEmbryo(entity.Id);
                 entity.LabSampleEmbryo = _mapper.Map<LabSampleEmbryo>(request);
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
