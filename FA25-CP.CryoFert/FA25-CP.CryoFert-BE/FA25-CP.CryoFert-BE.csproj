@@ -40,14 +40,13 @@
 
 	<!-- Copy .env to output directory -->
 	<ItemGroup>
+		<!-- Copy .env to output directory -->
 		<None Update=".env">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</None>
-		<!-- Include Templates folder and copy to output directory -->
-		<Content Include="Templates\*.html">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		</Content>
+
+		<!-- ❌ Bỏ qua Templates folder để tránh trùng khi publish -->
 	</ItemGroup>
+
 </Project>
