@@ -5,6 +5,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using System.Security.Claims;
 using FSCMS.Service.Interfaces;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -27,10 +28,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// User login with email and password
         /// </summary>
         [HttpPost("login")]
-        [ProducesResponseType(typeof(BaseResponseForLogin<LoginResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponseForLogin<LoginResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponseForLogin<LoginResponseModel>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponseForLogin<LoginResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LoginResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
             if (!ModelState.IsValid)
@@ -53,9 +51,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// User registration
         /// </summary>
         [HttpPost("register")]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Register([FromBody] RegisterRequestModel registerModel)
         {
             if (!ModelState.IsValid)
@@ -75,9 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Refresh JWT token using refresh token
         /// </summary>
         [HttpPost("refresh-token")]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest refreshTokenRequest)
         {
             if (!ModelState.IsValid)
@@ -97,9 +91,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Send verification email
         /// </summary>
         [HttpPost("send-verification-email")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> SendVerificationEmail([FromBody] EmailRequest emailRequest)
         {
             if (!ModelState.IsValid)
@@ -119,10 +111,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Verify email with verification code
         /// </summary>
         [HttpPost("verify-email")]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> VerifyEmail([FromBody] EmailVerificationModel verificationModel)
         {
             if (!ModelState.IsValid)
@@ -142,9 +131,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Forgot password - send reset password email
         /// </summary>
         [HttpPost("forgot-password")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest forgotPasswordRequest)
         {
             if (!ModelState.IsValid)
@@ -165,11 +152,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("change-password")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest changePasswordRequest)
         {
             if (!ModelState.IsValid)
@@ -200,10 +183,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("logout")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Logout()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -225,11 +205,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("admin/create-account")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<TokenModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TokenModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> AdminCreateAccount([FromBody] AdminCreateAccountModel adminCreateAccountModel)
         {
             if (!ModelState.IsValid)
@@ -250,11 +226,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("admin/send-account/{userId}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> SendAccount(Guid userId)
         {
             if (userId == null)
@@ -275,11 +247,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("admin/set-email-verified")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> SetEmailVerified([FromBody] EmailRequest emailRequest)
         {
             if (!ModelState.IsValid)

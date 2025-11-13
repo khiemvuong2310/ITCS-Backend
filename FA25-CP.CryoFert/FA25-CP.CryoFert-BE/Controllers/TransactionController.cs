@@ -4,6 +4,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using Microsoft.AspNetCore.Http;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -26,10 +27,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Transaction request</param>
         /// <returns>Transaction data with VNPay URL</returns>
         [HttpPost]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateTransaction([FromQuery] CreateTransactionRequest request)
         {
             if (!ModelState.IsValid)
@@ -52,10 +50,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Transaction status result</returns>
         [HttpGet("vnpay-callback")]
         [AllowAnonymous] // VNPay will call without JWT
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> VnPayCallback()
         {
             var query = HttpContext.Request.Query;
@@ -69,9 +64,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Transaction filter and pagination parameters</param>
         /// <returns>List of transactions</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(DynamicResponse<TransactionResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TransactionResponseModel))]
         public async Task<IActionResult> GetAllTransactions([FromQuery] GetTransactionsRequest request)
         {
             if (!ModelState.IsValid)

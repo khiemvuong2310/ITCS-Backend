@@ -6,6 +6,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using System;
 using System.Threading.Tasks;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -30,11 +31,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentDoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _appointmentDoctorService.GetByIdAsync(id);
@@ -46,9 +43,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpGet]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentDoctorResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetAppointmentDoctorsRequest request)
         {
             var result = await _appointmentDoctorService.GetAllAsync(request);
@@ -60,11 +55,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpGet("appointment/{appointmentId:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentDoctorResponse))]
         public async Task<IActionResult> GetByAppointmentId(Guid appointmentId, [FromQuery] GetAppointmentDoctorsRequest request)
         {
             var result = await _appointmentDoctorService.GetByAppointmentIdAsync(appointmentId, request);
@@ -76,11 +67,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpGet("doctor/{doctorId:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<AppointmentDoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentDoctorResponse))]
         public async Task<IActionResult> GetByDoctorId(Guid doctorId, [FromQuery] GetAppointmentDoctorsRequest request)
         {
             var result = await _appointmentDoctorService.GetByDoctorIdAsync(doctorId, request);
@@ -92,11 +79,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentDoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentDoctorRequest request)
         {
             if (!ModelState.IsValid)
@@ -118,11 +101,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentDoctorResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentDoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAppointmentDoctorRequest request)
         {
             if (!ModelState.IsValid)
@@ -144,11 +123,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _appointmentDoctorService.DeleteAsync(id);

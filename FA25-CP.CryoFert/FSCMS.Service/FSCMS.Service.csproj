@@ -26,10 +26,11 @@
 	  <ProjectReference Include="..\FSCMS.Data\FSCMS.Data.csproj" />
 	</ItemGroup>
 
-	<!-- Copy Templates folder to output directory -->
+	<!-- Copy Templates folder to both output and publish directories -->
 	<ItemGroup>
-		<None Update="Templates\**\*">
+		<Content Include="Templates\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
 	</ItemGroup>
 </Project>

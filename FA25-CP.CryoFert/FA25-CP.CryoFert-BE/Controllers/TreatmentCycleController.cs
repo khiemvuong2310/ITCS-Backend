@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -21,9 +22,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(DynamicResponse<TreatmentCycleResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<TreatmentCycleResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<TreatmentCycleResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentCyclesRequest request)
         {
             request ??= new GetTreatmentCyclesRequest();
@@ -33,10 +32,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleDetailResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleDetailResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleDetailResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleDetailResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _service.GetByIdAsync(id);
@@ -45,10 +41,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateTreatmentCycleRequest request)
         {
             if (!ModelState.IsValid)
@@ -61,10 +54,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTreatmentCycleRequest request)
         {
             if (!ModelState.IsValid)
@@ -77,10 +67,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _service.DeleteAsync(id);
@@ -89,10 +76,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost("{id:guid}/start")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Start(Guid id, [FromBody] StartTreatmentCycleRequest request)
         {
             var result = await _service.StartAsync(id, request);
@@ -101,10 +85,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost("{id:guid}/complete")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteTreatmentCycleRequest request)
         {
             if (!ModelState.IsValid)
@@ -117,10 +98,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost("{id:guid}/cancel")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelTreatmentCycleRequest request)
         {
             if (!ModelState.IsValid)
@@ -133,9 +111,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}/samples")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<List<object>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<object>>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<List<object>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<object>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSamples(Guid id)
         {
             var result = await _service.GetSamplesAsync(id);
@@ -144,10 +120,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost("{id:guid}/samples")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<object>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<object>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> AddSample(Guid id, [FromBody] AddCycleSampleRequest request)
         {
             if (!ModelState.IsValid)
@@ -160,9 +133,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}/appointments")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<List<AppointmentSummary>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<AppointmentSummary>>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<List<AppointmentSummary>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<AppointmentSummary>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointments(Guid id)
         {
             var result = await _service.GetAppointmentsAsync(id);
@@ -171,10 +142,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost("{id:guid}/appointments")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentSummary>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentSummary>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentSummary>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<AppointmentSummary>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(AppointmentSummary), UseDynamicWrapper = false)]
         public async Task<IActionResult> AddAppointment(Guid id, [FromBody] AddCycleAppointmentRequest request)
         {
             if (!ModelState.IsValid)
@@ -187,9 +155,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}/billing")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleBillingResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleBillingResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentCycleBillingResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentCycleBillingResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetBilling(Guid id)
         {
             var result = await _service.GetBillingAsync(id);
@@ -198,9 +164,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}/documents")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<List<DocumentSummary>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<DocumentSummary>>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<List<DocumentSummary>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<DocumentSummary>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDocuments(Guid id)
         {
             var result = await _service.GetDocumentsAsync(id);
@@ -209,10 +173,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost("{id:guid}/documents")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<DocumentSummary>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<DocumentSummary>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<DocumentSummary>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<DocumentSummary>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(DocumentSummary), UseDynamicWrapper = false)]
         public async Task<IActionResult> UploadDocument(Guid id, [FromBody] UploadCycleDocumentRequest request)
         {
             if (!ModelState.IsValid)

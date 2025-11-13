@@ -6,6 +6,7 @@ using FSCMS.Service.ReponseModel;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Threading.Tasks;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -33,13 +34,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created relationship response</returns>
         [HttpPost]
         [Authorize(Roles = "Admin,Receptionist,Patient")]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateRelationship([FromBody] CreateRelationshipRequest request)
         {
             if (!ModelState.IsValid)
@@ -63,10 +58,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Relationship response</returns>
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetRelationshipById(Guid id)
         {
             var result = await _patientService.GetRelationshipByIdAsync(id);
@@ -80,8 +72,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated relationship responses</returns>
         [HttpGet]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(DynamicResponse<RelationshipResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetAllRelationships([FromQuery] GetRelationshipsRequest request)
         {
             var result = await _patientService.GetAllRelationshipsAsync(request ?? new GetRelationshipsRequest());
@@ -96,9 +87,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated relationship responses</returns>
         [HttpGet("patient/{patientId:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(DynamicResponse<RelationshipResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetPatientRelationships(Guid patientId, [FromQuery] GetRelationshipsRequest request)
         {
             var result = await _patientService.GetPatientRelationshipsAsync(patientId, request ?? new GetRelationshipsRequest());
@@ -113,10 +102,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated relationship response</returns>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateRelationship(Guid id, [FromBody] UpdateRelationshipRequest request)
         {
             if (!ModelState.IsValid)
@@ -139,10 +125,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteRelationship(Guid id)
         {
             var result = await _patientService.DeleteRelationshipAsync(id);
@@ -160,12 +143,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated relationship response</returns>
         [HttpPost("approve")]
         [Authorize(Roles = "Admin,Receptionist,Patient")]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> ApproveRelationship([FromBody] ApproveRelationshipRequest request)
         {
             if (!ModelState.IsValid)
@@ -189,12 +167,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated relationship response</returns>
         [HttpPost("reject")]
         [Authorize(Roles = "Admin,Receptionist,Patient")]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<RelationshipResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> RejectRelationship([FromBody] RejectRelationshipRequest request)
         {
             if (!ModelState.IsValid)
@@ -221,8 +194,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of relationship types</returns>
         [HttpGet("types")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<System.Collections.Generic.Dictionary<int, string>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<System.Collections.Generic.Dictionary<int, string>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(System.Collections.Generic.Dictionary<int, string>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetRelationshipTypes()
         {
             var result = await _patientService.GetRelationshipTypesAsync();
@@ -237,9 +209,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Validation result</returns>
         [HttpGet("can-create")]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> CanCreateRelationship([FromQuery] Guid patient1Id, [FromQuery] Guid patient2Id)
         {
             if (patient1Id == Guid.Empty || patient2Id == Guid.Empty)

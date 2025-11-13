@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using DotNetEnv;
+﻿using DotNetEnv;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FSCMS.Core; // namespace chứa AppDbContext
 using FSCMS.Core.Models;
@@ -9,6 +8,8 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Pomelo.EntityFrameworkCore.MySql;
+using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace FA25_CP.CryoFert_BE
 {
@@ -92,7 +93,7 @@ namespace FA25_CP.CryoFert_BE
                 options.AddPolicy("AllowAll", policy =>
                 {
                     policy.WithOrigins(
-                            "http://localhost:5173", 
+                            "http://localhost:5173",
                             "https://fscms.pages.dev",
                             "https://cryo.devnguyen.xyz",
                             "https://cryofert.runasp.net"
@@ -100,7 +101,7 @@ namespace FA25_CP.CryoFert_BE
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });
-                
+
                 // Public CORS policy for broader access (without credentials)
                 options.AddPolicy("AllowAll", policy =>
                 {
@@ -126,6 +127,16 @@ namespace FA25_CP.CryoFert_BE
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
+                c.EnableAnnotations();
+
+                // đăng ký operation filter
+                c.OperationFilter<ApiDefaultResponseOperationFilter>();
+
+                // (tùy chọn) include XML comments
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
+
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "FSCMS API",
@@ -170,12 +181,12 @@ namespace FA25_CP.CryoFert_BE
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-            app.UseRouting();   
+            app.UseRouting();
             app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
             app.UseCors("AllowAll");
-            
+
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>

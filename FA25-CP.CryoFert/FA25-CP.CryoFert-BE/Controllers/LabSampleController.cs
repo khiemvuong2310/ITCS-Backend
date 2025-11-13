@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -28,10 +29,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Lab sample ID</param>
         /// <returns>Lab sample information</returns>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             if (id == Guid.Empty)
@@ -53,8 +51,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>List of lab samples</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<LabSampleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetLabSamplesRequest request)
         {
             var result = await _labSampleService.GetAllAsync(request);
@@ -66,9 +63,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("sperm")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateSperm([FromQuery] CreateLabSampleSpermRequest request)
         {
             if (!ModelState.IsValid)
@@ -87,9 +82,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("oocyte")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateOocyte([FromQuery] CreateLabSampleOocyteRequest request)
         {
             if (!ModelState.IsValid)
@@ -108,9 +101,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("embryo")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateEmbryo([FromQuery] CreateLabSampleEmbryoRequest request)
         {
             if (!ModelState.IsValid)
@@ -129,10 +120,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPut("sperm/{id}")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateSperm(Guid id, [FromBody] UpdateLabSampleSpermRequest request)
         {
             if (!ModelState.IsValid || id == Guid.Empty)
@@ -153,10 +141,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPut("oocyte/{id}")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateOocyte(Guid id, [FromBody] UpdateLabSampleOocyteRequest request)
         {
             if (!ModelState.IsValid || id == Guid.Empty)
@@ -177,10 +162,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPut("embryo/{id}")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<LabSampleResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateEmbryo(Guid id, [FromBody] UpdateLabSampleEmbryoRequest request)
         {
             if (!ModelState.IsValid || id == Guid.Empty)
@@ -203,10 +185,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,LaboratoryTechnician")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             if (id == Guid.Empty)

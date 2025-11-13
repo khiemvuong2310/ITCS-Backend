@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -26,8 +27,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated service categories</returns>
         [HttpGet]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(DynamicResponse<ServiceCategoryResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<ServiceCategoryResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceCategoryResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServiceCategoriesRequest request)
         {
             if (request == null)
@@ -44,10 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Service category response</returns>
         [HttpGet("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceCategoryResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _serviceCategoryService.GetByIdAsync(id);
@@ -60,8 +57,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>List of active service categories</returns>
         [HttpGet("active")]
         [Authorize(Roles = "Admin,Receptionist,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceCategoryResponseModel>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<List<ServiceCategoryResponseModel>>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(List<ServiceCategoryResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetActive()
         {
             var result = await _serviceCategoryService.GetActiveAsync();
@@ -75,10 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created service category response</returns>
         [HttpPost]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceCategoryResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] ServiceCategoryRequestModel request)
         {
             if (!ModelState.IsValid)
@@ -102,11 +95,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated service category response</returns>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse<ServiceCategoryResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(ServiceCategoryResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceCategoryRequestModel request)
         {
             if (!ModelState.IsValid)
@@ -129,11 +118,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _serviceCategoryService.DeleteAsync(id);

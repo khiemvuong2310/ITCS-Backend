@@ -5,6 +5,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.Interfaces;
 using System;
 using System.Threading.Tasks;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -30,8 +31,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter, pagination, and sorting parameters</param>
         /// <returns>Paginated list of contracts</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(DynamicResponse<CryoStorageContractResponse>), 200)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoStorageContractResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse))]
         public async Task<IActionResult> GetAllContracts([FromQuery] GetCryoStorageContractsRequest request)
         {
             var result = await _contractService.GetAllAsync(request);
@@ -44,9 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Contract ID</param>
         /// <returns>Contract details</returns>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractDetailResponse>), 200)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractDetailResponse>), 404)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractDetailResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoStorageContractDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetContractById(Guid id)
         {
             var result = await _contractService.GetByIdAsync(id);
@@ -60,9 +58,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created contract information</returns>
         [HttpPost]
         [Authorize(Roles = "Admin,Receptionist")] // Only Admin or Receptionist can create
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 201)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 400)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateContract([FromBody] CreateCryoStorageContractRequest request)
         {
             if (!ModelState.IsValid)
@@ -86,10 +82,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated contract information</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Receptionist")] // Only Admin or Receptionist can update
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 200)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 404)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 400)]
-        [ProducesResponseType(typeof(BaseResponse<CryoStorageContractResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateContract(Guid id, [FromBody] UpdateCryoStorageContractRequest request)
         {
             if (!ModelState.IsValid)
@@ -112,9 +105,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")] // Only Admin can delete
-        [ProducesResponseType(typeof(BaseResponse), 200)]
-        [ProducesResponseType(typeof(BaseResponse), 404)]
-        [ProducesResponseType(typeof(BaseResponse), 500)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteContract(Guid id)
         {
             var result = await _contractService.DeleteAsync(id);

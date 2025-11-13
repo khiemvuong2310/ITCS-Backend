@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FSCMS.Core.Enum;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -29,9 +30,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPost("initialize-default-bank")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 201)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 400)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoLocationSummaryResponse))]
         public async Task<IActionResult> CreateDefaultBank()
         {
             var result = await _cryoLocationService.CreateDefaultBankAsync();
@@ -42,8 +41,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get initial top-level locations (Tanks)
         /// </summary>
         [HttpGet("initial-tree")]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 200)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoLocationSummaryResponse))]
         public async Task<IActionResult> GetInitialTree([FromQuery] SampleType? sampleType = null)
         {
             var result = await _cryoLocationService.GetInitialTreeAsync(sampleType);
@@ -54,9 +52,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get CryoLocation by Id
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationResponse>), 200)]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationResponse>), 404)]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoLocationResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _cryoLocationService.GetByIdAsync(id);
@@ -67,8 +63,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get children locations of a parent
         /// </summary>
         [HttpGet("{parentId}/children")]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 200)]
-        [ProducesResponseType(typeof(DynamicResponse<CryoLocationSummaryResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoLocationSummaryResponse))]
         public async Task<IActionResult> GetChildren(Guid parentId, [FromQuery] bool? isActive = null)
         {
             var result = await _cryoLocationService.GetChildrenAsync(parentId, isActive);
@@ -79,9 +74,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get full tree of a tank (Tank -> Canister -> Goblet -> Slot)
         /// </summary>
         [HttpGet("{tankId}/full-tree")]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationFullTreeResponse>), 200)]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationFullTreeResponse>), 404)]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationFullTreeResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoLocationFullTreeResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetFullTreeByTankId(Guid tankId)
         {
             var result = await _cryoLocationService.GetFullTreeByTankIdAsync(tankId);
@@ -93,9 +86,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationResponse>), 200)]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationResponse>), 404)]
-        [ProducesResponseType(typeof(BaseResponse<CryoLocationResponse>), 500)]
+        [ApiDefaultResponse(typeof(CryoLocationResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] CryoLocationUpdateRequest request)
         {
             if (!ModelState.IsValid)
@@ -116,9 +107,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse), 200)]
-        [ProducesResponseType(typeof(BaseResponse), 404)]
-        [ProducesResponseType(typeof(BaseResponse), 500)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _cryoLocationService.DeleteAsync(id);

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -21,10 +22,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{treatmentId:guid}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentIVFResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByTreatment(Guid treatmentId)
         {
             var result = await _service.GetByTreatmentIdAsync(treatmentId);
@@ -33,10 +31,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentIVFResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] TreatmentIVFCreateUpdateRequest request)
         {
             if (!ModelState.IsValid)
@@ -49,10 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<TreatmentIVFResponseModel>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(TreatmentIVFResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentIVFCreateUpdateRequest request)
         {
             if (!ModelState.IsValid)
@@ -65,10 +57,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<bool>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _service.DeleteAsync(id);

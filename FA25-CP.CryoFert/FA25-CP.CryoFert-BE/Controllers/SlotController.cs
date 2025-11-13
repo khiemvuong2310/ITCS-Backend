@@ -4,6 +4,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using System.Security.Claims;
+using FA25_CP.CryoFert_BE.AppStarts;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -31,11 +32,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Slot information</returns>
         [HttpGet("{id}")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSlotById(Guid id)
         {
             var result = await _doctorService.GetSlotByIdAsync(id);
@@ -49,11 +46,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Detailed slot information</returns>
         [HttpGet("{id}/details")]
         [Authorize]
-        [ProducesResponseType(typeof(BaseResponse<SlotDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<SlotDetailResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<SlotDetailResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<SlotDetailResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<SlotDetailResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSlotDetails(Guid id)
         {
             var result = await _doctorService.GetSlotDetailByIdAsync(id);
@@ -67,9 +60,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of slots</returns>
         [HttpGet]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotResponse))]
         public async Task<IActionResult> GetAllSlots([FromQuery] GetSlotsRequest request)
         {
             var result = await _doctorService.GetAllSlotsAsync(request);
@@ -84,10 +75,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Paginated list of slots</returns>
         [HttpGet("schedule/{scheduleId}")]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotResponse))]
         public async Task<IActionResult> GetSlotsByScheduleId(Guid scheduleId, [FromQuery] GetSlotsRequest request)
         {
             var result = await _doctorService.GetSlotsByScheduleIdAsync(scheduleId, request);
@@ -103,10 +91,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Available slots</returns>
         [HttpGet("available/doctor/{doctorId}")]
         [Authorize]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(DynamicResponse<SlotResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotResponse))]
         public async Task<IActionResult> GetAvailableSlots(Guid doctorId, [FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo)
         {
             if (dateFrom == default || dateTo == default)
@@ -142,11 +127,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Created slot information</returns>
         [HttpPost]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateSlot([FromBody] CreateSlotRequest request)
         {
             if (!ModelState.IsValid)
@@ -207,11 +188,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Number of created slots</returns>
         [HttpPost("schedule/{scheduleId}/generate")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<int>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(BaseResponse<int>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<int>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<int>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<int>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(int), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateSlotsForSchedule(Guid scheduleId, [FromQuery] int slotDuration = 30)
         {
             if (slotDuration <= 0 || slotDuration > 480) // Max 8 hours
@@ -272,12 +249,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Updated slot information</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse<SlotResponse>), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(SlotResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateSlot(Guid id, [FromBody] UpdateSlotRequest request)
         {
             if (!ModelState.IsValid)
@@ -332,12 +304,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Success or error response</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Doctor")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteSlot(Guid id)
         {
             // Check if user is trying to delete their own slot or is admin
@@ -383,12 +350,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <returns>Success or error response</returns>
         [HttpPatch("{id}/booking-status")]
         [Authorize(Roles = "Admin,Doctor,Receptionist")]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateSlotBookingStatus(Guid id, [FromBody] bool isBooked)
         {
             // Check if user has permission to update booking status
