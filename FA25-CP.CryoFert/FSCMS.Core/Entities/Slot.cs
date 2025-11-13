@@ -26,6 +26,6 @@ namespace FSCMS.Core.Entities
 
         //Navigation properties
         public virtual ICollection<DoctorSchedule> DoctorSchedules { get; set; } = new List<DoctorSchedule>();
-        public virtual Appointment? Appointment { get; set; }
+        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

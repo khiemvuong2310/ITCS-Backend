@@ -120,11 +120,11 @@ namespace FSCMS.Core
                 .HasForeignKey(ds => ds.SlotId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Slot & Appointment Relationship (One-to-One)
+            // Slot & Appointment Relationship (One-to-Many)
             modelBuilder.Entity<Slot>()
-                .HasOne(s => s.Appointment)
+                .HasMany(s => s.Appointments)
                 .WithOne(a => a.Slot)
-                .HasForeignKey<Appointment>(a => a.SlotId)
+                .HasForeignKey(a => a.SlotId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Service & ServiceCategory Relationship
