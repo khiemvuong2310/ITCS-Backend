@@ -263,7 +263,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <param name="request">Request containing doctor ID and optional date range</param>
         /// <returns>List of work dates for the doctor</returns>
-        [HttpGet("busy-dates")]
+        [HttpPost("busy-dates")]
         [Authorize]
         [ApiDefaultResponse(typeof(BusyScheduleDateResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetBusyScheduleDate([FromBody] GetBusyScheduleDateRequest request)

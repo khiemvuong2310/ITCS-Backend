@@ -30,7 +30,7 @@ namespace FSCMS.Service.ReponseModel
     public class AppointmentSummary
     {
         public Guid Id { get; set; }
-        public DateTime AppointmentDate { get; set; }
+        public DateOnly AppointmentDate { get; set; }
         public string Type { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
     }

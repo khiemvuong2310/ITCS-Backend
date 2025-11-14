@@ -229,12 +229,14 @@ namespace FSCMS.Service.Services
 
                 if (request.AppointmentDateFrom.HasValue)
                 {
-                    query = query.Where(a => a.AppointmentDate >= request.AppointmentDateFrom.Value);
+                    var fromDate = request.AppointmentDateFrom.Value;
+                    query = query.Where(a => a.AppointmentDate >= fromDate);
                 }
 
                 if (request.AppointmentDateTo.HasValue)
                 {
-                    query = query.Where(a => a.AppointmentDate <= request.AppointmentDateTo.Value);
+                    var toDate = request.AppointmentDateTo.Value;
+                    query = query.Where(a => a.AppointmentDate <= toDate);
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -713,13 +715,13 @@ namespace FSCMS.Service.Services
                     }
 
                     // Check if slot is already booked for the same day (by an active appointment)
-                    var appointmentDate = request.AppointmentDate.Date;
+                    var appointmentDate = request.AppointmentDate;
                     var slotAlreadyBooked = await _unitOfWork.Repository<Appointment>()
                         .AsQueryable()
                         .AnyAsync(a =>
                             a.SlotId == request.SlotId.Value &&
                             !a.IsDeleted &&
-                            a.AppointmentDate.Date == appointmentDate &&
+                            a.AppointmentDate == appointmentDate &&
                             a.Status != AppointmentStatus.Cancelled &&
                             a.Status != AppointmentStatus.Rescheduled);
 
@@ -731,7 +733,7 @@ namespace FSCMS.Service.Services
 
                     // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
                     var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
-                    var workDate = DateOnly.FromDateTime(appointmentDate);
+                    var workDate = appointmentDate;
                     if (primaryDoctorId.HasValue)
                     {
                         var existingSchedule = await _unitOfWork.Repository<DoctorSchedule>()
@@ -909,7 +911,7 @@ namespace FSCMS.Service.Services
 
                     // Validate slot date matches appointment date
                     var appointmentDate = request.AppointmentDate ?? appointment.AppointmentDate;
-                    if (newSlot.DoctorSchedules == null || !newSlot.DoctorSchedules.Any(ds => ds.WorkDate == DateOnly.FromDateTime(appointmentDate.Date)))
+                    if (newSlot.DoctorSchedules == null || !newSlot.DoctorSchedules.Any(ds => ds.WorkDate == appointmentDate))
                     {
                         _logger.LogWarning("{MethodName}: Slot date does not match appointment date", methodName);
                         return BaseResponse<AppointmentResponse>.CreateError("Slot date does not match appointment date", StatusCodes.Status400BadRequest, "SLOT_DATE_MISMATCH");
@@ -1542,7 +1544,7 @@ namespace FSCMS.Service.Services
                 // Map Schedule: pick schedule for the appointment date if available, otherwise first by date
                 if (appointment.Slot != null && appointment.Slot.DoctorSchedules != null && appointment.Slot.DoctorSchedules.Any())
                 {
-                    var apptDateOnly = DateOnly.FromDateTime(appointment.AppointmentDate.Date);
+                    var apptDateOnly = appointment.AppointmentDate;
                     var matchedSchedule = appointment.Slot.DoctorSchedules
                         .FirstOrDefault(ds => ds.WorkDate == apptDateOnly);
                     var schedule = matchedSchedule ?? appointment.Slot.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault();
