@@ -37,6 +37,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             var file = request.File;
             try
             {
@@ -102,6 +103,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<Media>().InsertAsync(newMedia);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var createdMedia = await _unitOfWork.Repository<Media>()
                     .AsQueryable()
@@ -117,6 +119,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 return new BaseResponse<MediaResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -129,6 +132,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse> DeleteMediaAsync(Guid mediaId)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var media = await _unitOfWork.Repository<Media>()
@@ -150,6 +154,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<Media>().UpdateGuid(media, mediaId);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 return new BaseResponse
                 {
@@ -160,6 +165,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 return new BaseResponse
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -294,6 +300,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse<MediaResponse>> UpdateMediaAsync(Guid mediaId, UpdateMediaRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var media = await _unitOfWork.Repository<Media>()
@@ -317,6 +324,7 @@ namespace FSCMS.Service.Services
                 // Save changes
                 await _unitOfWork.Repository<Media>().UpdateGuid(media, mediaId);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var updatedMedia = await _unitOfWork.Repository<Media>()
                     .AsQueryable()
@@ -331,6 +339,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 return new BaseResponse<MediaResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,

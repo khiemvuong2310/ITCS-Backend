@@ -145,6 +145,7 @@ namespace FSCMS.Service.Services
         #region Create
         public async Task<BaseResponse<CryoStorageContractResponse>> CreateAsync(CreateCryoStorageContractRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // Validate Patient & Package
@@ -210,6 +211,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoStorageContract>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var data = _mapper.Map<CryoStorageContractResponse>(entity);
                 data.PatientName = entity.SignedBy;
@@ -224,6 +226,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating contract");
                 return new BaseResponse<CryoStorageContractResponse>
                 {
@@ -237,6 +240,7 @@ namespace FSCMS.Service.Services
         #region Update
         public async Task<BaseResponse<CryoStorageContractResponse>> UpdateAsync(Guid id, UpdateCryoStorageContractRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<CryoStorageContract>()
@@ -257,6 +261,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var data = _mapper.Map<CryoStorageContractResponse>(entity);
 
@@ -269,6 +274,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error updating contract {Id}", id);
                 return new BaseResponse<CryoStorageContractResponse>
                 {
@@ -282,6 +288,7 @@ namespace FSCMS.Service.Services
         #region Delete (Soft Delete)
         public async Task<BaseResponse> DeleteAsync(Guid id)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<CryoStorageContract>()
@@ -301,6 +308,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 return new BaseResponse
                 {
@@ -310,6 +318,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error deleting contract {Id}", id);
                 return new BaseResponse
                 {

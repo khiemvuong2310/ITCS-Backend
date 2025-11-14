@@ -1,5 +1,5 @@
-using FSCMS.Core.Entities;
 using FSCMS.Service.ReponseModel;
+using FSCMS.Service.RequestModel;
 using System;
 using System.Threading.Tasks;
 
@@ -7,12 +7,10 @@ namespace FSCMS.Service.Interfaces
 {
     public interface IPrescriptionService
     {
-        Task<DynamicResponse<Prescription>> GetAllAsync(PagingModel request);
-        Task<BaseResponse<Prescription>> GetByIdAsync(Guid prescriptionId);
-        Task<BaseResponse<Prescription>> CreateAsync(Prescription prescription);
-        Task<BaseResponse<Prescription>> UpdateAsync(Guid prescriptionId, Prescription update);
-        Task<BaseResponse> DeleteAsync(Guid prescriptionId);
+        Task<DynamicResponse<PrescriptionResponse>> GetAllAsync(GetPrescriptionsRequest request);
+        Task<BaseResponse<PrescriptionDetailResponse>> GetByIdAsync(Guid id);
+        Task<BaseResponse<PrescriptionResponse>> CreateAsync(CreatePrescriptionRequest request);
+        Task<BaseResponse<PrescriptionResponse>> UpdateAsync(Guid id, UpdatePrescriptionRequest request);
+        Task<BaseResponse> DeleteAsync(Guid id);
     }
 }
-
-

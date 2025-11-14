@@ -45,6 +45,7 @@ namespace FSCMS.Service.Services
         #region Create Transaction & Redirect VNPay
         public async Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request)
         {
+            using var transactionU = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request.Amount <= 0)
@@ -100,6 +101,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<Transaction>().InsertAsync(transaction);
                 await _unitOfWork.CommitAsync();
+                await transactionU.CommitAsync();
 
                 var response = _mapper.Map<TransactionResponseModel>(transaction);
                 response.PaymentUrl = paymentUrl;
@@ -113,6 +115,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transactionU.RollbackAsync();
                 _logger.LogError(ex, "Error creating transaction");
                 return new BaseResponse<TransactionResponseModel>
                 {
@@ -126,6 +129,7 @@ namespace FSCMS.Service.Services
         #region VNPay Callback + Push SignalR
         public async Task<BaseResponse<TransactionResponseModel>> HandleVnPayCallbackAsync(IQueryCollection query)
         {
+            using var transactionU = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var vnpay = new VnPay();
@@ -178,6 +182,7 @@ namespace FSCMS.Service.Services
                 transaction.Status = TransactionStatus.Failed;
                 await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                 await _unitOfWork.CommitAsync();
+                await transactionU.CommitAsync();
                 // Push SignalR
                 await _hubContext.Clients.User(transaction.PatientId.ToString())
                     .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
@@ -191,6 +196,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transactionU.RollbackAsync();
                 _logger.LogError(ex, "Error processing VNPay callback");
                 return new BaseResponse<TransactionResponseModel>
                 {
