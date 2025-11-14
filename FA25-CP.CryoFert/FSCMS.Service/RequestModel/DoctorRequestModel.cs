@@ -152,7 +152,7 @@ namespace FSCMS.Service.RequestModel
 
         [Required(ErrorMessage = "Work date is required.")]
         [JsonPropertyName("workDate")]
-        public DateTime WorkDate { get; set; }
+        public DateOnly WorkDate { get; set; }
 
         [StringLength(100, ErrorMessage = "Location cannot exceed 100 characters.")]
         [JsonPropertyName("location")]
