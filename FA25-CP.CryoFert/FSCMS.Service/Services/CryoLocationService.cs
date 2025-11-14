@@ -44,7 +44,7 @@ namespace FSCMS.Service.Services
         {
             const string methodName = nameof(CreateDefaultBankAsync);
             _logger.LogInformation("{MethodName} called", methodName);
-
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // Check if already initialized
@@ -158,6 +158,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoLocation>().InsertRangeAsync(allNodes.AsQueryable());
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 return new DynamicResponse<CryoLocationSummaryResponse>
                 {
@@ -169,6 +170,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error creating default CryoBank", methodName);
                 return new DynamicResponse<CryoLocationSummaryResponse>
                 {
@@ -356,7 +358,7 @@ namespace FSCMS.Service.Services
         {
             const string methodName = nameof(UpdateAsync);
             _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
-
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<CryoLocation>()
@@ -376,6 +378,7 @@ namespace FSCMS.Service.Services
                 _mapper.Map(request, entity);
                 await _unitOfWork.Repository<CryoLocation>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var response = _mapper.Map<CryoLocationResponse>(entity);
                 return new BaseResponse<CryoLocationResponse>
@@ -387,6 +390,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error updating location", methodName);
                 return new BaseResponse<CryoLocationResponse>
                 {
@@ -399,6 +403,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse> DeleteAsync(Guid id)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             const string methodName = nameof(DeleteAsync);
             _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
 
@@ -436,6 +441,7 @@ namespace FSCMS.Service.Services
                 await UpdateParentCountsRecursive(node.ParentId);
 
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 return new BaseResponse
                 {
@@ -445,6 +451,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error deleting location", methodName);
                 return new BaseResponse
                 {

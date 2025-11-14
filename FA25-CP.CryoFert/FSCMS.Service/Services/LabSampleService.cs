@@ -474,6 +474,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse<LabSampleResponse>> UpdateSpermAsync(Guid id, UpdateLabSampleSpermRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             const string methodName = nameof(UpdateSpermAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
@@ -506,7 +507,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
-
+                await transaction.CommitAsync();
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
                 return new BaseResponse<LabSampleResponse>
@@ -518,6 +519,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error updating Sperm sample {Id}", methodName, id);
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -529,6 +531,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse<LabSampleResponse>> UpdateOocyteAsync(Guid id, UpdateLabSampleOocyteRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             const string methodName = nameof(UpdateOocyteAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
@@ -561,6 +564,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
@@ -573,6 +577,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error updating Oocyte sample {Id}", methodName, id);
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -584,6 +589,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse<LabSampleResponse>> UpdateEmbryoAsync(Guid id, UpdateLabSampleEmbryoRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             const string methodName = nameof(UpdateEmbryoAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
@@ -616,6 +622,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 var response = _mapper.Map<LabSampleResponse>(entity);
 
@@ -628,6 +635,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error updating embryo sample {Id}", methodName, id);
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -699,6 +707,7 @@ namespace FSCMS.Service.Services
         #region DELETE
         public async Task<BaseResponse> DeleteAsync(Guid id)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             const string methodName = nameof(DeleteAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
@@ -728,6 +737,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 return new BaseResponse
                 {
@@ -737,6 +747,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error deleting lab sample {Id}", methodName, id);
                 return new BaseResponse
                 {

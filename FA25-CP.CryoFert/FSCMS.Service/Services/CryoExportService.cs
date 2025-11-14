@@ -142,6 +142,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse<CryoExportResponse>> CreateAsync(CreateCryoExportRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var locationExists = await _unitOfWork.Repository<CryoLocation>()
@@ -206,6 +207,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoExport>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 return new BaseResponse<CryoExportResponse>
                 {
@@ -216,6 +218,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating CryoExport");
                 return new BaseResponse<CryoExportResponse>
                 {
@@ -246,6 +249,7 @@ namespace FSCMS.Service.Services
         }
         public async Task<BaseResponse<CryoExportResponse>> UpdateAsync(Guid id, UpdateCryoExportRequest request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<CryoExport>()
@@ -265,7 +269,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoExport>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
-
+                await transaction.CommitAsync();
                 return new BaseResponse<CryoExportResponse>
                 {
                     Code = StatusCodes.Status200OK,
@@ -275,6 +279,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error updating CryoExport {Id}", id);
                 return new BaseResponse<CryoExportResponse>
                 {
@@ -286,6 +291,7 @@ namespace FSCMS.Service.Services
 
         public async Task<BaseResponse> DeleteAsync(Guid id)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<CryoExport>()
@@ -305,7 +311,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<CryoExport>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
-
+                await transaction.CommitAsync();
                 return new BaseResponse
                 {
                     Code = StatusCodes.Status200OK,
@@ -314,6 +320,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error deleting CryoExport {Id}", id);
                 return new BaseResponse
                 {

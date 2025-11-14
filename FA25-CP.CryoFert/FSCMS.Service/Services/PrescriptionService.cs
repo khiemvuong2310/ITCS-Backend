@@ -3,10 +3,12 @@ using FSCMS.Core.Entities;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
+using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -25,189 +27,281 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<DynamicResponse<Prescription>> GetAllAsync(PagingModel request)
+        #region Get All
+        public async Task<DynamicResponse<PrescriptionResponse>> GetAllAsync(GetPrescriptionsRequest request)
         {
-            const string method = nameof(GetAllAsync);
-            _logger.LogInformation("{Method} called with request: {@Request}", method, request);
-
             try
             {
-                request ??= new PagingModel();
-                request.Normalize();
-
                 var query = _unitOfWork.Repository<Prescription>()
                     .AsQueryable()
-                    .AsNoTracking()
-                    .Include(p => p.PrescriptionDetails.Where(d => !d.IsDeleted))
-                    .Where(p => !p.IsDeleted);
+                    .Include(x => x.MedicalRecord)
+                    .Where(x => !x.IsDeleted);
 
+                // Filtering
+                if (request.MedicalRecordId.HasValue)
+                    query = query.Where(x => x.MedicalRecordId == request.MedicalRecordId);
+
+                if (request.FromDate.HasValue)
+                    query = query.Where(x => x.PrescriptionDate >= request.FromDate);
+
+                if (request.ToDate.HasValue)
+                    query = query.Where(x => x.PrescriptionDate <= request.ToDate);
+
+                // Count total
                 var total = await query.CountAsync();
 
+                // Sorting
+                query = request.Sort?.ToLower() switch
+                {
+                    "prescriptiondate" => (request.Order?.ToLower() == "desc")
+                        ? query.OrderByDescending(x => x.PrescriptionDate)
+                        : query.OrderBy(x => x.PrescriptionDate),
+                    _ => query.OrderByDescending(x => x.CreatedAt)
+                };
+
+                // Pagination
                 var items = await query
-                    .OrderByDescending(p => p.PrescriptionDate)
                     .Skip((request.Page - 1) * request.Size)
                     .Take(request.Size)
                     .ToListAsync();
 
-                return new DynamicResponse<Prescription>
+                var data = _mapper.Map<List<PrescriptionResponse>>(items);
+
+                return new DynamicResponse<PrescriptionResponse>
                 {
                     Code = StatusCodes.Status200OK,
-                    SystemCode = "SUCCESS",
                     Message = "Prescriptions retrieved successfully",
+                    Data = data,
                     MetaData = new PagingMetaData
                     {
                         Page = request.Page,
                         Size = request.Size,
-                        Total = total,
-                        CurrentPageSize = items.Count
-                    },
-                    Data = items
+                        Total = total
+                    }
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{Method}: Error retrieving prescriptions", method);
-                return new DynamicResponse<Prescription>
+                _logger.LogError(ex, "Error retrieving prescriptions");
+                return new DynamicResponse<PrescriptionResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
-                    SystemCode = "INTERNAL_ERROR",
-                    Message = "Error retrieving prescriptions",
-                    MetaData = new PagingMetaData(),
-                    Data = Array.Empty<Prescription>().ToList()
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = new List<PrescriptionResponse>(),
+                    MetaData = new PagingMetaData()
                 };
             }
         }
+        #endregion
 
-        public async Task<BaseResponse<Prescription>> GetByIdAsync(Guid prescriptionId)
+        #region Get By Id
+        public async Task<BaseResponse<PrescriptionDetailResponse>> GetByIdAsync(Guid id)
         {
-            const string method = nameof(GetByIdAsync);
-            _logger.LogInformation("{Method} called with id: {Id}", method, prescriptionId);
             try
             {
-                if (prescriptionId == Guid.Empty)
-                {
-                    return BaseResponse<Prescription>.CreateError("Prescription ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
-                }
-
-                var item = await _unitOfWork.Repository<Prescription>()
+                var entity = await _unitOfWork.Repository<Prescription>()
                     .AsQueryable()
-                    .AsNoTracking()
-                    .Include(p => p.PrescriptionDetails.Where(d => !d.IsDeleted))
-                    .ThenInclude(d => d.Medicine)
-                    .FirstOrDefaultAsync(p => p.Id == prescriptionId && !p.IsDeleted);
+                    .Include(x => x.MedicalRecord)
+                    .Include(x => x.PrescriptionDetails)
+                        .ThenInclude(d => d.Medicine)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
 
-                if (item == null)
+                if (entity == null)
                 {
-                    return BaseResponse<Prescription>.CreateError("Prescription not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return new BaseResponse<PrescriptionDetailResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Prescription not found"
+                    };
                 }
 
-                return BaseResponse<Prescription>.CreateSuccess(item, "Prescription retrieved successfully");
+                var data = _mapper.Map<PrescriptionDetailResponse>(entity);
+
+                return new BaseResponse<PrescriptionDetailResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Prescription retrieved successfully",
+                    Data = data
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{Method}: Error retrieving prescription {Id}", method, prescriptionId);
-                return BaseResponse<Prescription>.CreateError("Error retrieving prescription", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                _logger.LogError(ex, "Error getting prescription by ID: {Id}", id);
+                return new BaseResponse<PrescriptionDetailResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
             }
         }
+        #endregion
 
-        public async Task<BaseResponse<Prescription>> CreateAsync(Prescription prescription)
+        #region Create
+        public async Task<BaseResponse<PrescriptionResponse>> CreateAsync(CreatePrescriptionRequest request)
         {
-            const string method = nameof(CreateAsync);
-            _logger.LogInformation("{Method} called", method);
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                if (prescription == null)
+                // Validate MedicalRecord
+                var medicalRecord = await _unitOfWork.Repository<MedicalRecord>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == request.MedicalRecordId && !x.IsDeleted);
+
+                if (medicalRecord == null)
                 {
-                    return BaseResponse<Prescription>.CreateError("Payload cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
+                    return new BaseResponse<PrescriptionResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid MedicalRecordId"
+                    };
                 }
 
-                var entity = new Prescription(
-                    Guid.NewGuid(),
-                    prescription.MedicalRecordId,
-                    prescription.PrescriptionDate == default ? DateTime.UtcNow : prescription.PrescriptionDate
-                )
+                // Map entity
+                var entity = _mapper.Map<Prescription>(request);
+
+                // Map PrescriptionDetails if provided
+                if (request.PrescriptionDetails != null && request.PrescriptionDetails.Any())
                 {
-                    Diagnosis = prescription.Diagnosis,
-                    Instructions = prescription.Instructions,
-                    Notes = prescription.Notes,
-                    IsFilled = prescription.IsFilled,
-                    FilledDate = prescription.FilledDate
-                };
+                    entity.PrescriptionDetails = new List<PrescriptionDetail>();
+                    foreach (var item in request.PrescriptionDetails)
+                    {
+                        var medicine = await _unitOfWork.Repository<Medicine>()
+                            .AsQueryable()
+                            .FirstOrDefaultAsync(x => x.Id == item.MedicineId && !x.IsDeleted && x.IsActive);
+
+                        if (medicine == null)
+                        {
+                            return new BaseResponse<PrescriptionResponse>
+                            {
+                                Code = StatusCodes.Status400BadRequest,
+                                Message = $"Invalid MedicineId: {item.MedicineId}"
+                            };
+                        }
+
+                        var detail = _mapper.Map<PrescriptionDetail>(item);
+                        detail.Medicine = medicine;
+                        entity.PrescriptionDetails.Add(detail);
+                    }
+                }
+
                 await _unitOfWork.Repository<Prescription>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+                var data = _mapper.Map<PrescriptionResponse>(entity);
 
-                return BaseResponse<Prescription>.CreateSuccess(entity, "Prescription created successfully", StatusCodes.Status201Created);
+                return new BaseResponse<PrescriptionResponse>
+                {
+                    Code = StatusCodes.Status201Created,
+                    Message = "Prescription created successfully",
+                    Data = data
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{Method}: Error creating prescription", method);
-                return BaseResponse<Prescription>.CreateError("Error creating prescription", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error creating prescription");
+                return new BaseResponse<PrescriptionResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
             }
         }
+        #endregion
 
-        public async Task<BaseResponse<Prescription>> UpdateAsync(Guid prescriptionId, Prescription update)
+        #region Update
+        public async Task<BaseResponse<PrescriptionResponse>> UpdateAsync(Guid id, UpdatePrescriptionRequest request)
         {
-            const string method = nameof(UpdateAsync);
-            _logger.LogInformation("{Method} called with id: {Id}", method, prescriptionId);
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<Prescription>()
                     .AsQueryable()
-                    .FirstOrDefaultAsync(p => p.Id == prescriptionId && !p.IsDeleted);
+                    .Include(x => x.PrescriptionDetails)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
                 if (entity == null)
                 {
-                    return BaseResponse<Prescription>.CreateError("Prescription not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return new BaseResponse<PrescriptionResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Prescription not found"
+                    };
                 }
 
-                entity.PrescriptionDate = update.PrescriptionDate != default ? update.PrescriptionDate : entity.PrescriptionDate;
-                entity.Diagnosis = update.Diagnosis ?? entity.Diagnosis;
-                entity.Instructions = update.Instructions ?? entity.Instructions;
-                entity.Notes = update.Notes ?? entity.Notes;
-                entity.IsFilled = update.IsFilled;
-                entity.FilledDate = update.FilledDate ?? entity.FilledDate;
+                _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
 
-                await _unitOfWork.Repository<Prescription>().UpdateGuid(entity, entity.Id);
-                await _unitOfWork.CommitAsync();
+                // Optional: handle update PrescriptionDetails (add/update/remove) here if needed
 
-                return BaseResponse<Prescription>.CreateSuccess(entity, "Prescription updated successfully");
+                await _unitOfWork.Repository<Prescription>().UpdateGuid(entity, id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+
+                var data = _mapper.Map<PrescriptionResponse>(entity);
+
+                return new BaseResponse<PrescriptionResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Prescription updated successfully",
+                    Data = data
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{Method}: Error updating prescription {Id}", method, prescriptionId);
-                return BaseResponse<Prescription>.CreateError("Error updating prescription", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error updating prescription {Id}", id);
+                return new BaseResponse<PrescriptionResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
             }
         }
+        #endregion
 
-        public async Task<BaseResponse> DeleteAsync(Guid prescriptionId)
+        #region Delete (Soft Delete)
+        public async Task<BaseResponse> DeleteAsync(Guid id)
         {
-            const string method = nameof(DeleteAsync);
-            _logger.LogInformation("{Method} called with id: {Id}", method, prescriptionId);
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var entity = await _unitOfWork.Repository<Prescription>()
                     .AsQueryable()
-                    .FirstOrDefaultAsync(p => p.Id == prescriptionId && !p.IsDeleted);
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
                 if (entity == null)
                 {
-                    return BaseResponse.CreateError("Prescription not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Prescription not found"
+                    };
                 }
 
                 entity.IsDeleted = true;
-                entity.DeletedAt = DateTime.UtcNow;
                 entity.UpdatedAt = DateTime.UtcNow;
-                await _unitOfWork.Repository<Prescription>().UpdateGuid(entity, entity.Id);
-                await _unitOfWork.CommitAsync();
 
-                return BaseResponse.CreateSuccess("Prescription deleted successfully");
+                await _unitOfWork.Repository<Prescription>().UpdateGuid(entity, id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Prescription deleted successfully"
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{Method}: Error deleting prescription {Id}", method, prescriptionId);
-                return BaseResponse.CreateError("Error deleting prescription", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error deleting prescription {Id}", id);
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
             }
         }
+        #endregion
     }
 }
-
-
