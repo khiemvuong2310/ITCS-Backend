@@ -56,7 +56,7 @@ namespace FSCMS.Service.ReponseModel
         public Guid Id { get; set; }
 
         [JsonPropertyName("appointmentDate")]
-        public DateTime AppointmentDate { get; set; }
+        public DateOnly AppointmentDate { get; set; }
 
         [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;

@@ -128,7 +128,7 @@ namespace FSCMS.Service.RequestModel
         public string? Name { get; set; }
 
         [JsonPropertyName("workDate")]
-        public DateTime? WorkDate { get; set; }
+        public DateOnly? WorkDate { get; set; }
 
         [JsonPropertyName("slotId")]
         public Guid? SlotId { get; set; }

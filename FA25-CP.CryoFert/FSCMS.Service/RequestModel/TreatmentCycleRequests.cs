@@ -79,7 +79,7 @@ namespace FSCMS.Service.RequestModel
     public class AddCycleAppointmentRequest
     {
         [Required]
-        public DateTime AppointmentDate { get; set; }
+        public DateOnly AppointmentDate { get; set; }
         [Required]
         public string Type { get; set; } = string.Empty; // AppointmentType
         public string? Reason { get; set; }
