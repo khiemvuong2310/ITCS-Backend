@@ -1427,7 +1427,7 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .Where(ds => ds.DoctorId == request.DoctorId &&
                                  ds.SlotId == request.SlotId &&
-                                 ds.WorkDate == DateOnly.FromDateTime(request.WorkDate) &&
+                                 ds.WorkDate == request.WorkDate &&
                                  !ds.IsDeleted)
                     .AnyAsync();
 
@@ -1442,7 +1442,7 @@ namespace FSCMS.Service.Services
                     Guid.NewGuid(),
                     request.DoctorId,
                     request.SlotId,
-                    DateOnly.FromDateTime(request.WorkDate),
+                    request.WorkDate,
                     request.IsAvailable
                 )
                 {
