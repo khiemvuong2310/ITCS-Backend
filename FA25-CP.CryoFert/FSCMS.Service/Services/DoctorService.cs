@@ -426,22 +426,42 @@ namespace FSCMS.Service.Services
                         ));
                 }
 
+                var blockingStatuses = new[]
+                {
+                    AppointmentStatus.Scheduled,
+                    AppointmentStatus.Confirmed,
+                    AppointmentStatus.CheckedIn,
+                    AppointmentStatus.InProgress
+                };
+
                 if (request.WorkDate.HasValue)
                 {
-                    var workDate = DateOnly.FromDateTime(request.WorkDate.Value.Date);
+                    var workDate = request.WorkDate.Value;
+
                     query = query.Where(d => d.DoctorSchedules.Any(ds =>
                         !ds.IsDeleted &&
                         ds.IsAvailable &&
                         ds.WorkDate == workDate &&
                         ds.Slot != null &&
                         !ds.Slot.IsDeleted &&
-                        (ds.Slot == null || ds.Slot.Appointments.All(a =>
-                            a.IsDeleted ||
-                            a.Status == AppointmentStatus.Cancelled ||
-                            a.Status == AppointmentStatus.Rescheduled ||
-                            a.Status == AppointmentStatus.Completed ||
-                            a.Status == AppointmentStatus.NoShow)) &&
-                        (!request.SlotId.HasValue || ds.SlotId == request.SlotId.Value)));
+                        (!request.SlotId.HasValue || ds.SlotId == request.SlotId.Value) &&
+                        !d.AppointmentDoctors.Any(ad =>
+                            !ad.IsDeleted &&
+                            ad.Appointment != null &&
+                            !ad.Appointment.IsDeleted &&
+                            ad.Appointment.SlotId == ds.SlotId &&
+                            ad.Appointment.AppointmentDate == workDate &&
+                            blockingStatuses.Contains(ad.Appointment.Status)
+                        )
+                    ));
+                }
+                else
+                {
+                    query = query.Where(d => d.DoctorSchedules.Any(ds =>
+                        !ds.IsDeleted &&
+                        ds.IsAvailable &&
+                        ds.Slot != null &&
+                        !ds.Slot.IsDeleted));
                 }
 
                 var totalCount = await query.CountAsync();
@@ -1407,7 +1427,7 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .Where(ds => ds.DoctorId == request.DoctorId &&
                                  ds.SlotId == request.SlotId &&
-                                 ds.WorkDate == DateOnly.FromDateTime(request.WorkDate) &&
+                                 ds.WorkDate == request.WorkDate &&
                                  !ds.IsDeleted)
                     .AnyAsync();
 
@@ -1422,7 +1442,7 @@ namespace FSCMS.Service.Services
                     Guid.NewGuid(),
                     request.DoctorId,
                     request.SlotId,
-                    DateOnly.FromDateTime(request.WorkDate),
+                    request.WorkDate,
                     request.IsAvailable
                 )
                 {

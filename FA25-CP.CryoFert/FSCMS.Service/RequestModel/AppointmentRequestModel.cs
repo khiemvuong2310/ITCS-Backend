@@ -20,7 +20,7 @@ namespace FSCMS.Service.RequestModel
 
         [Required(ErrorMessage = "Appointment date is required.")]
         [JsonPropertyName("appointmentDate")]
-        public DateTime AppointmentDate { get; set; }
+        public DateOnly AppointmentDate { get; set; }
 
         [Required(ErrorMessage = "Appointment type is required.")]
         [JsonPropertyName("type")]
@@ -69,7 +69,7 @@ namespace FSCMS.Service.RequestModel
     public class UpdateAppointmentRequest
     {
         [JsonPropertyName("appointmentDate")]
-        public DateTime? AppointmentDate { get; set; }
+        public DateOnly? AppointmentDate { get; set; }
 
         [JsonPropertyName("type")]
         public AppointmentType? Type { get; set; }
@@ -123,10 +123,10 @@ namespace FSCMS.Service.RequestModel
         public AppointmentStatus? Status { get; set; }
 
         [JsonPropertyName("appointmentDateFrom")]
-        public DateTime? AppointmentDateFrom { get; set; }
+        public DateOnly? AppointmentDateFrom { get; set; }
 
         [JsonPropertyName("appointmentDateTo")]
-        public DateTime? AppointmentDateTo { get; set; }
+        public DateOnly? AppointmentDateTo { get; set; }
 
         [JsonPropertyName("searchTerm")]
         public string? SearchTerm { get; set; }

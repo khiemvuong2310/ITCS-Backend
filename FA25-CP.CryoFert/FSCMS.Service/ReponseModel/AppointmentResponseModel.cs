@@ -32,7 +32,7 @@ namespace FSCMS.Service.ReponseModel
         public string StatusName { get; set; } = string.Empty;
 
         [JsonPropertyName("appointmentDate")]
-        public DateTime AppointmentDate { get; set; }
+        public DateOnly AppointmentDate { get; set; }
 
         [JsonPropertyName("reason")]
         public string? Reason { get; set; }

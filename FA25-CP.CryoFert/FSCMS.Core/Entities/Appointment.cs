@@ -18,7 +18,7 @@ public class Appointment : BaseEntity<Guid>
         Guid id,
         Guid patientId,
         Guid? treatmentCycleId,
-        DateTime appointmentDate,
+        DateOnly appointmentDate,
         AppointmentType type,
         AppointmentStatus status,
         string? reason = null,
@@ -49,7 +49,7 @@ public class Appointment : BaseEntity<Guid>
     public Guid? SlotId { get; set; }
     public AppointmentType Type { get; set; }
     public AppointmentStatus Status { get; set; }
-    public DateTime AppointmentDate { get; set; }
+    public DateOnly AppointmentDate { get; set; }
     public string? Reason { get; set; }
     public string? Instructions { get; set; }
     public string? Notes { get; set; }
