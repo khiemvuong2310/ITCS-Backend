@@ -486,6 +486,49 @@ namespace FSCMS.Service.Services
             }
         }
 
+        /// <summary>
+        /// Update treatment status only
+        /// </summary>
+        public async Task<BaseResponse> UpdateStatusAsync(Guid id, TreatmentStatus status)
+        {
+            const string methodName = nameof(UpdateStatusAsync);
+            _logger.LogInformation("{MethodName} called with id: {Id}, status: {Status}", methodName, id, status);
+
+            try
+            {
+                if (id == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid treatment ID provided - {TreatmentId}", methodName, id);
+                    return BaseResponse.CreateError("Treatment ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_ID");
+                }
+
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .Where(t => t.Id == id && !t.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (treatment == null)
+                {
+                    _logger.LogWarning("{MethodName}: Treatment not found with ID: {TreatmentId}", methodName, id);
+                    return BaseResponse.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+                }
+
+                treatment.Status = status;
+                treatment.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<Treatment>().UpdateGuid(treatment, id);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Successfully updated treatment status {TreatmentId} to {Status}", methodName, id, status);
+                return BaseResponse.CreateSuccess($"Treatment status updated to {status}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error updating treatment status {TreatmentId}", methodName, id);
+                return BaseResponse.CreateError($"Error updating treatment status: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         public async Task<BaseResponse<bool>> DeleteAsync(Guid id)
         {
             const string methodName = nameof(DeleteAsync);

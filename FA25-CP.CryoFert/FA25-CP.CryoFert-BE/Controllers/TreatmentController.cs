@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
+using FSCMS.Core.Enum;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
 using System.Security.Claims;
@@ -115,6 +116,31 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 return BadRequest(new BaseResponse<TreatmentResponseModel> { Code = StatusCodes.Status400BadRequest, Message = "Invalid request data" });
             }
             var result = await _treatmentService.UpdateAsync(id, request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Update treatment status only
+        /// </summary>
+        /// <param name="id">Treatment ID</param>
+        /// <param name="request">Request containing the new status</param>
+        /// <returns>Success or error response</returns>
+        [HttpPut("{id:guid}/status")]
+        [Authorize(Roles = "Doctor,Receptionist")]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTreatmentStatusRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid request data",
+                    SystemCode = "INVALID_REQUEST"
+                });
+            }
+
+            var result = await _treatmentService.UpdateStatusAsync(id, request.Status);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
