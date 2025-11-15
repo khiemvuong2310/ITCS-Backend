@@ -63,7 +63,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create new sperm sample
         /// </summary>
         [HttpPost("sperm")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateSperm([FromQuery] CreateLabSampleSpermRequest request)
         {
@@ -82,7 +82,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create new oocyte sample
         /// </summary>
         [HttpPost("oocyte")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateOocyte([FromQuery] CreateLabSampleOocyteRequest request)
         {
@@ -101,7 +101,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create new embryo sample
         /// </summary>
         [HttpPost("embryo")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateEmbryo([FromQuery] CreateLabSampleEmbryoRequest request)
         {
@@ -120,7 +120,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update existing sperm sample
         /// </summary>
         [HttpPut("sperm/{id}")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateSperm(Guid id, [FromBody] UpdateLabSampleSpermRequest request)
         {
@@ -141,7 +141,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update existing oocyte sample
         /// </summary>
         [HttpPut("oocyte/{id}")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateOocyte(Guid id, [FromBody] UpdateLabSampleOocyteRequest request)
         {
@@ -162,7 +162,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update existing embryo sample
         /// </summary>
         [HttpPut("embryo/{id}")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateEmbryo(Guid id, [FromBody] UpdateLabSampleEmbryoRequest request)
         {
@@ -185,7 +185,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Lab sample ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "LaboratoryTechnician")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
