@@ -28,6 +28,12 @@ namespace FSCMS.Service.RequestModel
         public string? Notes { get; set; }
         public decimal? EstimatedCost { get; set; }
         public decimal? ActualCost { get; set; }
+
+        // Optional IUI data - used when TreatmentType is IUI
+        public TreatmentIUICreateUpdateRequest? IUI { get; set; }
+
+        // Optional IVF data - used when TreatmentType is IVF
+        public TreatmentIVFCreateUpdateRequest? IVF { get; set; }
     }
 }
 
