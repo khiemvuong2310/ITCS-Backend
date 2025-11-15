@@ -29,7 +29,7 @@ namespace FSCMS.Core.Models.Bases
         /// </summary>
         protected BaseEntity()
         {
-            CreatedAt = DateTime.UtcNow.AddHours(7);
+            CreatedAt = DateTime.UtcNow;
             IsDeleted = false;
         }
 
@@ -41,7 +41,7 @@ namespace FSCMS.Core.Models.Bases
         protected BaseEntity(Action<object, string> lazyLoader)
         {
             _lazyLoader = lazyLoader;
-            CreatedAt = DateTime.UtcNow.AddHours(7);
+            CreatedAt = DateTime.UtcNow;
             IsDeleted = false;
         }
 

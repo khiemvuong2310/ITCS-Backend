@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -69,6 +69,8 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .Include(x => x.Account)
                     .FirstOrDefaultAsync(x => x.Id == sample.PatientId && !x.IsDeleted);
+
+
                 var response = _mapper.Map<LabSampleDetailResponse>(sample);
                 response.Patient.FullName = patient.Account.FirstName + " " + patient.Account.LastName;
                 response.Patient.DOB = patient.Account.BirthDate;
@@ -176,12 +178,12 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region CREATE
-
         public async Task<BaseResponse<LabSampleResponse>> CreateSpermAsync(CreateLabSampleSpermRequest request)
         {
             const string methodName = nameof(CreateSpermAsync);
             _logger.LogInformation("{MethodName} called", methodName);
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
+
             try
             {
                 if (request == null)
@@ -199,17 +201,43 @@ namespace FSCMS.Service.Services
                         Message = "Patient not found."
                     };
 
-                var entity = _mapper.Map<LabSample>(request);
-                entity.SampleCode = GenerateSampleCode(SampleType.Sperm);
-                entity.PatientId = request.PatientId;
-                entity.Patient = patient;
-                entity.LabSampleSperm = new LabSampleSperm(entity.Id);
-                entity.LabSampleSperm = _mapper.Map<LabSampleSperm>(request);
-                await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
+                // 1️⃣ Tạo LabSample cha
+                var labSample = _mapper.Map<LabSample>(request);
+
+                labSample.SampleCode = GenerateSampleCode(SampleType.Sperm);
+                labSample.PatientId = patient.Id;
+                labSample.Patient = patient;
+
+                await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
+
+                // 2️⃣ Tạo LabSampleSperm với Id vừa được sinh
+                var sperm = new LabSampleSperm(labSample.Id)
+                {
+                    LabSampleId = labSample.Id,
+                    Color = request.Color,
+                    Concentration = request.Concentration,
+                    Liquefaction = request.Liquefaction,
+                    Morphology = request.Morphology,
+                    Motility = request.Motility,
+                    Notes = request.Notes,
+                    PH = request.PH,
+                    Viscosity = request.Viscosity,
+                    Volume = request.Volume,
+                    TotalSpermCount = request.TotalSpermCount,
+                    ProgressiveMotility = request.ProgressiveMotility
+                };
+
+                // 3️⃣ Gắn vào navigation (nếu muốn)
+                labSample.LabSampleSperm = sperm;
+
+                // 4️⃣ Lưu quan hệ
+                await _unitOfWork.Repository<LabSampleSperm>().InsertAsync(sperm);
+                await _unitOfWork.SaveChangesAsync();
+
                 await transaction.CommitAsync();
 
-                var response = _mapper.Map<LabSampleResponse>(entity);
+                var response = _mapper.Map<LabSampleResponse>(labSample);
 
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -251,17 +279,42 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status404NotFound,
                         Message = "Patient not found."
                     };
+                // 1️⃣ Tạo LabSample cha
+                var labSample = _mapper.Map<LabSample>(request);
 
-                var entity = _mapper.Map<LabSample>(request);
-                entity.SampleCode = GenerateSampleCode(SampleType.Oocyte);
-                entity.PatientId = request.PatientId;
-                entity.Patient = patient;
-                entity.LabSampleOocyte = new LabSampleOocyte(entity.Id);
-                entity.LabSampleOocyte = _mapper.Map<LabSampleOocyte>(request);
-                await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
+                labSample.SampleCode = GenerateSampleCode(SampleType.Oocyte);
+                labSample.PatientId = patient.Id;
+                labSample.Patient = patient;
+
+                await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
+
+                // 2️⃣ Tạo LabSampleOocyte với Id vừa được sinh
+
+                var oocyte = new LabSampleOocyte(labSample.Id)
+                {
+                    LabSampleId = labSample.Id,
+                    CumulusCells = request.CumulusCells,
+                    CytoplasmAppearance = request.CytoplasmAppearance,
+                    IsMature = request.IsMature,
+                    IsVitrified = request.IsVitrified,
+                    MaturityStage = request.MaturityStage,
+                    Quality = request.Quality,
+                    RetrievalDate = DateTime.UtcNow,
+                    VitrificationDate = null,
+                    Notes = request.Notes,
+                };
+
+                // 3️⃣ Gắn vào navigation (nếu muốn)
+                labSample.LabSampleOocyte = oocyte;
+
+                // 4️⃣ Lưu quan hệ
+                await _unitOfWork.Repository<LabSampleOocyte>().InsertAsync(oocyte);
+                await _unitOfWork.SaveChangesAsync();
+
                 await transaction.CommitAsync();
-                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                var response = _mapper.Map<LabSampleResponse>(labSample);
 
                 return new BaseResponse<LabSampleResponse>
                 {
@@ -305,20 +358,66 @@ namespace FSCMS.Service.Services
                         Message = "Patient not found."
                     };
 
-                var entity = _mapper.Map<LabSample>(request);
-                entity.SampleCode = GenerateSampleCode(SampleType.Embryo);
-                entity.PatientId = request.PatientId;
-                entity.Patient = patient;
+                var sperm = await _unitOfWork.Repository<LabSample>().GetByIdGuid(request.LabSampleSpermId);
+                if (sperm == null || sperm.Status == SpecimenStatus.Used)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Sperm not found or already used."
+                    };
 
-                entity.LabSampleEmbryo = new LabSampleEmbryo(entity.Id);
-                entity.LabSampleEmbryo = _mapper.Map<LabSampleEmbryo>(request);
+                var oocyte = await _unitOfWork.Repository<LabSample>().GetByIdGuid(request.LabSampleOocyteId);
+                if (oocyte == null || oocyte.Status == SpecimenStatus.Used)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Oocyte not found or already used."
+                    };
 
-                await _unitOfWork.Repository<LabSample>().InsertAsync(entity);
+                // 1️⃣ Tạo LabSample cha
+                var labSample = _mapper.Map<LabSample>(request);
+
+                labSample.SampleCode = GenerateSampleCode(SampleType.Embryo);
+                labSample.PatientId = patient.Id;
+                labSample.Patient = patient;
+
+                await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
+                await _unitOfWork.SaveChangesAsync();
+
+                // 2️⃣ Tạo LabSampleEmbryo với Id vừa được sinh
+                var embryo = new LabSampleEmbryo(labSample.Id)
+                {
+                    LabSampleId = labSample.Id,
+                    CellCount = request.CellCount,
+                    DayOfDevelopment = request.DayOfDevelopment,
+                    FertilizationMethod = request.FertilizationMethod,
+                    Grade = request.Grade,
+                    IsBiopsied = request.IsBiopsied,
+                    IsPGTTested = request.IsPGTTested,
+                    LabSampleOocyteId = request.LabSampleOocyteId,
+                    LabSampleSpermId = request.LabSampleSpermId,
+                    Morphology = request.Morphology,
+                    Notes = request.Notes,
+                    PGTResult = request.PGTResult,
+                };
+
+                // 3️⃣ Gắn vào navigation (nếu muốn)
+                labSample.LabSampleEmbryo = embryo;
+
+                // 4️⃣ Lưu quan hệ
+                await _unitOfWork.Repository<LabSampleEmbryo>().InsertAsync(embryo);
+                await _unitOfWork.SaveChangesAsync();
+
+                var response = _mapper.Map<LabSampleResponse>(labSample);
+
+                sperm.Status = SpecimenStatus.Used;
+                oocyte.Status = SpecimenStatus.Used;
+
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(sperm, sperm.Id);
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(oocyte, oocyte.Id);
                 await _unitOfWork.SaveChangesAsync();
 
                 await transaction.CommitAsync();
-
-                var response = _mapper.Map<LabSampleResponse>(entity);
 
                 return new BaseResponse<LabSampleResponse>
                 {

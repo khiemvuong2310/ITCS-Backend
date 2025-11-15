@@ -118,8 +118,6 @@ namespace FSCMS.Service.RequestModel
 
         public bool IsMature { get; set; }
 
-        public DateTime? RetrievalDate { get; set; }
-
         [StringLength(100)]
         public string? CumulusCells { get; set; }
 
@@ -127,8 +125,6 @@ namespace FSCMS.Service.RequestModel
         public string? CytoplasmAppearance { get; set; }
 
         public bool IsVitrified { get; set; }
-
-        public DateTime? VitrificationDate { get; set; }
     }
 
     /// <summary>
@@ -166,6 +162,10 @@ namespace FSCMS.Service.RequestModel
     /// </summary>
     public class CreateLabSampleEmbryoRequest : CreateLabSampleBaseRequest
     {
+        [Required(ErrorMessage = "Lab Sample Oocyte ID is required.")]
+        public Guid LabSampleOocyteId { get; set; }
+        [Required(ErrorMessage = "Lab Sample Sperm ID is required.")]
+        public Guid LabSampleSpermId { get; set; }
         [Range(1, 10, ErrorMessage = "Day of development must be between 1 and 10.")]
         public int DayOfDevelopment { get; set; }
 
