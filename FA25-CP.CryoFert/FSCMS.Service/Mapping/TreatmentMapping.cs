@@ -92,6 +92,73 @@ namespace FSCMS.Service.Mapping
             }
         }
 
+        /// <summary>
+        /// Partial update - only updates fields that are provided (not null)
+        /// </summary>
+        public static void UpdateEntity(this Treatment entity, TreatmentUpdateRequest request)
+        {
+            if (request.PatientId.HasValue)
+            {
+                entity.PatientId = request.PatientId.Value;
+            }
+
+            if (request.DoctorId.HasValue)
+            {
+                entity.DoctorId = request.DoctorId.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.TreatmentName))
+            {
+                entity.TreatmentName = request.TreatmentName;
+            }
+
+            if (request.TreatmentType.HasValue)
+            {
+                entity.TreatmentType = request.TreatmentType.Value;
+            }
+
+            if (request.StartDate.HasValue)
+            {
+                entity.StartDate = request.StartDate.Value;
+            }
+
+            if (request.EndDate.HasValue)
+            {
+                entity.EndDate = request.EndDate.Value;
+            }
+
+            if (request.Status.HasValue)
+            {
+                entity.Status = request.Status.Value;
+            }
+
+            // For nullable string fields, allow setting to null explicitly
+            if (request.Diagnosis != null)
+            {
+                entity.Diagnosis = request.Diagnosis;
+            }
+
+            if (request.Goals != null)
+            {
+                entity.Goals = request.Goals;
+            }
+
+            if (request.Notes != null)
+            {
+                entity.Notes = request.Notes;
+            }
+
+            if (request.EstimatedCost.HasValue)
+            {
+                entity.EstimatedCost = request.EstimatedCost.Value;
+            }
+
+            if (request.ActualCost.HasValue)
+            {
+                entity.ActualCost = request.ActualCost.Value;
+            }
+        }
+
         public static TreatmentIVFResponseModel ToResponseModel(this TreatmentIVF entity)
         {
             return new TreatmentIVFResponseModel

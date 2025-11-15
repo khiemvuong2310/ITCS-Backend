@@ -28,7 +28,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering request</param>
         /// <returns>Paginated service requests</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServiceRequestsRequest request)
         {
@@ -45,7 +45,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Service request response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -59,7 +59,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="status">Service request status</param>
         /// <returns>List of service requests with the specified status</returns>
         [HttpGet("status/{status}")]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(List<ServiceRequestResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByStatus(ServiceRequestStatus status)
         {
@@ -73,7 +73,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="appointmentId">Appointment ID</param>
         /// <returns>List of service requests for the appointment</returns>
         [HttpGet("appointment/{appointmentId:guid}")]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(List<ServiceRequestResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByAppointment(Guid appointmentId)
         {
@@ -87,7 +87,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service request creation request</param>
         /// <returns>Created service request response</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] ServiceRequestCreateRequestModel request)
         {
@@ -111,7 +111,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service request update request</param>
         /// <returns>Updated service request response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceRequestUpdateRequestModel request)
         {
@@ -134,7 +134,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -149,7 +149,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="approvedBy">User who approves the request</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/approve")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Approve(Guid id, [FromBody] string approvedBy)
         {
@@ -173,7 +173,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="rejectedBy">User who rejects the request</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/reject")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Reject(Guid id, [FromBody] string rejectedBy)
         {
@@ -196,7 +196,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/complete")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Complete(Guid id)
         {
@@ -210,7 +210,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/cancel")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Cancel(Guid id)
         {

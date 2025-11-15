@@ -340,7 +340,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<TreatmentResponseModel>> UpdateAsync(Guid id, TreatmentCreateUpdateRequest request)
+        public async Task<BaseResponse<TreatmentResponseModel>> UpdateAsync(Guid id, TreatmentUpdateRequest request)
         {
             const string methodName = nameof(UpdateAsync);
             _logger.LogInformation("{MethodName} called with id: {Id}, request: {@Request}", methodName, id, request);
@@ -367,26 +367,114 @@ namespace FSCMS.Service.Services
                     return BaseResponse<TreatmentResponseModel>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
                 }
 
-                // Validate FKs
-                var patientExists = await _unitOfWork.Repository<Patient>().GetQueryable().AnyAsync(p => p.Id == request.PatientId && !p.IsDeleted);
-                if (!patientExists)
+                // Validate foreign keys only if they are being updated
+                if (request.PatientId.HasValue)
                 {
-                    return BaseResponse<TreatmentResponseModel>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
-                }
-                var doctorExists = await _unitOfWork.Repository<Doctor>().GetQueryable().AnyAsync(d => d.Id == request.DoctorId && !d.IsDeleted);
-                if (!doctorExists)
-                {
-                    return BaseResponse<TreatmentResponseModel>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
+                    var patientExists = await _unitOfWork.Repository<Patient>().GetQueryable().AnyAsync(p => p.Id == request.PatientId.Value && !p.IsDeleted);
+                    if (!patientExists)
+                    {
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
+                    }
                 }
 
+                if (request.DoctorId.HasValue)
+                {
+                    var doctorExists = await _unitOfWork.Repository<Doctor>().GetQueryable().AnyAsync(d => d.Id == request.DoctorId.Value && !d.IsDeleted);
+                    if (!doctorExists)
+                    {
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
+                    }
+                }
+
+                // Validate IUI/IVF data consistency with TreatmentType if TreatmentType is being updated
+                if (request.TreatmentType.HasValue)
+                {
+                    if (request.TreatmentType.Value == TreatmentType.IUI && request.IVF != null)
+                    {
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Cannot provide IVF data when TreatmentType is IUI", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_DATA");
+                    }
+
+                    if (request.TreatmentType.Value == TreatmentType.IVF && request.IUI != null)
+                    {
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Cannot provide IUI data when TreatmentType is IVF", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_DATA");
+                    }
+                }
+                else
+                {
+                    // If TreatmentType is not being updated, validate against current TreatmentType
+                    if (entity.TreatmentType == TreatmentType.IUI && request.IVF != null)
+                    {
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Cannot provide IVF data when TreatmentType is IUI", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_DATA");
+                    }
+
+                    if (entity.TreatmentType == TreatmentType.IVF && request.IUI != null)
+                    {
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Cannot provide IUI data when TreatmentType is IVF", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_DATA");
+                    }
+                }
+
+                // Update Treatment entity (partial update)
                 entity.UpdateEntity(request);
                 entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<Treatment>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
+                // Handle IUI/IVF updates if provided
+                var currentTreatmentType = request.TreatmentType ?? entity.TreatmentType;
+                if (currentTreatmentType == TreatmentType.IUI && request.IUI != null)
+                {
+                    request.IUI.TreatmentId = id;
+                    var existingIUI = await _unitOfWork.Repository<TreatmentIUI>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                    if (existingIUI != null)
+                    {
+                        existingIUI.UpdateEntity(request.IUI);
+                        existingIUI.UpdatedAt = DateTime.UtcNow;
+                        await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(existingIUI, id);
+                    }
+                    else
+                    {
+                        var iuiResult = await _treatmentIUIService.CreateAsync(request.IUI);
+                        if (!iuiResult.Success)
+                        {
+                            _logger.LogWarning("{MethodName}: Failed to create IUI record for Treatment {TreatmentId}: {Error}",
+                                methodName, id, iuiResult.Message);
+                        }
+                    }
+                    await _unitOfWork.CommitAsync();
+                }
+                else if (currentTreatmentType == TreatmentType.IVF && request.IVF != null)
+                {
+                    request.IVF.TreatmentId = id;
+                    var existingIVF = await _unitOfWork.Repository<TreatmentIVF>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                    if (existingIVF != null)
+                    {
+                        existingIVF.UpdateEntity(request.IVF);
+                        existingIVF.UpdatedAt = DateTime.UtcNow;
+                        await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(existingIVF, id);
+                    }
+                    else
+                    {
+                        var ivfResult = await _treatmentIVFService.CreateAsync(request.IVF);
+                        if (!ivfResult.Success)
+                        {
+                            _logger.LogWarning("{MethodName}: Failed to create IVF record for Treatment {TreatmentId}: {Error}",
+                                methodName, id, ivfResult.Message);
+                        }
+                    }
+                    await _unitOfWork.CommitAsync();
+                }
+
+                // Retrieve the updated treatment with related data
                 var updated = await _unitOfWork.Repository<Treatment>()
                     .GetQueryable()
                     .AsNoTracking()
+                    .Include(t => t.TreatmentIVF)
                     .FirstOrDefaultAsync(t => t.Id == id);
 
                 return BaseResponse<TreatmentResponseModel>.CreateSuccess(updated!.ToResponseModel(), "Treatment updated successfully", StatusCodes.Status200OK);
