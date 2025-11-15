@@ -62,14 +62,6 @@ namespace FSCMS.Service.Services
                         .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
-                    .Include(a => a.Slot)
-                        .ThenInclude(s => s.Appointments)
-                            .ThenInclude(ap => ap.Patient)
-                                .ThenInclude(p => p.Account)
-                    .Include(a => a.Slot)
-                        .ThenInclude(s => s.Appointments)
-                            .ThenInclude(ap => ap.Patient)
-                                .ThenInclude(p => p.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
@@ -137,6 +129,16 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AppointmentDetailResponse>.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
+                // Load Patient separately if it's null but PatientId exists (e.g., if Patient is soft deleted)
+                if (appointment.Patient == null && appointment.PatientId != Guid.Empty)
+                {
+                    appointment.Patient = await _unitOfWork.Repository<Patient>()
+                        .AsQueryable()
+                        .AsNoTracking()
+                        .Include(p => p.Account)
+                        .FirstOrDefaultAsync(p => p.Id == appointment.PatientId);
+                }
+
                 var appointmentDetailResponse = MapToAppointmentDetailResponse(appointment);
 
                 // Load service requests
@@ -192,10 +194,6 @@ namespace FSCMS.Service.Services
                         .ThenInclude(s => s.DoctorSchedules)
                             .ThenInclude(ds => ds.Doctor)
                                 .ThenInclude(d => d.Account)
-                    .Include(a => a.Slot)
-                        .ThenInclude(s => s.Appointments)
-                            .ThenInclude(ap => ap.Patient)
-                                .ThenInclude(p => p.Account)
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
@@ -1624,6 +1622,7 @@ namespace FSCMS.Service.Services
                 IsReminderSent = baseResponse.IsReminderSent,
                 CreatedAt = baseResponse.CreatedAt,
                 UpdatedAt = baseResponse.UpdatedAt,
+                Patient = baseResponse.Patient,
                 TreatmentCycle = baseResponse.TreatmentCycle,
                 Slot = baseResponse.Slot,
                 Doctors = baseResponse.Doctors,

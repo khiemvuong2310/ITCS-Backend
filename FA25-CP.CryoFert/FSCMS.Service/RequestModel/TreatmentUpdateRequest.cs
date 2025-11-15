@@ -1,5 +1,6 @@
 using FSCMS.Core.Enum;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace FSCMS.Service.RequestModel
 {
@@ -32,6 +33,16 @@ namespace FSCMS.Service.RequestModel
 
         // Optional IVF data - used when TreatmentType is IVF
         public TreatmentIVFCreateUpdateRequest? IVF { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for updating Treatment status only
+    /// </summary>
+    public class UpdateTreatmentStatusRequest
+    {
+        [Required(ErrorMessage = "Status is required.")]
+        [JsonPropertyName("status")]
+        public TreatmentStatus Status { get; set; }
     }
 }
 

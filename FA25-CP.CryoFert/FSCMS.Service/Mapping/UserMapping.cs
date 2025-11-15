@@ -24,7 +24,12 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.AvatarId))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.IsActive))
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username))
-                .ForMember(dest => dest.Age, opt => opt.Ignore()) // Account doesn't have Age
+                .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender))
+                .ForMember(dest => dest.DOB, opt => opt.MapFrom(src => src.BirthDate))
+                .ForMember(dest => dest.Age, opt => opt.MapFrom(src => 
+                    src.BirthDate.HasValue 
+                        ? (int?)(DateTime.UtcNow.Year - src.BirthDate.Value.Year - (DateTime.UtcNow.DayOfYear < src.BirthDate.Value.DayOfYear ? 1 : 0))
+                        : null))
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Address))
                 .ForMember(dest => dest.Country, opt => opt.Ignore()); // Account doesn't have Country
 

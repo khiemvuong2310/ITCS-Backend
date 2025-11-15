@@ -11,6 +11,8 @@ namespace FSCMS.Service.ReponseModel
         public Guid Id { get; set; }
         public string? UserName { get; set; }
         public int? Age { get; set; }
+        public bool? Gender { get; set; } // true = male, false = female
+        public DateTime? DOB { get; set; } // Date of Birth
         public string Email { get; set; }
         public string? Phone { get; set; }
         public string? Location { get; set; }
