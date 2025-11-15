@@ -58,7 +58,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Contract creation data</param>
         /// <returns>Created contract information</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Receptionist")] // Only Admin or Receptionist can create
+        [Authorize(Roles = "Receptionist")] // Only Admin or Receptionist can create
         [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateContract([FromBody] CreateCryoStorageContractRequest request)
         {
@@ -82,7 +82,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Updated contract data</param>
         /// <returns>Updated contract information</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Receptionist")] // Only Admin or Receptionist can update
+        [Authorize(Roles = "Receptionist")] // Only Admin or Receptionist can update
         [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateContract(Guid id, [FromBody] UpdateCryoStorageContractRequest request)
         {
@@ -105,7 +105,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Contract ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")] // Only Admin can delete
+        [Authorize(Roles = "Receptionist")] // Only Admin can delete
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteContract(Guid id)
         {

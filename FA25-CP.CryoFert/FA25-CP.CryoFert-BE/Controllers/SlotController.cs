@@ -127,7 +127,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Slot creation request</param>
         /// <returns>Created slot information</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(SlotResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateSlot([FromBody] CreateSlotRequest request)
         {
@@ -188,7 +188,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="slotDuration">Duration of each slot in minutes (default: 30)</param>
         /// <returns>Number of created slots</returns>
         [HttpPost("schedule/{scheduleId}/generate")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(int), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateSlotsForSchedule(Guid scheduleId, [FromQuery] int slotDuration = 30)
         {
@@ -249,7 +249,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Slot update request</param>
         /// <returns>Updated slot information</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(SlotResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateSlot(Guid id, [FromBody] UpdateSlotRequest request)
         {
@@ -304,7 +304,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Slot ID</param>
         /// <returns>Success or error response</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteSlot(Guid id)
         {
@@ -350,7 +350,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="isBooked">New booking status</param>
         /// <returns>Success or error response</returns>
         [HttpPatch("{id}/booking-status")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateSlotBookingStatus(Guid id, [FromBody] bool isBooked)
         {

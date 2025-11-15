@@ -100,7 +100,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Doctor creation request</param>
         /// <returns>Created doctor information</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(DoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorRequest request)
         {
@@ -125,7 +125,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Doctor update request</param>
         /// <returns>Updated doctor information</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(DoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateDoctor(Guid id, [FromBody] UpdateDoctorRequest request)
         {
@@ -173,7 +173,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Doctor ID</param>
         /// <returns>Success or error response</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteDoctor(Guid id)
         {
@@ -188,7 +188,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="isActive">New status</param>
         /// <returns>Success or error response</returns>
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateDoctorStatus(Guid id, [FromBody] bool isActive)
         {
@@ -205,7 +205,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <returns>Doctor statistics</returns>
         [HttpGet("statistics")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(DoctorStatisticsResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDoctorStatistics()
         {
@@ -259,7 +259,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="excludeDoctorId">Doctor ID to exclude from check (optional)</param>
         /// <returns>Boolean indicating if badge ID is unique</returns>
         [HttpGet("badge/{badgeId}/unique")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> IsBadgeIdUnique(string badgeId, [FromQuery] Guid? excludeDoctorId = null)
         {

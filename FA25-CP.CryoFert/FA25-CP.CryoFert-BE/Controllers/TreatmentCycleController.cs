@@ -6,6 +6,10 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using FSCMS.Data.UnitOfWork;
+using FSCMS.Core.Entities;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -15,33 +19,98 @@ namespace FA25_CP.CryoFert_BE.Controllers
     public class TreatmentCycleController : ControllerBase
     {
         private readonly ITreatmentCycleService _service;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public TreatmentCycleController(ITreatmentCycleService service)
+        public TreatmentCycleController(ITreatmentCycleService service, IUnitOfWork unitOfWork)
         {
             _service = service;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentCyclesRequest request)
         {
             request ??= new GetTreatmentCyclesRequest();
+            
+            // For Patient role, automatically filter by their PatientId
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole == "Patient")
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return Unauthorized(new BaseResponse<TreatmentCycleResponseModel>
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "Invalid user token"
+                    });
+                }
+
+                // Patient.Id == Account.Id (shared PK), so accountId is the patientId
+                request.PatientId = accountId;
+            }
+
             var result = await _service.GetAllAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient")]
         [ApiDefaultResponse(typeof(TreatmentCycleDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            
+            // For Patient role, verify the treatment cycle belongs to them
+            if (userRole == "Patient")
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return Unauthorized(new BaseResponse<TreatmentCycleDetailResponseModel>
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "Invalid user token"
+                    });
+                }
+
+                // Get treatment cycle to check Treatment.PatientId
+                var cycle = await _unitOfWork.Repository<TreatmentCycle>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(tc => tc.Treatment)
+                    .FirstOrDefaultAsync(tc => tc.Id == id && !tc.IsDeleted);
+
+                if (cycle == null)
+                {
+                    return StatusCode(StatusCodes.Status404NotFound, new BaseResponse<TreatmentCycleDetailResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Treatment cycle not found",
+                        SystemCode = "NOT_FOUND"
+                    });
+                }
+
+                // Verify Treatment.PatientId matches (Patient.Id == Account.Id, so accountId is patientId)
+                if (cycle.Treatment == null || cycle.Treatment.PatientId != accountId)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new BaseResponse<TreatmentCycleDetailResponseModel>
+                    {
+                        Code = StatusCodes.Status403Forbidden,
+                        Message = "You are not authorized to view this treatment cycle",
+                        SystemCode = "FORBIDDEN"
+                    });
+                }
+            }
+
             var result = await _service.GetByIdAsync(id);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateTreatmentCycleRequest request)
         {
@@ -54,7 +123,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTreatmentCycleRequest request)
         {
@@ -67,7 +136,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -76,7 +145,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost("{id:guid}/start")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Start(Guid id, [FromBody] StartTreatmentCycleRequest request)
         {
@@ -85,7 +154,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost("{id:guid}/complete")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteTreatmentCycleRequest request)
         {
@@ -98,7 +167,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost("{id:guid}/cancel")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelTreatmentCycleRequest request)
         {
@@ -111,7 +180,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}/samples")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(List<object>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSamples(Guid id)
         {
@@ -120,7 +189,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost("{id:guid}/samples")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> AddSample(Guid id, [FromBody] AddCycleSampleRequest request)
         {
@@ -133,7 +202,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}/appointments")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(List<AppointmentSummary>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointments(Guid id)
         {
@@ -142,7 +211,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost("{id:guid}/appointments")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(AppointmentSummary), UseDynamicWrapper = false)]
         public async Task<IActionResult> AddAppointment(Guid id, [FromBody] AddCycleAppointmentRequest request)
         {
@@ -155,7 +224,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}/billing")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(TreatmentCycleBillingResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetBilling(Guid id)
         {
@@ -164,7 +233,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}/documents")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(List<DocumentSummary>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetDocuments(Guid id)
         {
@@ -173,7 +242,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost("{id:guid}/documents")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(DocumentSummary), UseDynamicWrapper = false)]
         public async Task<IActionResult> UploadDocument(Guid id, [FromBody] UploadCycleDocumentRequest request)
         {

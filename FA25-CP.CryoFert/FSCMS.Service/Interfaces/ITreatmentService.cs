@@ -8,7 +8,7 @@ namespace FSCMS.Service.Interfaces
         Task<DynamicResponse<TreatmentResponseModel>> GetAllAsync(GetTreatmentsRequest request);
         Task<BaseResponse<TreatmentDetailResponseModel>> GetByIdAsync(Guid id);
         Task<BaseResponse<TreatmentResponseModel>> CreateAsync(TreatmentCreateUpdateRequest request);
-        Task<BaseResponse<TreatmentResponseModel>> UpdateAsync(Guid id, TreatmentCreateUpdateRequest request);
+        Task<BaseResponse<TreatmentResponseModel>> UpdateAsync(Guid id, TreatmentUpdateRequest request);
         Task<BaseResponse<bool>> DeleteAsync(Guid id);
     }
 }

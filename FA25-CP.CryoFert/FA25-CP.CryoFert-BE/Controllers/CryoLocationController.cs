@@ -30,7 +30,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create default CryoBank structure from configuration
         /// </summary>
         [HttpPost("initialize-default-bank")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(CryoLocationSummaryResponse))]
         public async Task<IActionResult> CreateDefaultBank()
         {
@@ -86,7 +86,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update CryoLocation
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(CryoLocationResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] CryoLocationUpdateRequest request)
         {
@@ -107,7 +107,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Delete CryoLocation (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {

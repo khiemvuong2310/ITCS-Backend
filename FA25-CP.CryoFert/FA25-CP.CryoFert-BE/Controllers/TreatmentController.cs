@@ -6,6 +6,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.ReponseModel;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using System.Security.Claims;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -22,26 +23,77 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentsRequest request)
         {
             request ??= new GetTreatmentsRequest();
+            
+            // For Patient role, automatically filter by their PatientId
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole == "Patient")
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return Unauthorized(new BaseResponse<TreatmentResponseModel>
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "Invalid user token"
+                    });
+                }
+
+                // Patient.Id == Account.Id (shared PK), so accountId is the patientId
+                request.PatientId = accountId;
+            }
+
             var result = await _treatmentService.GetAllAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient")]
         [ApiDefaultResponse(typeof(TreatmentDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _treatmentService.GetByIdAsync(id);
+            
+            // For Patient role, verify the treatment belongs to them
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole == "Patient")
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return Unauthorized(new BaseResponse<TreatmentDetailResponseModel>
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "Invalid user token"
+                    });
+                }
+
+                // Verify PatientId matches (Patient.Id == Account.Id, so accountId is patientId)
+                if (!result.Success || result.Data == null || result.Data.PatientId != accountId)
+                {
+                    if (!result.Success)
+                    {
+                        return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+                    }
+
+                    return StatusCode(StatusCodes.Status403Forbidden, new BaseResponse<TreatmentDetailResponseModel>
+                    {
+                        Code = StatusCodes.Status403Forbidden,
+                        Message = "You are not authorized to view this treatment",
+                        SystemCode = "FORBIDDEN"
+                    });
+                }
+            }
+
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] TreatmentCreateUpdateRequest request)
         {
@@ -54,9 +106,9 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentCreateUpdateRequest request)
+        public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentUpdateRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -67,7 +119,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {

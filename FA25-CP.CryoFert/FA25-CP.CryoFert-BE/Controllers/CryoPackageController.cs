@@ -14,7 +14,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Receptionist")]
     public class CryoPackageController : ControllerBase
     {
         private readonly ICryoPackageService _cryoPackageService;

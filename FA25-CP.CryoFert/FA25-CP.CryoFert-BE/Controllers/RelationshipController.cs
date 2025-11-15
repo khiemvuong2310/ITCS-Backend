@@ -34,7 +34,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Relationship creation request</param>
         /// <returns>Created relationship response</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Receptionist,Patient")]
+        [Authorize(Roles = "Receptionist,Patient")]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateRelationship([FromBody] CreateRelationshipRequest request)
         {
@@ -58,7 +58,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Relationship ID</param>
         /// <returns>Relationship response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetRelationshipById(Guid id)
         {
@@ -72,7 +72,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Get relationships request</param>
         /// <returns>Paginated relationship responses</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetAllRelationships([FromQuery] GetRelationshipsRequest request)
         {
@@ -87,7 +87,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination request</param>
         /// <returns>Paginated relationship responses</returns>
         [HttpGet("patient/{patientId:guid}")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetPatientRelationships(Guid patientId, [FromQuery] GetRelationshipsRequest request)
         {
@@ -102,7 +102,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Relationship update request</param>
         /// <returns>Updated relationship response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateRelationship(Guid id, [FromBody] UpdateRelationshipRequest request)
         {
@@ -125,7 +125,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Relationship ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteRelationship(Guid id)
         {
@@ -143,7 +143,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Approve relationship request</param>
         /// <returns>Updated relationship response</returns>
         [HttpPost("approve")]
-        [Authorize(Roles = "Admin,Receptionist,Patient")]
+        [Authorize(Roles = "Receptionist,Patient")]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> ApproveRelationship([FromBody] ApproveRelationshipRequest request)
         {
@@ -167,7 +167,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Reject relationship request</param>
         /// <returns>Updated relationship response</returns>
         [HttpPost("reject")]
-        [Authorize(Roles = "Admin,Receptionist,Patient")]
+        [Authorize(Roles = "Receptionist,Patient")]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> RejectRelationship([FromBody] RejectRelationshipRequest request)
         {
@@ -194,7 +194,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <returns>List of relationship types</returns>
         [HttpGet("types")]
-        [Authorize(Roles = "Admin,Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(System.Collections.Generic.Dictionary<int, string>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetRelationshipTypes()
         {
@@ -209,7 +209,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="patient2Id">Second patient ID</param>
         /// <returns>Validation result</returns>
         [HttpGet("can-create")]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Receptionist")]
         [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> CanCreateRelationship([FromQuery] Guid patient1Id, [FromQuery] Guid patient2Id)
         {
