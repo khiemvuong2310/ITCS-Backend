@@ -86,7 +86,7 @@ namespace FA25_CP.CryoFert_BE
                 options.vnp_TmnCode = Environment.GetEnvironmentVariable("VNPAY_TMNCODE") ?? "";
                 options.vnp_HashSecret = Environment.GetEnvironmentVariable("VNPAY_HASHSECRET") ?? "";
                 options.vnp_Returnurl = Environment.GetEnvironmentVariable("VNPAY_RETURNURL") ?? "";
-                options.vnp_IpnUrl = Environment.GetEnvironmentVariable("VNPAY_IPNURL") ?? "";
+                //options.vnp_IpnUrl = Environment.GetEnvironmentVariable("VNPAY_IPNURL") ?? "";
             });
 
             // 4. CORS config
