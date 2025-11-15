@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
+using FSCMS.Core.Models.Options;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.Payments;
@@ -17,6 +18,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FSCMS.Service.Services
 {
@@ -27,19 +29,22 @@ namespace FSCMS.Service.Services
         private readonly ILogger<TransactionService> _logger;
         private readonly PaymentGatewayService _paymentGateway;
         private readonly IHubContext<TransactionHub> _hubContext;
+        private readonly VnPayOptions _options;
 
         public TransactionService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             ILogger<TransactionService> logger,
             PaymentGatewayService paymentGateway,
-            IHubContext<TransactionHub> hubContext)
+            IHubContext<TransactionHub> hubContext,
+            IOptions<VnPayOptions> options)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
             _paymentGateway = paymentGateway;
             _hubContext = hubContext;
+            _options = options.Value;
         }
 
         #region Create Transaction & Redirect VNPay
@@ -83,12 +88,16 @@ namespace FSCMS.Service.Services
                     Currency = "VND",
                     PatientId = patient.Id,
                     PatientName = $"{patient.Account.FirstName} {patient.Account.LastName}",
-                    Description = $"{patient.Account.FirstName} {patient.Account.LastName} payment for {request.RelatedEntityType}",
+                    Description = $"{patient.Account.FirstName} {patient.Account.LastName} payment for {request.RelatedEntityType} {request.RelatedEntityId}",
                     RelatedEntityType = request.RelatedEntityType.ToString(),
                     RelatedEntityId = request.RelatedEntityId,
                     Status = TransactionStatus.Pending,
                     TransactionDate = DateTime.UtcNow,
                 };
+
+                await _unitOfWork.Repository<Transaction>().InsertAsync(transaction);
+                await _unitOfWork.CommitAsync();
+                await transactionU.CommitAsync();
 
                 string paymentUrl = null;
                 if (transaction.Currency == "VND")
@@ -97,11 +106,11 @@ namespace FSCMS.Service.Services
                     transaction.PaymentGateway = "VNPay";
                     transaction.PaymentMethod = "Online";
                     transaction.ReferenceNumber = transaction.TransactionCode;
+                    using var tx2 = await _unitOfWork.BeginTransactionAsync();
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    await _unitOfWork.CommitAsync();
+                    await tx2.CommitAsync();
                 }
-
-                await _unitOfWork.Repository<Transaction>().InsertAsync(transaction);
-                await _unitOfWork.CommitAsync();
-                await transactionU.CommitAsync();
 
                 var response = _mapper.Map<TransactionResponseModel>(transaction);
                 response.PaymentUrl = paymentUrl;
@@ -141,36 +150,120 @@ namespace FSCMS.Service.Services
                 bool isValid = vnpay.ValidateSignature(secureHash, _paymentGateway.HashSecret);
 
                 if (!isValid)
+                {
+                    await transactionU.RollbackAsync();
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status400BadRequest,
                         Message = "Invalid signature"
                     };
+                }
+
 
                 string txnRef = vnpay.GetResponseData("vnp_TxnRef");
+                string vnp_TmnCode = vnpay.GetResponseData("vnp_TmnCode");
+                string vnp_AmountRaw = vnpay.GetResponseData("vnp_Amount");
+                string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
+                string vnp_TransactionStatus = vnpay.GetResponseData("vnp_TransactionStatus");
+                string vnp_TransactionNo = vnpay.GetResponseData("vnp_TransactionNo");
+                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");
+
+                // 3. Validate merchant TmnCode
+                if (!string.Equals(vnp_TmnCode, _options.vnp_TmnCode, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("VNPay callback merchant code mismatch. Expected {Expected}, Got {Got}", _options.vnp_TmnCode, vnp_TmnCode);
+                    await transactionU.RollbackAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid merchant"
+                    };
+                }
+
+                // 4. Find transaction
                 var transaction = await _unitOfWork.Repository<Transaction>()
                     .AsQueryable()
                     .FirstOrDefaultAsync(t => t.TransactionCode == txnRef);
 
                 if (transaction == null)
+                {
+                    _logger.LogWarning("VNPay callback: transaction not found. TxnRef={TxnRef}", txnRef);
+                    await transactionU.RollbackAsync();
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Transaction not found"
                     };
+                }
 
-                string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
-                string vnp_TransactionStatus = vnpay.GetResponseData("vnp_TransactionStatus");
-                string bankCode = vnpay.GetResponseData("vnp_BankCode");
+                // 5. Idempotency: if already completed, return success (avoid double processing)
+                if (transaction.Status == TransactionStatus.Completed)
+                {
+                    _logger.LogInformation("VNPay callback received for already completed transaction {Txn}", txnRef);
+                    await transactionU.CommitAsync(); // nothing changed, but commit tx
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status200OK,
+                        Message = "Transaction already processed",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }
 
+                // 6. Validate amount: VNPay sends amount in "cents" (amount * 100)
+                if (!long.TryParse(vnp_AmountRaw, out var vnpAmount))
+                {
+                    _logger.LogWarning("VNPay callback: amount parse failed. AmountRaw={AmountRaw}", vnp_AmountRaw);
+                    await transactionU.RollbackAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid amount"
+                    };
+                }
+
+                long expectedAmount = (long)(transaction.Amount * 100M); // assuming transaction.Amount is decimal in VND
+                if (vnpAmount != expectedAmount)
+                {
+                    _logger.LogWarning("VNPay callback amount mismatch. Txn={Txn}, Expected={Expected}, Got={Got}",
+                        txnRef, expectedAmount, vnpAmount);
+                    // Decide: mark as Failed and flag for reconciliation, or reject
+                    transaction.Status = TransactionStatus.Failed;
+                    transaction.ProcessedDate = DateTime.UtcNow;
+                    transaction.BankTranNo = vnp_TransactionNo;
+                    transaction.BankName = vnp_BankCode;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    await _unitOfWork.CommitAsync();
+                    await transactionU.CommitAsync();
+
+                    // Notify user/admin for manual reconciliation
+                    await _hubContext.Clients.User(transaction.PatientId.ToString())
+                        .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Amount mismatch",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }
+
+                // 7. Process based on response code & status
                 transaction.ProcessedDate = DateTime.UtcNow;
-                transaction.BankTranNo = vnpay.GetResponseData("vnp_TransactionNo");
-                transaction.BankName = bankCode;
+                transaction.ProcessedBy = "VNPay";
+                transaction.BankTranNo = vnp_TransactionNo;
+                transaction.BankName = vnp_BankCode;
+
                 if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                 {
                     transaction.Status = TransactionStatus.Completed;
                     await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                     await _unitOfWork.CommitAsync();
+                    await transactionU.CommitAsync();
+
+                    // Push SignalR AFTER commit
+                    await _hubContext.Clients.User(transaction.PatientId.ToString())
+                        .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status200OK,
@@ -178,21 +271,25 @@ namespace FSCMS.Service.Services
                         Data = _mapper.Map<TransactionResponseModel>(transaction)
                     };
                 }
-
-                transaction.Status = TransactionStatus.Failed;
-                await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
-                await _unitOfWork.CommitAsync();
-                await transactionU.CommitAsync();
-                // Push SignalR
-                await _hubContext.Clients.User(transaction.PatientId.ToString())
-                    .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
-
-                return new BaseResponse<TransactionResponseModel>
+                else
                 {
-                    Code = StatusCodes.Status500InternalServerError,
-                    Message = "Transaction processed",
-                    Data = _mapper.Map<TransactionResponseModel>(transaction)
-                };
+                    // non-success codes -> Failed/Cancelled/Timeout
+                    transaction.Status = TransactionStatus.Failed;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    await _unitOfWork.CommitAsync();
+                    await transactionU.CommitAsync();
+
+                    // Notify AFTER commit
+                    await _hubContext.Clients.User(transaction.PatientId.ToString())
+                        .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status200OK,
+                        Message = "Transaction processed (failed)",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -227,17 +324,6 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                var patient = await _unitOfWork.Repository<Patient>()
-                    .AsQueryable()
-                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
-
-                if (patient == null)
-                    return new DynamicResponse<TransactionResponseModel>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "Patient not found"
-                    };
-
                 if(request.RelatedEntityId != null && request.RelatedEntityType != null)
                 {
                     bool entityExists = await CheckRelatedEntityExistsAsync(request.RelatedEntityType, request.RelatedEntityId);
@@ -255,12 +341,25 @@ namespace FSCMS.Service.Services
 
                 // Filtering
                 if (request.PatientId != Guid.Empty)
+                {
+                    var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
+
+                    if (patient == null)
+                        return new DynamicResponse<TransactionResponseModel>
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Message = "Patient not found"
+                        };
                     query = query.Where(t => t.PatientId == request.PatientId);
+                }
+                    
 
                 if (request.RelatedEntityType.HasValue)
                     query = query.Where(t => t.RelatedEntityType == request.RelatedEntityType.Value.ToString());
 
-                if (request.RelatedEntityId != Guid.Empty)
+                if (request.RelatedEntityId != null)
                     query = query.Where(t => t.RelatedEntityId == request.RelatedEntityId);
 
                 if (request.Status.HasValue)

@@ -49,7 +49,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// VNPay will redirect here after payment, service handles updating transaction and pushes status via SignalR
         /// </summary>
         /// <returns>Transaction status result</returns>
-        [HttpGet("vnpay-callback")]
+        [HttpGet("vnpay-ipn")]
         [AllowAnonymous] // VNPay will call without JWT
         [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> VnPayCallback()

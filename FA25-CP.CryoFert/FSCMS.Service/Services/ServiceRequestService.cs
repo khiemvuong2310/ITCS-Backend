@@ -16,11 +16,13 @@ namespace FSCMS.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ServiceRequestService> _logger;
+        private readonly ITransactionService _transactionService;
 
-        public ServiceRequestService(IUnitOfWork unitOfWork, ILogger<ServiceRequestService> logger)
+        public ServiceRequestService(IUnitOfWork unitOfWork, ILogger<ServiceRequestService> logger, ITransactionService transactionService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _transactionService = transactionService;
         }
 
         public async Task<DynamicResponse<ServiceRequestResponseModel>> GetAllAsync(GetServiceRequestsRequest request)
@@ -246,6 +248,8 @@ namespace FSCMS.Service.Services
                 }
 
                 entity.TotalAmount = totalAmount;
+
+
 
                 await _unitOfWork.Repository<ServiceRequest>().InsertAsync(entity);
                 

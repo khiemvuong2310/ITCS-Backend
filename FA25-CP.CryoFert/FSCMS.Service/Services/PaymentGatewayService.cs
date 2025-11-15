@@ -32,6 +32,7 @@ namespace FSCMS.Service.Services
             vnpay.AddRequestData("vnp_OrderType", "other");
             vnpay.AddRequestData("vnp_ExpireDate", DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_ReturnUrl", _options.vnp_Returnurl);
+            vnpay.AddRequestData("vnp_IpnUrl", _options.vnp_IpnUrl);
             vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1");
             vnpay.AddRequestData("vnp_TxnRef", transaction.TransactionCode);
 
