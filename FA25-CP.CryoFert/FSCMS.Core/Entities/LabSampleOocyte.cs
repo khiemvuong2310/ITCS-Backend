@@ -38,5 +38,10 @@ namespace FSCMS.Core.Entities
         public DateTime? VitrificationDate { get; set; }
         public string? Notes { get; set; }
         public virtual LabSample? LabSample { get; set; }
+
+        public static implicit operator LabSampleOocyte(LabSample v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

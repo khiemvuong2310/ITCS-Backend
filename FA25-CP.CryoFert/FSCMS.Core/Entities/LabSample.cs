@@ -14,7 +14,7 @@ namespace FSCMS.Core.Entities
     // - 1-n tới CPSDetail (mẫu được tham chiếu trong hợp đồng lưu trữ)
     public class LabSample : BaseEntity<Guid>
     {
-        protected LabSample() : base() { }
+        public LabSample() : base() { }
         public LabSample(
             Guid id,
             Guid patientId,

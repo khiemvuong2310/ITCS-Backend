@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json.Serialization;
+using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 
 namespace FSCMS.Service.ReponseModel
@@ -185,5 +186,11 @@ namespace FSCMS.Service.ReponseModel
 
         [JsonPropertyName("notes")]
         public string? Notes { get; set; }
+
+        [JsonPropertyName("spermId")]
+        public Guid LabSampleSpermId { get; set; }
+
+        [JsonPropertyName("oocyteId")]
+        public Guid LabSampleOocyteId { get; set; }
     }
 }
