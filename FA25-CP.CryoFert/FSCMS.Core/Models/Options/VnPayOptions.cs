@@ -13,6 +13,6 @@ namespace FSCMS.Core.Models.Options
         public string vnp_TmnCode { get; set; } = string.Empty;
         public string vnp_HashSecret { get; set; } = string.Empty;
         public string vnp_Returnurl { get; set; } = string.Empty;
-        public string vnp_IpnUrl { get; set; } = string.Empty;
+        //public string vnp_IpnUrl { get; set; } = string.Empty;
     }
 }
