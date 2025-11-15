@@ -15,11 +15,19 @@ namespace FSCMS.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TreatmentService> _logger;
+        private readonly ITreatmentIUIService _treatmentIUIService;
+        private readonly ITreatmentIVFService _treatmentIVFService;
 
-        public TreatmentService(IUnitOfWork unitOfWork, ILogger<TreatmentService> logger)
+        public TreatmentService(
+            IUnitOfWork unitOfWork,
+            ILogger<TreatmentService> logger,
+            ITreatmentIUIService treatmentIUIService,
+            ITreatmentIVFService treatmentIVFService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _treatmentIUIService = treatmentIUIService ?? throw new ArgumentNullException(nameof(treatmentIUIService));
+            _treatmentIVFService = treatmentIVFService ?? throw new ArgumentNullException(nameof(treatmentIVFService));
         }
 
         public async Task<DynamicResponse<TreatmentResponseModel>> GetAllAsync(GetTreatmentsRequest request)
@@ -207,6 +215,7 @@ namespace FSCMS.Service.Services
             const string methodName = nameof(CreateAsync);
             _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
 
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request == null)
@@ -227,10 +236,94 @@ namespace FSCMS.Service.Services
                     return BaseResponse<TreatmentResponseModel>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
                 }
 
+                // Validate IUI/IVF data consistency with TreatmentType
+                if (request.TreatmentType == TreatmentType.IUI && request.IVF != null)
+                {
+                    return BaseResponse<TreatmentResponseModel>.CreateError("Cannot provide IVF data when TreatmentType is IUI", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_DATA");
+                }
+
+                if (request.TreatmentType == TreatmentType.IVF && request.IUI != null)
+                {
+                    return BaseResponse<TreatmentResponseModel>.CreateError("Cannot provide IUI data when TreatmentType is IVF", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_DATA");
+                }
+
+                // Create Treatment entity
                 var entity = request.ToEntity();
                 await _unitOfWork.Repository<Treatment>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
 
+                _logger.LogInformation("{MethodName}: Treatment created with Id: {TreatmentId}, Type: {TreatmentType}", methodName, entity.Id, entity.TreatmentType);
+
+                // Automatically create IUI or IVF record based on TreatmentType
+                if (request.TreatmentType == TreatmentType.IUI)
+                {
+                    // Validate that Protocol is provided if IUI data is provided
+                    if (request.IUI != null && string.IsNullOrWhiteSpace(request.IUI.Protocol))
+                    {
+                        await transaction.RollbackAsync();
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Protocol is required when providing IUI data", StatusCodes.Status400BadRequest, "INVALID_IUI_DATA");
+                    }
+
+                    var iuiRequest = request.IUI ?? new TreatmentIUICreateUpdateRequest
+                    {
+                        TreatmentId = entity.Id,
+                        Protocol = "Default IUI Protocol" // Default protocol if not provided
+                    };
+
+                    // Ensure TreatmentId matches the created Treatment
+                    iuiRequest.TreatmentId = entity.Id;
+
+                    var iuiResult = await _treatmentIUIService.CreateAsync(iuiRequest);
+                    if (!iuiResult.Success)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError("{MethodName}: Failed to create IUI record for Treatment {TreatmentId}: {Error}", 
+                            methodName, entity.Id, iuiResult.Message);
+                        return BaseResponse<TreatmentResponseModel>.CreateError(
+                            $"Failed to create IUI record: {iuiResult.Message}", 
+                            iuiResult.Code ?? StatusCodes.Status500InternalServerError, 
+                            iuiResult.SystemCode ?? "IUI_CREATE_FAILED");
+                    }
+
+                    _logger.LogInformation("{MethodName}: IUI record created successfully for Treatment {TreatmentId}", methodName, entity.Id);
+                }
+                else if (request.TreatmentType == TreatmentType.IVF)
+                {
+                    // Validate that Protocol is provided if IVF data is provided
+                    if (request.IVF != null && string.IsNullOrWhiteSpace(request.IVF.Protocol))
+                    {
+                        await transaction.RollbackAsync();
+                        return BaseResponse<TreatmentResponseModel>.CreateError("Protocol is required when providing IVF data", StatusCodes.Status400BadRequest, "INVALID_IVF_DATA");
+                    }
+
+                    var ivfRequest = request.IVF ?? new TreatmentIVFCreateUpdateRequest
+                    {
+                        TreatmentId = entity.Id,
+                        Protocol = "Default IVF Protocol" // Default protocol if not provided
+                    };
+
+                    // Ensure TreatmentId matches the created Treatment
+                    ivfRequest.TreatmentId = entity.Id;
+
+                    var ivfResult = await _treatmentIVFService.CreateAsync(ivfRequest);
+                    if (!ivfResult.Success)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError("{MethodName}: Failed to create IVF record for Treatment {TreatmentId}: {Error}", 
+                            methodName, entity.Id, ivfResult.Message);
+                        return BaseResponse<TreatmentResponseModel>.CreateError(
+                            $"Failed to create IVF record: {ivfResult.Message}", 
+                            ivfResult.Code ?? StatusCodes.Status500InternalServerError, 
+                            ivfResult.SystemCode ?? "IVF_CREATE_FAILED");
+                    }
+
+                    _logger.LogInformation("{MethodName}: IVF record created successfully for Treatment {TreatmentId}", methodName, entity.Id);
+                }
+
+                // Commit the transaction if everything succeeded
+                await transaction.CommitAsync();
+
+                // Retrieve the created treatment with related data
                 var created = await _unitOfWork.Repository<Treatment>()
                     .GetQueryable()
                     .AsNoTracking()
@@ -241,6 +334,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error creating treatment", methodName);
                 return BaseResponse<TreatmentResponseModel>.CreateError($"Error creating treatment: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
