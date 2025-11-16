@@ -266,7 +266,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [HttpGet("busy-dates")]
         [Authorize]
         [ApiDefaultResponse(typeof(BusyScheduleDateResponse), UseDynamicWrapper = false)]
-        public async Task<IActionResult> GetBusyScheduleDate([FromBody] GetBusyScheduleDateRequest request)
+        public async Task<IActionResult> GetBusyScheduleDate([FromQuery] GetBusyScheduleDateRequest request)
         {
             if (!ModelState.IsValid)
             {
