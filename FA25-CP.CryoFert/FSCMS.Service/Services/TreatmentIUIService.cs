@@ -53,6 +53,44 @@ namespace FSCMS.Service.Services
             }
         }
 
+        public async Task<BaseResponse<List<TreatmentIUIResponseModel>>> GetByPatientIdAsync(Guid patientId)
+        {
+            const string methodName = nameof(GetByPatientIdAsync);
+            _logger.LogInformation("{MethodName} called with patientId: {PatientId}", methodName, patientId);
+
+            try
+            {
+                if (patientId == Guid.Empty)
+                {
+                    return BaseResponse<List<TreatmentIUIResponseModel>>.CreateError("Patient ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                var entities = await _unitOfWork.Repository<TreatmentIUI>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Join(
+                        _unitOfWork.Repository<Treatment>().GetQueryable().Where(t => !t.IsDeleted && t.PatientId == patientId && t.TreatmentType == TreatmentType.IUI),
+                        iui => iui.Id,
+                        treatment => treatment.Id,
+                        (iui, treatment) => iui
+                    )
+                    .Where(x => !x.IsDeleted)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToListAsync();
+
+                var responseModels = entities.Select(e => e.ToResponseModel()).ToList();
+
+                _logger.LogInformation("{MethodName}: Retrieved {Count} IUI records for patient {PatientId}", methodName, responseModels.Count, patientId);
+
+                return BaseResponse<List<TreatmentIUIResponseModel>>.CreateSuccess(responseModels, $"Retrieved {responseModels.Count} IUI record(s) successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving IUI records by patientId {PatientId}", methodName, patientId);
+                return BaseResponse<List<TreatmentIUIResponseModel>>.CreateError($"Error retrieving IUI records: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         public async Task<BaseResponse<TreatmentIUIResponseModel>> CreateAsync(TreatmentIUICreateUpdateRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -106,7 +144,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<TreatmentIUIResponseModel>> UpdateAsync(Guid id, TreatmentIUICreateUpdateRequest request)
+        public async Task<BaseResponse<TreatmentIUIResponseModel>> UpdateAsync(Guid id, TreatmentIUIUpdateRequest request)
         {
             const string methodName = nameof(UpdateAsync);
             _logger.LogInformation("{MethodName} called with id {Id} and request {@Request}", methodName, id, request);
@@ -116,6 +154,11 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     return BaseResponse<TreatmentIUIResponseModel>.CreateError("ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                if (request == null)
+                {
+                    return BaseResponse<TreatmentIUIResponseModel>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
                 }
 
                 var entity = await _unitOfWork.Repository<TreatmentIUI>()

@@ -53,6 +53,44 @@ namespace FSCMS.Service.Services
             }
         }
 
+        public async Task<BaseResponse<List<TreatmentIVFResponseModel>>> GetByPatientIdAsync(Guid patientId)
+        {
+            const string methodName = nameof(GetByPatientIdAsync);
+            _logger.LogInformation("{MethodName} called with patientId: {PatientId}", methodName, patientId);
+
+            try
+            {
+                if (patientId == Guid.Empty)
+                {
+                    return BaseResponse<List<TreatmentIVFResponseModel>>.CreateError("Patient ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                var entities = await _unitOfWork.Repository<TreatmentIVF>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Join(
+                        _unitOfWork.Repository<Treatment>().GetQueryable().Where(t => !t.IsDeleted && t.PatientId == patientId && t.TreatmentType == TreatmentType.IVF),
+                        ivf => ivf.Id,
+                        treatment => treatment.Id,
+                        (ivf, treatment) => ivf
+                    )
+                    .Where(x => !x.IsDeleted)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToListAsync();
+
+                var responseModels = entities.Select(e => e.ToResponseModel()).ToList();
+
+                _logger.LogInformation("{MethodName}: Retrieved {Count} IVF records for patient {PatientId}", methodName, responseModels.Count, patientId);
+
+                return BaseResponse<List<TreatmentIVFResponseModel>>.CreateSuccess(responseModels, $"Retrieved {responseModels.Count} IVF record(s) successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving IVF records by patientId {PatientId}", methodName, patientId);
+                return BaseResponse<List<TreatmentIVFResponseModel>>.CreateError($"Error retrieving IVF records: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         public async Task<BaseResponse<TreatmentIVFResponseModel>> CreateAsync(TreatmentIVFCreateUpdateRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -105,7 +143,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<TreatmentIVFResponseModel>> UpdateAsync(Guid id, TreatmentIVFCreateUpdateRequest request)
+        public async Task<BaseResponse<TreatmentIVFResponseModel>> UpdateAsync(Guid id, TreatmentIVFUpdateRequest request)
         {
             const string methodName = nameof(UpdateAsync);
             _logger.LogInformation("{MethodName} called with id {Id} and request {@Request}", methodName, id, request);
@@ -115,6 +153,11 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     return BaseResponse<TreatmentIVFResponseModel>.CreateError("ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                if (request == null)
+                {
+                    return BaseResponse<TreatmentIVFResponseModel>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
                 }
 
                 var entity = await _unitOfWork.Repository<TreatmentIVF>()

@@ -233,6 +233,78 @@ namespace FSCMS.Service.Mapping
             }
         }
 
+        public static void UpdateEntity(this TreatmentIVF entity, TreatmentIVFUpdateRequest request)
+        {
+            if (!string.IsNullOrEmpty(request.Protocol))
+            {
+                entity.Protocol = request.Protocol;
+            }
+            if (request.StimulationStartDate.HasValue)
+            {
+                entity.StimulationStartDate = request.StimulationStartDate;
+            }
+            if (request.OocyteRetrievalDate.HasValue)
+            {
+                entity.OocyteRetrievalDate = request.OocyteRetrievalDate;
+            }
+            if (request.FertilizationDate.HasValue)
+            {
+                entity.FertilizationDate = request.FertilizationDate;
+            }
+            if (request.TransferDate.HasValue)
+            {
+                entity.TransferDate = request.TransferDate;
+            }
+            if (request.OocytesRetrieved.HasValue)
+            {
+                entity.OocytesRetrieved = request.OocytesRetrieved;
+            }
+            if (request.OocytesMature.HasValue)
+            {
+                entity.OocytesMature = request.OocytesMature;
+            }
+            if (request.OocytesFertilized.HasValue)
+            {
+                entity.OocytesFertilized = request.OocytesFertilized;
+            }
+            if (request.EmbryosCultured.HasValue)
+            {
+                entity.EmbryosCultured = request.EmbryosCultured;
+            }
+            if (request.EmbryosTransferred.HasValue)
+            {
+                entity.EmbryosTransferred = request.EmbryosTransferred;
+            }
+            if (request.EmbryosCryopreserved.HasValue)
+            {
+                entity.EmbryosCryopreserved = request.EmbryosCryopreserved;
+            }
+            if (request.EmbryosFrozen.HasValue)
+            {
+                entity.EmbryosFrozen = request.EmbryosFrozen;
+            }
+            if (request.Notes != null)
+            {
+                entity.Notes = request.Notes;
+            }
+            if (request.Outcome != null)
+            {
+                entity.Outcome = request.Outcome;
+            }
+            if (request.UsedICSI.HasValue)
+            {
+                entity.UsedICSI = request.UsedICSI;
+            }
+            if (request.Complications != null)
+            {
+                entity.Complications = request.Complications;
+            }
+            if (request.Status.HasValue)
+            {
+                entity.Status = request.Status.Value;
+            }
+        }
+
         public static TreatmentIUIResponseModel ToResponseModel(this TreatmentIUI entity)
         {
             return new TreatmentIUIResponseModel
@@ -280,6 +352,50 @@ namespace FSCMS.Service.Mapping
             entity.NumberOfAttempts = request.NumberOfAttempts;
             entity.Outcome = request.Outcome;
             entity.Notes = request.Notes;
+            if (request.Status.HasValue)
+            {
+                entity.Status = request.Status.Value;
+            }
+        }
+
+        public static void UpdateEntity(this TreatmentIUI entity, TreatmentIUIUpdateRequest request)
+        {
+            if (!string.IsNullOrEmpty(request.Protocol))
+            {
+                entity.Protocol = request.Protocol;
+            }
+            if (request.Medications != null)
+            {
+                entity.Medications = request.Medications;
+            }
+            if (request.Monitoring != null)
+            {
+                entity.Monitoring = request.Monitoring;
+            }
+            if (request.OvulationTriggerDate.HasValue)
+            {
+                entity.OvulationTriggerDate = request.OvulationTriggerDate;
+            }
+            if (request.InseminationDate.HasValue)
+            {
+                entity.InseminationDate = request.InseminationDate;
+            }
+            if (request.MotileSpermCount.HasValue)
+            {
+                entity.MotileSpermCount = request.MotileSpermCount;
+            }
+            if (request.NumberOfAttempts.HasValue)
+            {
+                entity.NumberOfAttempts = request.NumberOfAttempts;
+            }
+            if (request.Outcome != null)
+            {
+                entity.Outcome = request.Outcome;
+            }
+            if (request.Notes != null)
+            {
+                entity.Notes = request.Notes;
+            }
             if (request.Status.HasValue)
             {
                 entity.Status = request.Status.Value;

@@ -438,25 +438,40 @@ namespace FSCMS.Service.Services
                 {
                     var workDate = request.WorkDate.Value;
 
-                    query = query.Where(d => d.DoctorSchedules.Any(ds =>
+                    // Find doctors who are FREE (don't have schedules) on the work date
+                    // A doctor is considered available if they don't have any schedule on that date
+                    query = query.Where(d => !d.DoctorSchedules.Any(ds =>
                         !ds.IsDeleted &&
-                        ds.IsAvailable &&
                         ds.WorkDate == workDate &&
-                        ds.Slot != null &&
-                        !ds.Slot.IsDeleted &&
-                        (!request.SlotId.HasValue || ds.SlotId == request.SlotId.Value) &&
-                        !d.AppointmentDoctors.Any(ad =>
+                        (!request.SlotId.HasValue || ds.SlotId == request.SlotId.Value)
+                    ));
+
+                    // Also exclude doctors who have blocking appointments on that date
+                    if (request.SlotId.HasValue)
+                    {
+                        query = query.Where(d => !d.AppointmentDoctors.Any(ad =>
                             !ad.IsDeleted &&
                             ad.Appointment != null &&
                             !ad.Appointment.IsDeleted &&
-                            ad.Appointment.SlotId == ds.SlotId &&
+                            ad.Appointment.SlotId == request.SlotId.Value &&
                             ad.Appointment.AppointmentDate == workDate &&
                             blockingStatuses.Contains(ad.Appointment.Status)
-                        )
-                    ));
+                        ));
+                    }
+                    else
+                    {
+                        query = query.Where(d => !d.AppointmentDoctors.Any(ad =>
+                            !ad.IsDeleted &&
+                            ad.Appointment != null &&
+                            !ad.Appointment.IsDeleted &&
+                            ad.Appointment.AppointmentDate == workDate &&
+                            blockingStatuses.Contains(ad.Appointment.Status)
+                        ));
+                    }
                 }
                 else
                 {
+                    // When no work date is provided, find doctors who have at least one available schedule
                     query = query.Where(d => d.DoctorSchedules.Any(ds =>
                         !ds.IsDeleted &&
                         ds.IsAvailable &&

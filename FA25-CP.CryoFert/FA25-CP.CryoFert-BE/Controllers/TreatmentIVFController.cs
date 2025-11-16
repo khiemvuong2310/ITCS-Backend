@@ -79,6 +79,42 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpGet("patient/{patientId:guid}")]
+        [Authorize(Roles = "Doctor,Patient")]
+        [ApiDefaultResponse(typeof(List<TreatmentIVFResponseModel>), UseDynamicWrapper = false)]
+        public async Task<IActionResult> GetByPatientId(Guid patientId)
+        {
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            
+            // For Patient role, verify they can only view their own records
+            if (userRole == "Patient")
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return Unauthorized(new BaseResponse<List<TreatmentIVFResponseModel>>
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "Invalid user token"
+                    });
+                }
+
+                // Verify PatientId matches (Patient.Id == Account.Id, so accountId is patientId)
+                if (patientId != accountId)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new BaseResponse<List<TreatmentIVFResponseModel>>
+                    {
+                        Code = StatusCodes.Status403Forbidden,
+                        Message = "You are not authorized to view IVF information for this patient",
+                        SystemCode = "FORBIDDEN"
+                    });
+                }
+            }
+
+            var result = await _service.GetByPatientIdAsync(patientId);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         [HttpPost]
         [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentIVFResponseModel), UseDynamicWrapper = false)]
@@ -95,11 +131,11 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Doctor")]
         [ApiDefaultResponse(typeof(TreatmentIVFResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentIVFCreateUpdateRequest request)
+        public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentIVFUpdateRequest request)
         {
-            if (!ModelState.IsValid)
+            if (request == null)
             {
-                return BadRequest(new BaseResponse<TreatmentIVFResponseModel> { Code = StatusCodes.Status400BadRequest, Message = "Invalid request data" });
+                return BadRequest(new BaseResponse<TreatmentIVFResponseModel> { Code = StatusCodes.Status400BadRequest, Message = "Request cannot be null" });
             }
             var result = await _service.UpdateAsync(id, request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
