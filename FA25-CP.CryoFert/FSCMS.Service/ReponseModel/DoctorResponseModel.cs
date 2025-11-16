@@ -119,7 +119,7 @@ namespace FSCMS.Service.ReponseModel
         public Guid SlotId { get; set; }
 
         [JsonPropertyName("workDate")]
-        public DateTime WorkDate { get; set; }
+        public DateOnly WorkDate { get; set; }
 
         [JsonPropertyName("startTime")]
         public TimeSpan StartTime { get; set; }
@@ -312,17 +312,35 @@ namespace FSCMS.Service.ReponseModel
     }
 
     /// <summary>
-    /// Response model for busy schedule dates
+    /// Response model for busy schedule dates with slot IDs
     /// </summary>
     public class BusyScheduleDateResponse
     {
         [JsonPropertyName("doctorId")]
         public Guid DoctorId { get; set; }
 
-        [JsonPropertyName("workDates")]
-        public List<DateTime> WorkDates { get; set; } = new List<DateTime>();
+        //[JsonPropertyName("workDates")]
+        //public List<DateOnly> WorkDates { get; set; } = new List<DateOnly>();
 
-        [JsonPropertyName("totalDates")]
-        public int TotalDates => WorkDates.Count;
+        [JsonPropertyName("scheduleByDate")]
+        public List<ScheduleDateGroup> ScheduleByDate { get; set; } = new List<ScheduleDateGroup>();
+
+        //[JsonPropertyName("totalDates")]
+        //public int TotalDates => WorkDates.Count;
+    }
+
+    /// <summary>
+    /// Schedule grouped by date with slot IDs
+    /// </summary>
+    public class ScheduleDateGroup
+    {
+        [JsonPropertyName("workDate")]
+        public DateOnly WorkDate { get; set; }
+
+        [JsonPropertyName("slotIds")]
+        public List<Guid> SlotIds { get; set; } = new List<Guid>();
+
+        [JsonPropertyName("totalSlots")]
+        public int TotalSlots => SlotIds.Count;
     }
 }

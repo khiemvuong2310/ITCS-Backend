@@ -291,9 +291,9 @@ namespace FSCMS.Service.RequestModel
         public Guid DoctorId { get; set; }
 
         [JsonPropertyName("fromDate")]
-        public DateTime? FromDate { get; set; }
+        public DateOnly? FromDate { get; set; }
 
         [JsonPropertyName("toDate")]
-        public DateTime? ToDate { get; set; }
+        public DateOnly? ToDate { get; set; }
     }
 }
