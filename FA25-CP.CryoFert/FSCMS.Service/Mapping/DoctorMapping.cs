@@ -78,7 +78,7 @@ namespace FSCMS.Service.Mapping
             CreateMap<DoctorSchedule, DoctorScheduleResponse>()
                 .ForMember(dest => dest.Doctor, opt => opt.MapFrom(src => src.Doctor))
                 .ForMember(dest => dest.SlotId, opt => opt.MapFrom(src => src.SlotId))
-                .ForMember(dest => dest.WorkDate, opt => opt.MapFrom(src => src.WorkDate.ToDateTime(TimeOnly.MinValue)))
+                .ForMember(dest => dest.WorkDate, opt => opt.MapFrom(src => src.WorkDate))
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.StartTime : TimeSpan.Zero))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.EndTime : TimeSpan.Zero))
                 .ForMember(dest => dest.TotalSlots, opt => opt.MapFrom(src => src.Slot != null ? 1 : 0))

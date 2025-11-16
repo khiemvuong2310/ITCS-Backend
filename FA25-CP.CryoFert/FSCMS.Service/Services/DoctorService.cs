@@ -1740,7 +1740,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse<BusyScheduleDateResponse>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
                 }
 
-                // Build query to get distinct work dates
+                // Build query to get all doctor schedules
                 var query = _unitOfWork.Repository<DoctorSchedule>()
                     .AsQueryable()
                     .AsNoTracking()
@@ -1749,38 +1749,53 @@ namespace FSCMS.Service.Services
                 // Apply date filters based on request
                 if (request.FromDate.HasValue && request.ToDate.HasValue)
                 {
-                    // Both dates provided: filter by date range
-                    var fromDate = DateOnly.FromDateTime(request.FromDate.Value.Date);
-                    var toDate = DateOnly.FromDateTime(request.ToDate.Value.Date);
-                    query = query.Where(ds => ds.WorkDate >= fromDate && ds.WorkDate <= toDate);
+                    // Both dates provided: filter by date range (date > fromDate and date < toDate)
+                    var fromDate = request.FromDate.Value;
+                    var toDate = request.ToDate.Value;
+                    query = query.Where(ds => ds.WorkDate > fromDate && ds.WorkDate < toDate);
                 }
                 else if (request.FromDate.HasValue)
                 {
-                    // Only FromDate provided: get all dates from FromDate onwards
-                    var fromDate = DateOnly.FromDateTime(request.FromDate.Value.Date);
-                    query = query.Where(ds => ds.WorkDate >= fromDate);
+                    // Only FromDate provided: get all dates > fromDate
+                    var fromDate = request.FromDate.Value;
+                    query = query.Where(ds => ds.WorkDate > fromDate);
+                }
+                else if (request.ToDate.HasValue)
+                {
+                    // Only ToDate provided: get all dates < toDate
+                    var toDate = request.ToDate.Value;
+                    query = query.Where(ds => ds.WorkDate < toDate);
                 }
                 // If both are null, get all work dates (no additional filter)
 
-                // Get distinct work dates
-                var workDates = await query
-                    .Select(ds => ds.WorkDate)
-                    .Distinct()
-                    .OrderBy(d => d)
+                // Get all schedules with WorkDate and SlotId
+                var schedules = await query
+                    .Select(ds => new { ds.WorkDate, ds.SlotId })
                     .ToListAsync();
 
-                // Convert DateOnly to DateTime for response
-                var workDateTimes = workDates
-                    .Select(d => d.ToDateTime(TimeOnly.MinValue))
+                // Group by date and collect slot IDs
+                var scheduleByDate = schedules
+                    .GroupBy(s => s.WorkDate)
+                    .Select(g => new ScheduleDateGroup
+                    {
+                        WorkDate = g.Key,
+                        SlotIds = g.Select(s => s.SlotId).Distinct().ToList()
+                    })
+                    .OrderBy(g => g.WorkDate)
+                    .ToList();
+
+                // Get distinct work dates for backward compatibility
+                var workDates = scheduleByDate
+                    .Select(g => g.WorkDate)
                     .ToList();
 
                 var response = new BusyScheduleDateResponse
                 {
                     DoctorId = request.DoctorId,
-                    WorkDates = workDateTimes
+                    ScheduleByDate = scheduleByDate
                 };
 
-                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} work dates for doctor {DoctorId}", methodName, workDateTimes.Count, request.DoctorId);
+                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} work dates for doctor {DoctorId}", methodName, workDates.Count, request.DoctorId);
 
                 return BaseResponse<BusyScheduleDateResponse>.CreateSuccess(response, "Busy schedule dates retrieved successfully");
             }
