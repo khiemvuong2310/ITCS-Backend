@@ -42,7 +42,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category))
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags))
                 .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
-                .ForMember(dest => dest.StorageLocation, opt => opt.MapFrom(src => "FireBase"))
+                .ForMember(dest => dest.StorageLocation, opt => opt.MapFrom(src => "Cloudinary"))
                 .ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.Notes));
 
             CreateMap<UpdateMediaRequest, Media>()

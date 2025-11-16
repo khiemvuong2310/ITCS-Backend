@@ -45,6 +45,8 @@ namespace FSCMS.Service.RequestModel
         public string? SearchTerm { get; set; }
         public EntityTypeMedia? RelatedEntityType { get; set; } = null;
         public Guid? RelatedEntityId { get; set; }
+        public Guid? PatientId { get; set; }
+        public Guid? UpLoadByUserId { get; set; }
     }
 
     public enum EntityTypeMedia

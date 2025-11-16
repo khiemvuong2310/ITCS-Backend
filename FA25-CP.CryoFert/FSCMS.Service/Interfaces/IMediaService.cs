@@ -11,7 +11,7 @@ namespace FSCMS.Service.Interfaces
 {
     public interface IMediaService
     {
-        Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request);
+        Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid accountId);
         Task<BaseResponse<MediaResponse>> GetMediaByIdAsync(Guid mediaId);
         Task<DynamicResponse<MediaResponse>> GetAllMediasAsync(GetMediasRequest request);
         Task<BaseResponse<MediaResponse>> UpdateMediaAsync(Guid mediaId, UpdateMediaRequest request);

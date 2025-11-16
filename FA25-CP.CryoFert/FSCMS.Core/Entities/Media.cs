@@ -38,6 +38,7 @@ namespace FSCMS.Core.Entities
         public string? MimeType { get; set; }
 
         // Liên kết logic (không có FK vật lý)
+        public Guid? PatientId { get; set; }
         public Guid? RelatedEntityId { get; set; } // ID của MedicalRecord, Patient, Treatment, etc.
         public string? RelatedEntityType { get; set; } // "MedicalRecord", "Patient", "Treatment", "LabTest"
 

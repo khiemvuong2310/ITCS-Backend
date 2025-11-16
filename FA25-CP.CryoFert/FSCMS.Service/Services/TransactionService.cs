@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
+using FSCMS.Core.Enums;
 using FSCMS.Core.Models.Options;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
@@ -48,7 +49,7 @@ namespace FSCMS.Service.Services
         }
 
         #region Create Transaction & Redirect VNPay
-        public async Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request)
+        public async Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request, Guid patientId)
         {
             using var transactionU = await _unitOfWork.BeginTransactionAsync();
             try
@@ -63,7 +64,7 @@ namespace FSCMS.Service.Services
                 var patient = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
                     .Include(p => p.Account)
-                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
+                    .FirstOrDefaultAsync(p => p.Id == patientId && !p.IsDeleted);
 
                 if (patient == null)
                     return new BaseResponse<TransactionResponseModel>
@@ -255,6 +256,35 @@ namespace FSCMS.Service.Services
 
                 if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                 {
+                    switch(transaction.RelatedEntityType)
+                    {
+                        case "ServiceRequest":
+                            var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                            serviceRequest.Status = ServiceRequestStatus.Approved;
+                            await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
+                            await _unitOfWork.CommitAsync();
+                            break;
+                        case "Appointment":
+                            var appointment = await _unitOfWork.Repository<Appointment>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                            appointment.Status = AppointmentStatus.Confirmed;
+                            await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointment.Id);
+                            await _unitOfWork.CommitAsync();
+                            break;
+                        case "CryoStorageContract":
+                            var cryoStorageContract = await _unitOfWork.Repository<CryoStorageContract>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                            cryoStorageContract.Status = ContractStatus.Active;
+                            await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
+                            await _unitOfWork.CommitAsync();
+                            break;
+                        default:
+                            break;
+                    }    
                     transaction.Status = TransactionStatus.Completed;
                     await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                     await _unitOfWork.CommitAsync();
@@ -311,10 +341,10 @@ namespace FSCMS.Service.Services
 
             return entityType switch
             {
-                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
-                EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
-                EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
-                EntityTypeTransaction.Patient => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
+                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == AppointmentStatus.InProgress),
+                EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ContractStatus.InProgress),
+                EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ServiceRequestStatus.Pending),
+                //EntityTypeTransaction.Patient => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
                 _ => false
             };
         }

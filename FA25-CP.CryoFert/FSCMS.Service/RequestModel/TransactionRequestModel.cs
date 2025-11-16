@@ -15,8 +15,8 @@ namespace FSCMS.Service.RequestModel
         // [Required(ErrorMessage = "Currency is required.")]
         // [StringLength(5)]
         // public string Currency { get; set; } = "VND";
-        [Required(ErrorMessage = "PatientId is required.")]
-        public Guid PatientId { get; set; }
+        //[Required(ErrorMessage = "PatientId is required.")]
+        //public Guid PatientId { get; set; }
 
         //[StringLength(1000)]
         //public string? Description { get; set; }
@@ -51,6 +51,6 @@ namespace FSCMS.Service.RequestModel
         ServiceRequest = 0,
         Appointment = 1,
         CryoStorageContract = 2,
-        Patient = 3
+        //Patient = 3
     }
 }

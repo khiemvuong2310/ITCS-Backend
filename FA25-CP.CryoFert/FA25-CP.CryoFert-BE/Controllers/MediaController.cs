@@ -42,7 +42,13 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 });
             }
 
-            var result = await _mediaService.UploadMediaAsync(request);
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
+
+            var result = await _mediaService.UploadMediaAsync(request, Guid.Parse(accountId));
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

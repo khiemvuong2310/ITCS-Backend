@@ -35,7 +35,7 @@ namespace FSCMS.Service.Services
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
-        public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request)
+        public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid accountId)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             var file = request.File;
@@ -52,6 +52,14 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                var account = await _unitOfWork.Repository<Account>().GetByIdGuid(accountId);
+                if (account == null)
+                    return new BaseResponse<MediaResponse>
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "UnAuthorize."
+                    };
+
                 // Check RelatedEntityType and RelatedEntityId
                 // if (string.IsNullOrWhiteSpace(request.RelatedEntityType) || !request.RelatedEntityId.HasValue)
                 // {
@@ -65,21 +73,27 @@ namespace FSCMS.Service.Services
                 // }
 
                 // Optional: Check entity exists in DB
-                bool entityExists = request.RelatedEntityType switch
+
+                object? entityExists = request.RelatedEntityType switch
                 {
                     EntityTypeMedia.MedicalRecord => await _unitOfWork.Repository<MedicalRecord>()
                                     .AsQueryable()
-                                    .AnyAsync(p => p.Id == request.RelatedEntityId && !p.IsDeleted),
+                                    .Include(x => x.Appointment)
+                                    .Where(p => p.Id == request.RelatedEntityId && !p.IsDeleted)
+                                    .FirstOrDefaultAsync(),
                     EntityTypeMedia.TreatmentCycle => await _unitOfWork.Repository<TreatmentCycle>()
                                     .AsQueryable()
-                                    .AnyAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
+                                    .Include(x => x.Treatment)
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
                     EntityTypeMedia.Account => await _unitOfWork.Repository<Account>()
-                    .AsQueryable()
-                    .AnyAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
-                    _ => false
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    _ => null
                 };
 
-                if (!entityExists)
+                if (entityExists == null)
                 {
                     return new BaseResponse<MediaResponse>
                     {
@@ -87,6 +101,24 @@ namespace FSCMS.Service.Services
                         SystemCode = "ENTITY_NOT_FOUND",
                         Message = $"Related entity {request.RelatedEntityType} with ID {request.RelatedEntityId} not found",
                         Data = null
+                    };
+                }
+
+                Guid? patientId = entityExists switch
+                {
+                    MedicalRecord mr => mr.Appointment?.PatientId,
+                    TreatmentCycle tc => tc.Treatment?.PatientId,
+                    Account acc => acc.Id,
+                    _ => null
+                };
+
+                if (patientId == null)
+                {
+                    return new BaseResponse<MediaResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "PATIENT_NOT_FOUND",
+                        Message = "Cannot determine PatientId from related entity"
                     };
                 }
 
@@ -100,6 +132,11 @@ namespace FSCMS.Service.Services
                 newMedia.FileSize = file.Length;
                 newMedia.FileExtension = Path.GetExtension(file.FileName);
                 newMedia.FilePath = filePath;
+                newMedia.PatientId = patientId;
+                newMedia.CloudUrl = filePath;
+                newMedia.UploadDate = DateTime.UtcNow;
+                newMedia.UploadedBy = $"{account.FirstName} {account.LastName}";
+                newMedia.UploadedByUserId = accountId;
 
                 await _unitOfWork.Repository<Media>().InsertAsync(newMedia);
                 await _unitOfWork.CommitAsync();
@@ -203,6 +240,38 @@ namespace FSCMS.Service.Services
                 if (request.RelatedEntityId.HasValue)
                 {
                     query = query.Where(m => m.RelatedEntityId == request.RelatedEntityId.Value);
+                }
+
+                if (request.PatientId.HasValue)
+                {
+                    bool exist = await _unitOfWork.Repository<Patient>()
+                                    .AsQueryable()
+                                    .AnyAsync(p => p.Id == request.PatientId && !p.IsDeleted);
+                    if (!exist)
+                    {
+                        return new DynamicResponse<MediaResponse>
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Message = "Patient not found",
+                        };
+                    }
+                    query = query.Where(m => m.PatientId == request.PatientId.Value);
+                }
+
+                if (request.UpLoadByUserId.HasValue)
+                {
+                    bool exist = await _unitOfWork.Repository<Account>()
+                                    .AsQueryable()
+                                    .AnyAsync(p => p.Id == request.UpLoadByUserId && !p.IsDeleted);
+                    if (!exist)
+                    {
+                        return new DynamicResponse<MediaResponse>
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Message = "User upload file not found",
+                        };
+                    }
+                    query = query.Where(m => m.UploadedByUserId == request.UpLoadByUserId.Value);
                 }
 
                 // Total count
