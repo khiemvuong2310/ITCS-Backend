@@ -66,24 +66,6 @@ namespace FSCMS.Service.ReponseModel
     }
 
     /// <summary>
-    /// Patient info for reference
-    /// </summary>
-    public class PatientBasicInfo
-    {
-        [JsonPropertyName("id")]
-        public Guid Id { get; set; }
-
-        [JsonPropertyName("fullName")]
-        public string FullName { get; set; } = string.Empty;
-
-        [JsonPropertyName("dob")]
-        public DateTime? DOB { get; set; }
-
-        [JsonPropertyName("gender")]
-        public string? Gender { get; set; }
-    }
-
-    /// <summary>
     /// Sperm-specific details
     /// </summary>
     public class LabSampleSpermDto
