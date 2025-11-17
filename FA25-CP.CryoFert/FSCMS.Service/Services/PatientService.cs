@@ -155,7 +155,7 @@ namespace FSCMS.Service.Services
                 return BaseResponse<PatientResponse>.CreateError($"An error occurred while retrieving patient: {ex.Message}", StatusCodes.Status500InternalServerError, "PATIENT_500");
             }
         }
-
+        
         /// <summary>
         /// Gets detailed patient information by ID including related data
         /// </summary>

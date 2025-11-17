@@ -76,7 +76,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Agreement creation data</param>
         /// <returns>Created agreement information</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Doctor,Staff")]
+        [Authorize(Roles = "Doctor,Staff")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateAgreementRequest request)
         {
@@ -96,7 +96,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Updated agreement data</param>
         /// <returns>Updated agreement information</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Doctor,Staff")]
+        [Authorize(Roles = "Doctor,Staff")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAgreementRequest request)
         {
@@ -116,7 +116,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Signing information</param>
         /// <returns>Updated agreement information</returns>
         [HttpPost("{id}/sign")]
-        [Authorize(Roles = "Admin,Doctor,Patient,Staff")]
+        [Authorize(Roles = "Doctor,Patient,Staff")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Sign(Guid id, [FromBody] SignAgreementRequest request)
         {
@@ -136,7 +136,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="status">New status</param>
         /// <returns>Updated agreement information</returns>
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Admin,Doctor,Staff")]
+        [Authorize(Roles = "Doctor,Staff")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] AgreementStatus status)
         {

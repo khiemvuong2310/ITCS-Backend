@@ -74,11 +74,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<ICryoStorageContractService, CryoStorageContractService>();
             services.AddScoped<ICryoPackageService, CryoPackageService>();
             services.AddScoped<IAppointmentDoctorService, AppointmentDoctorService>();
-<<<<<<< Updated upstream
             services.AddScoped<IAgreementService, AgreementService>();  
-=======
             services.AddScoped<IPrescriptionService, PrescriptionService>();
->>>>>>> Stashed changes
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
