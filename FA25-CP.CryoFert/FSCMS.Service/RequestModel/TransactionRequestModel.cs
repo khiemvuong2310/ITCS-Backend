@@ -6,7 +6,16 @@ using FSCMS.Service.ReponseModel;
 
 namespace FSCMS.Service.RequestModel
 {
-    public class CreateTransactionRequest
+    public class CreateUrlPaymentRequest
+    {
+        [Required(ErrorMessage = "RelatedEntityType is required.")]
+        public EntityTypeTransaction RelatedEntityType { get; set; }
+        [Required(ErrorMessage = "RelatedEntityId is required.")]
+        public Guid RelatedEntityId { get; set; }
+        [Required(ErrorMessage = "PatientId is required.")]
+        public Guid PatientId { get; set; }
+    }
+        public class CreateTransactionRequest
     {
         [Required(ErrorMessage = "Amount is required.")]
         [Range(1, double.MaxValue, ErrorMessage = "Amount must be greater than 0.")]

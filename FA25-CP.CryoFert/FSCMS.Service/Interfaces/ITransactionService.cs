@@ -26,5 +26,6 @@ namespace FSCMS.Service.Interfaces
         /// <returns>BaseResponse với TransactionResponseModel đã cập nhật trạng thái</returns>
         Task<BaseResponse<TransactionResponseModel>> HandleVnPayCallbackAsync(IQueryCollection query);
         Task<DynamicResponse<TransactionResponseModel>> GetAllTransactionsAsync(GetTransactionsRequest request);
+        Task<BaseResponse<TransactionResponseModel>> CreateUrlPaymentAsync(CreateUrlPaymentRequest request);
     }
 }

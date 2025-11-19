@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -48,10 +49,64 @@ namespace FSCMS.Service.Services
             _options = options.Value;
         }
 
+        public async Task<BaseResponse<TransactionResponseModel>> CreateUrlPaymentAsync(CreateUrlPaymentRequest request)
+        {
+            try
+            {
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(p => p.Account)
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
+
+                if (patient == null)
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient not found"
+                    };
+
+                var transaction = await _unitOfWork.Repository<Transaction>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(p => p.RelatedEntityType == request.RelatedEntityType.ToString() && !p.IsDeleted && p.RelatedEntityId == request.RelatedEntityId && request.PatientId == p.PatientId && p.Status == TransactionStatus.Pending);
+
+                if (transaction == null)
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Transaction not found"
+                    };
+                if (transaction.Status == TransactionStatus.Failed)
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Transaction not found"
+                    };
+
+                string paymentUrl = null;
+                paymentUrl = _paymentGateway.CreateVnPayUrl(transaction);
+                var response = _mapper.Map<TransactionResponseModel>(transaction);
+                response.PaymentUrl = paymentUrl;
+
+                return new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status201Created,
+                    Message = "Url payment created successfully",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating Url Payment");
+                return new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "An internal error occurred while creating Url Payment"
+                };
+            }
+        }
         #region Create Transaction & Redirect VNPay
         public async Task<BaseResponse<TransactionResponseModel>> CreateTransactionAsync(CreateTransactionRequest request, Guid patientId)
         {
-            using var transactionU = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request.Amount <= 0)
@@ -73,14 +128,6 @@ namespace FSCMS.Service.Services
                         Message = "Patient not found"
                     };
 
-                bool entityExists = await CheckRelatedEntityExistsAsync(request.RelatedEntityType, request.RelatedEntityId);
-                if (!entityExists)
-                    return new BaseResponse<TransactionResponseModel>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = $"Related entity {request.RelatedEntityType.ToString()} not found"
-                    };
-
                 var transaction = new Transaction
                 {
                     TransactionCode = $"TX-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 6)}",
@@ -96,25 +143,15 @@ namespace FSCMS.Service.Services
                     TransactionDate = DateTime.UtcNow,
                 };
 
+                transaction.PaymentGateway = "VNPay";
+                transaction.PaymentMethod = "Online";
+                transaction.ReferenceNumber = transaction.TransactionCode;
+
                 await _unitOfWork.Repository<Transaction>().InsertAsync(transaction);
                 await _unitOfWork.CommitAsync();
-                await transactionU.CommitAsync();
-
-                string paymentUrl = null;
-                if (transaction.Currency == "VND")
-                {
-                    paymentUrl = _paymentGateway.CreateVnPayUrl(transaction);
-                    transaction.PaymentGateway = "VNPay";
-                    transaction.PaymentMethod = "Online";
-                    transaction.ReferenceNumber = transaction.TransactionCode;
-                    using var tx2 = await _unitOfWork.BeginTransactionAsync();
-                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
-                    await _unitOfWork.CommitAsync();
-                    await tx2.CommitAsync();
-                }
 
                 var response = _mapper.Map<TransactionResponseModel>(transaction);
-                response.PaymentUrl = paymentUrl;
+                response.PaymentUrl = null;
 
                 return new BaseResponse<TransactionResponseModel>
                 {
@@ -125,7 +162,6 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
-                await transactionU.RollbackAsync();
                 _logger.LogError(ex, "Error creating transaction");
                 return new BaseResponse<TransactionResponseModel>
                 {
@@ -253,7 +289,8 @@ namespace FSCMS.Service.Services
                 transaction.ProcessedBy = "VNPay";
                 transaction.BankTranNo = vnp_TransactionNo;
                 transaction.BankName = vnp_BankCode;
-
+                await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                await _unitOfWork.CommitAsync();
                 if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                 {
                     switch(transaction.RelatedEntityType)
@@ -264,7 +301,6 @@ namespace FSCMS.Service.Services
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             serviceRequest.Status = ServiceRequestStatus.Approved;
                             await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
-                            await _unitOfWork.CommitAsync();
                             break;
                         case "Appointment":
                             var appointment = await _unitOfWork.Repository<Appointment>()
@@ -272,15 +308,25 @@ namespace FSCMS.Service.Services
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             appointment.Status = AppointmentStatus.Confirmed;
                             await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointment.Id);
-                            await _unitOfWork.CommitAsync();
                             break;
                         case "CryoStorageContract":
                             var cryoStorageContract = await _unitOfWork.Repository<CryoStorageContract>()
                                 .AsQueryable()
+                                .Include(p => p.CPSDetails)
+                                .Include(p => p.CryoPackage)
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             cryoStorageContract.Status = ContractStatus.Active;
+                            cryoStorageContract.StartDate = DateTime.UtcNow;
+                            cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                            cryoStorageContract.PaidAmount = vnpAmount/100;
+                            foreach (var detail in cryoStorageContract.CPSDetails)
+                            {
+                                detail.StorageStartDate = DateTime.UtcNow;
+                                detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                                detail.Status = "Storage";
+                                await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                            }
                             await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
-                            await _unitOfWork.CommitAsync();
                             break;
                         default:
                             break;
@@ -306,6 +352,26 @@ namespace FSCMS.Service.Services
                     // non-success codes -> Failed/Cancelled/Timeout
                     transaction.Status = TransactionStatus.Failed;
                     await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    var newTransaction = new Transaction
+                    {
+                        TransactionCode = $"TX-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 6)}",
+                        TransactionType = transaction.TransactionType,
+                        Amount = transaction.Amount,
+                        Currency = transaction.Currency,
+                        PatientId = transaction.PatientId,
+                        PatientName = transaction.PatientName,
+                        Description = transaction.Description,
+                        RelatedEntityType = transaction.RelatedEntityType,
+                        RelatedEntityId = transaction.RelatedEntityId,
+                        Status = TransactionStatus.Pending,
+                        TransactionDate = DateTime.UtcNow,
+                        PaymentGateway = transaction.PaymentGateway,
+                        PaymentMethod = transaction.PaymentMethod,
+                        ReferenceNumber = transaction.ReferenceNumber
+                    };
+                    newTransaction.ReferenceNumber = newTransaction.TransactionCode;
+
+                    await _unitOfWork.Repository<Transaction>().InsertAsync(newTransaction);
                     await _unitOfWork.CommitAsync();
                     await transactionU.CommitAsync();
 
@@ -342,7 +408,7 @@ namespace FSCMS.Service.Services
             return entityType switch
             {
                 EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == AppointmentStatus.InProgress),
-                EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ContractStatus.InProgress),
+                EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ContractStatus.Pending),
                 EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ServiceRequestStatus.Pending),
                 //EntityTypeTransaction.Patient => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
                 _ => false
