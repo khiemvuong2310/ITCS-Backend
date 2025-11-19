@@ -1,12 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using FSCMS.Service.ReponseModel;
-using FSCMS.Service.RequestModel;
-using FSCMS.Service.Interfaces;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using FSCMS.Service.Interfaces;
+using FSCMS.Service.ReponseModel;
+using FSCMS.Service.RequestModel;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -58,7 +59,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Contract creation data</param>
         /// <returns>Created contract information</returns>
         [HttpPost]
-        [Authorize(Roles = "Receptionist")] // Only Admin or Receptionist can create
+        [Authorize(Roles = "Receptionist,Doctor,Patient,Admin")] // Only Admin or Receptionist can create
         [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateContract([FromBody] CreateCryoStorageContractRequest request)
         {
@@ -110,6 +111,42 @@ namespace FA25_CP.CryoFert_BE.Controllers
         public async Task<IActionResult> DeleteContract(Guid id)
         {
             var result = await _contractService.DeleteAsync(id);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
+        /// <summary>
+        /// Send OTP to patient email to sign contract
+        /// </summary>
+        [HttpPost("send-otp")]
+        [Authorize(Roles = "Patient")]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        public async Task<IActionResult> SendOtp([FromQuery] SentOtpEmailRequest request)
+        {
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
+
+            var result = await _contractService.SendOtpEmailAsync(request, Guid.Parse(accountId));
+            return StatusCode(result.Code ?? 500, result);
+        }
+
+        /// <summary>
+        /// Verify OTP + sign the contract
+        /// </summary>
+        [HttpPost("verify-otp")]
+        [Authorize(Roles = "Patient")]
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> VerifyOtp([FromQuery] VerifyOtpRequest request)
+        {
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
+
+            var result = await _contractService.VerifyOtpAsync(request, Guid.Parse(accountId));
             return StatusCode(result.Code ?? 500, result);
         }
     }

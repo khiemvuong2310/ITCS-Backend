@@ -37,8 +37,8 @@ namespace FSCMS.Core.Entities
             Status = status;
         }
         public string ContractNumber { get; set; } = default!;
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public ContractStatus Status { get; set; } = ContractStatus.Active;
         public decimal TotalAmount { get; set; }
         public decimal? PaidAmount { get; set; }

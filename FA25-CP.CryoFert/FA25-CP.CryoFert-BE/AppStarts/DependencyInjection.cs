@@ -77,6 +77,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IAgreementService, AgreementService>();  
             services.AddScoped<IPrescriptionService, PrescriptionService>();
             services.AddScoped<IMedicalRecordService, MedicalRecordService>();
+            services.AddScoped<IEmailService, EmailService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management

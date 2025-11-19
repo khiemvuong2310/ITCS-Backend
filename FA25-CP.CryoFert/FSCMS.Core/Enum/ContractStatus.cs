@@ -24,6 +24,7 @@ namespace FSCMS.Core.Enums
         /// The contract has been renewed for an extended duration.
         /// </summary>
         Renewed = 4,
-        InProgress = 5,
+        Draft = 5,
+        Pending = 6
     }
 }

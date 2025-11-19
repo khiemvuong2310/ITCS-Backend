@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        background-color: #f0f2f5;
+        padding: 0;
+        margin: 0;
+      }
+      .container {
+        padding: 30px;
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        max-width: 600px;
+        margin: 40px auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .content {
+        font-size: 16px;
+        color: #555;
+        line-height: 1.8;
+      }
+      .code {
+        font-size: 30px;
+        font-weight: bold;
+        color: #007bff;
+        text-align: center;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border: 1px dashed #007bff;
+        border-radius: 8px;
+        margin: 25px auto;
+        width: 220px;
+        letter-spacing: 4px;
+      }
+      .footer {
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+        margin-top: 30px;
+      }
+      .social {
+        text-align: center;
+        margin-top: 30px;
+      }
+      .social a {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #4267b2;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+      }
+      .social a:hover {
+        background-color: #365899;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">Cryo Storage Contract Verification</div>
+
+      <div class="content">
+        <p>Hello,</p>
+
+        <p>
+          You are requesting to <strong>sign a Cryo Storage Contract</strong> on
+          the <strong>CryoFert System</strong>.
+        </p>
+
+        <p>
+          Please enter the verification code below to confirm your identity and
+          authorize the contract:
+        </p>
+
+        <div class="code">{otpCode}</div>
+
+        <p>
+          This code will expire in <strong>15 minutes</strong> for your security.
+        </p>
+
+        <p>
+          If you did not make this request, please ignore this email or contact
+          our support team immediately.
+        </p>
+      </div>
+
+      <div class="social">
+        <p>Follow us for updates and support:</p>
+        <a href="https://www.facebook.com/profile.php?id=61576627709105">
+          Visit Facebook Page
+        </a>
+      </div>
+
+      <div class="footer">
+        &copy; {year} CryoFert Web. All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>

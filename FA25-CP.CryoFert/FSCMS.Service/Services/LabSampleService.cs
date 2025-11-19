@@ -207,6 +207,7 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
+                labSample.Status = SpecimenStatus.Collected;
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -285,6 +286,7 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Oocyte);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
+                labSample.Status = SpecimenStatus.Collected;
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -380,6 +382,7 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Embryo);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
+                labSample.Status = SpecimenStatus.Collected;
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
