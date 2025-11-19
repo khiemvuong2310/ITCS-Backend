@@ -46,5 +46,7 @@ namespace FSCMS.Service.Interfaces
         /// <param name="id">The contract ID.</param>
         /// <returns>Base response indicating operation result.</returns>
         Task<BaseResponse> DeleteAsync(Guid id);
+        Task<BaseResponse> SendOtpEmailAsync(SentOtpEmailRequest request, Guid patientId);
+        Task<BaseResponse<CryoStorageContractResponse>> VerifyOtpAsync(VerifyOtpRequest request, Guid patientId);
     }
 }

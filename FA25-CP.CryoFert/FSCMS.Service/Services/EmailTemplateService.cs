@@ -97,6 +97,21 @@ namespace FSCMS.Service.Services
                 .Replace("{year}", DateTime.Now.Year.ToString());
         }
 
+        public async Task<string> GetCryoStorageContractOtpTemplateAsync(string Otp)
+        {
+            var templatePath = Path.Combine(_templateBasePath, "CryoStorageContractOtpTemplate.html");
+
+            if (!File.Exists(templatePath))
+            {
+                throw new FileNotFoundException($"Email template not found at: {templatePath}");
+            }
+
+            var template = await File.ReadAllTextAsync(templatePath);
+            return template
+                .Replace("{otpCode}", Otp)
+                .Replace("{year}", DateTime.Now.Year.ToString());
+        }
+
         public async Task<string> GetRelationshipConfirmationTemplateAsync(
             string patient1Name,
             string patient2Name,

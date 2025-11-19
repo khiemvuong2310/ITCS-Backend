@@ -5,6 +5,7 @@
         Task<string> GetAccountEmailTemplateAsync(string email, string password);
         Task<string> GetPasswordResetTemplateAsync(string email, string password);
         Task<string> GetVerificationEmailTemplateAsync(string verificationCode);
+        Task<string> GetCryoStorageContractOtpTemplateAsync(string otp);
         Task<string> GetRelationshipConfirmationTemplateAsync(
             string patient1Name,
             string patient2Name,

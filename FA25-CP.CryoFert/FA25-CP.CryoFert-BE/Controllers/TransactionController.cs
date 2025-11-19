@@ -4,6 +4,7 @@ using FA25_CP.CryoFert_BE.Common.Attributes;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
+using FSCMS.Service.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -92,5 +93,22 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Patient, Receptionist, Admin")]
+        [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
+        public async Task<IActionResult> CreateUrl([FromQuery] CreateUrlPaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data"
+                });
+            }
+
+            var result = await _transactionService.CreateUrlPaymentAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
     }
 }

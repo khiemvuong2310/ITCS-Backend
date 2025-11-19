@@ -34,7 +34,7 @@ public class CPSDetail : BaseEntity<Guid>
     public Guid CryoStorageContractId { get; set; }
     public Guid LabSampleId { get; set; }
 
-    public DateTime StorageStartDate { get; set; }
+    public DateTime? StorageStartDate { get; set; }
     public DateTime? StorageEndDate { get; set; }
     public string Status { get; set; } = string.Empty; // "Stored", "Released", "Disposed"
     public decimal? MonthlyFee { get; set; }

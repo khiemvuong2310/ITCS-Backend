@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113 d17.12
+VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FA25-CP.CryoFert-BE", "FA25-CP.CryoFert-BE\FA25-CP.CryoFert-BE.csproj", "{8B292B3B-4422-4FFF-9B43-6C022B6D6ABB}"
 EndProject

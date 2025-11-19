@@ -14,10 +14,6 @@ namespace FSCMS.Service.RequestModel
         [Required(ErrorMessage = "CryoPackageId is required.")]
         public Guid CryoPackageId { get; set; }
 
-        public bool IsAutoRenew { get; set; } = false;
-
-        public ContractStatus Status { get; set; } = ContractStatus.Active;
-
         [StringLength(200, ErrorMessage = "Notes cannot exceed 200 characters.")]
         public string? Notes { get; set; }
 
@@ -32,6 +28,19 @@ namespace FSCMS.Service.RequestModel
         public string? Notes { get; set; }
     }
 
+    public class SentOtpEmailRequest
+    {
+        [Required(ErrorMessage = "ContractId is required.")]
+        public Guid ContractId { get; set; }
+    }
+    public class VerifyOtpRequest
+    {
+        [Required(ErrorMessage = "ContractId is required.")]
+        public Guid ContractId { get; set; }
+        [Required(ErrorMessage = "OTP is required.")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP must be 6 characters.")]
+        public string Otp { get; set; } = string.Empty;
+    }
     public class GetCryoStorageContractsRequest : PagingModel
     {
         public Guid? PatientId { get; set; }
