@@ -24,7 +24,7 @@ namespace FSCMS.Service.Services
             vnpay.AddRequestData("vnp_Version", VnPay.VERSION);
             vnpay.AddRequestData("vnp_Command", "pay");
             vnpay.AddRequestData("vnp_TmnCode", _options.vnp_TmnCode);
-            vnpay.AddRequestData("vnp_Amount", (transaction.Amount * 100).ToString());
+            vnpay.AddRequestData("vnp_Amount", ((long)(transaction.Amount * 100)).ToString());
             vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", transaction.Currency ?? "VND");
             vnpay.AddRequestData("vnp_Locale", "vn");

@@ -4,6 +4,7 @@ using FA25_CP.CryoFert_BE.Common.Attributes;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
+using FSCMS.Service.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -28,28 +29,28 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <param name="request">Transaction request</param>
         /// <returns>Transaction data with VNPay URL</returns>
-        [HttpPost]
-        [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> CreateTransaction([FromQuery] CreateTransactionRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new BaseResponse<TransactionResponseModel>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "Invalid input data"
-                });
-            }
+        // [HttpPost]
+        // [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
+        // public async Task<IActionResult> CreateTransaction([FromQuery] CreateTransactionRequest request)
+        // {
+        //     if (!ModelState.IsValid)
+        //     {
+        //         return BadRequest(new BaseResponse<TransactionResponseModel>
+        //         {
+        //             Code = StatusCodes.Status400BadRequest,
+        //             Message = "Invalid input data"
+        //         });
+        //     }
 
-            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (accountId == null)
-            {
-                return Unauthorized(new { message = "Cannot detect user identity" });
-            }
+        //     var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //     if (accountId == null)
+        //     {
+        //         return Unauthorized(new { message = "Cannot detect user identity" });
+        //     }
 
-            var result = await _transactionService.CreateTransactionAsync(request, Guid.Parse(accountId));
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
-        }
+        //     var result = await _transactionService.CreateTransactionAsync(request, Guid.Parse(accountId));
+        //     return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        // }
 
         /// <summary>
         /// VNPay callback URL
@@ -92,5 +93,22 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Patient, Receptionist, Admin")]
+        [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
+        public async Task<IActionResult> CreateUrl([FromQuery] CreateUrlPaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data"
+                });
+            }
+
+            var result = await _transactionService.CreateUrlPaymentAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
     }
 }

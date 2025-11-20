@@ -1,5 +1,10 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using FSCMS.Core.Enums;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
@@ -7,11 +12,8 @@ using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
 {
@@ -20,12 +22,22 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<CryoStorageContractService> _logger;
+        private readonly ITransactionService _transactionService;
+        private readonly IEmailService _emailService;
+        private readonly IEmailTemplateService _emailTemplateService;
+        private readonly IMemoryCache _cache;
 
-        public CryoStorageContractService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CryoStorageContractService> logger)
+        public CryoStorageContractService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CryoStorageContractService> logger, ITransactionService transactionService, IEmailTemplateService emailTemplateService,
+            IMemoryCache cache,
+            IEmailService emailService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+            _emailTemplateService = emailTemplateService;
+            _cache = cache;
+            _emailService = emailService;
         }
 
         #region Get All
@@ -143,6 +155,147 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region Create
+        public async Task<BaseResponse> SendOtpEmailAsync(SentOtpEmailRequest request, Guid patientId)
+        {
+            try
+            {
+                var contract = await _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == request.ContractId && !x.IsDeleted);
+                if (contract == null)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract not found"
+                    };
+                }
+                var account = await _unitOfWork.Repository<Account>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDeleted);
+                if (account == null)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status401Unauthorized,
+                        Message = "UnAuthenticate"
+                    };
+                }
+                if (patientId != contract.PatientId)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Contract and patient not valid"
+                    };
+                }
+                // Tạo OTP 6 chữ số
+                var otp = new Random().Next(100000, 999999).ToString();
+
+                // Hash OTP để bảo mật
+                var otpHash = BCrypt.Net.BCrypt.HashPassword(otp);
+
+                // Store in cache with expiration
+                var cacheKey = $"verification_otp_{request.ContractId}_{account.Email}";
+                _cache.Set(cacheKey, otpHash, TimeSpan.FromMinutes(15));
+
+                await _emailService.SendEmailAsync(
+                    account.Email,
+                    $"OTP Cryo Storage Contract {contract.ContractNumber}",
+                    await _emailTemplateService.GetCryoStorageContractOtpTemplateAsync(otp)
+                );
+
+                return new BaseResponse
+                {
+                    Code = 200,
+                    Message = "OTP has been sent to your email"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Failed to send OTP: " + ex.Message
+                };
+            }
+        }
+
+        public async Task<BaseResponse<CryoStorageContractResponse>> VerifyOtpAsync(VerifyOtpRequest request, Guid userId)
+        {
+            try
+            {
+                // Get verification code from cache
+                var account = await _unitOfWork.Repository<Account>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+                if (account == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "User not found"
+                    };
+                }
+                var cacheKey = $"verification_otp_{request.ContractId}_{account.Email}";
+                if (!_cache.TryGetValue(cacheKey, out string storedCode))
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "No verification opt found for this email or opt has expired"
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(storedCode) || string.IsNullOrWhiteSpace(request.Otp))
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Verification otp is missing or invalid"
+                    };
+                }
+
+                // Check verification code (case insensitive)
+                if (!BCrypt.Net.BCrypt.Verify(request.Otp, storedCode))
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid verification code"
+                    };
+                }
+
+                // Remove from cache after successful verification
+                _cache.Remove(cacheKey);
+                var contract = await _unitOfWork.Repository<CryoStorageContract>()
+                        .AsQueryable()
+                        .Include(x => x.CryoPackage)
+                        .FirstOrDefaultAsync(x => x.Id == request.ContractId && !x.IsDeleted);
+                var patient = await _unitOfWork.Repository<Account>().GetByIdGuid(userId);
+                contract.SignedBy = $"{patient.FirstName} {patient.LastName}";
+                contract.SignedDate = DateTime.UtcNow;
+                contract.Status = ContractStatus.Pending;
+                await _unitOfWork.CommitAsync();
+                var data = _mapper.Map<CryoStorageContractResponse>(contract);
+                return new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = $"Contract {contract.ContractNumber} signed successfully",
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Verification failed: " + ex.Message
+                };
+            }
+
+        }
+
         public async Task<BaseResponse<CryoStorageContractResponse>> CreateAsync(CreateCryoStorageContractRequest request)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -153,31 +306,41 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .Include(x => x.Account)
                     .FirstOrDefaultAsync(x => x.Id == request.PatientId && !x.IsDeleted);
+                if (patient == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient Not Found",
+                        Data = null
+                    };
+                }
                 var package = await _unitOfWork.Repository<CryoPackage>()
                     .AsQueryable()
                     .FirstOrDefaultAsync(x => x.Id == request.CryoPackageId && !x.IsDeleted);
 
-                if (patient == null || package == null)
+                if (package == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "CryoPackage Not Found",
+                        Data = null
+                    };
+                }
+
+                if (request.Samples == null)
                 {
                     return new BaseResponse<CryoStorageContractResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "Invalid Patient or CryoPackage"
+                        Message = "Lab Sample is required",
+                        Data = null
                     };
                 }
 
                 // Map entity
                 var entity = _mapper.Map<CryoStorageContract>(request);
-                var patientCode = patient?.PatientCode ?? "UNK";
-                var random = new Random();
-                entity.ContractNumber = $"CT-{patientCode}-{DateTime.UtcNow:yyMMdd}-{random.Next(10,99)}";
-                entity.Status = ContractStatus.Active;
-                entity.TotalAmount = package.Price;
-                entity.StartDate = DateTime.UtcNow;
-                entity.EndDate = DateTime.UtcNow.AddMonths(package.DurationMonths);
-                entity.PaidAmount = 0;
-                entity.SignedDate = DateTime.UtcNow;
-                entity.SignedBy = patient.Account.FirstName + " " + patient.Account.LastName;                
 
                 // Map CPSDetails if provided
                 if (request.Samples != null && request.Samples.Any())
@@ -186,35 +349,57 @@ namespace FSCMS.Service.Services
                     {
                         var sample = await _unitOfWork.Repository<LabSample>()
                             .AsQueryable()
-                            .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType);
-
+                            .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType && x.PatientId == patient.Id && x.Status == SpecimenStatus.Collected);
                         if (sample == null)
                         {
                             return new BaseResponse<CryoStorageContractResponse>
                             {
                                 Code = StatusCodes.Status400BadRequest,
-                                Message = $"Invalid LabSampleId: {c.LabSampleId}"
+                                Message = $"Invalid LabSampleId: {c.LabSampleId}",
+                                Data = null
                             };
                         }
+                        var cPSDetails = new CPSDetail
+                        {
+                            LabSampleId = c.LabSampleId,
+                            StorageStartDate = null,
+                            StorageEndDate = null,
+                            Status = "Pending",
+                            Notes = c.Notes,
+                            MonthlyFee = package.Price / package.DurationMonths,
+                            CryoStorageContractId = entity.Id,
+                            CryoStorageContract = entity,
+                            LabSample = sample
+                        };
+                        await _unitOfWork.Repository<CPSDetail>().InsertAsync(cPSDetails);
                     }
 
-                    entity.CPSDetails = request.Samples.Select(s => new CPSDetail
-                    {
-                        LabSampleId = s.LabSampleId,
-                        StorageStartDate = entity.StartDate,
-                        StorageEndDate = entity.EndDate,
-                        Status = "Stored",
-                        Notes = s.Notes,
-                        MonthlyFee = package.Price / package.DurationMonths
-                    }).ToList();
                 }
 
+                var patientCode = patient?.PatientCode ?? "UNK";
+                var random = new Random();
+                entity.ContractNumber = $"CT-{patientCode}-{DateTime.UtcNow:yyMMdd}-{random.Next(10, 99)}";
+                entity.Status = ContractStatus.Draft;
+                entity.TotalAmount = package.Price * request.Samples.Count;
+                entity.StartDate = null;
+                entity.EndDate = null;
+                entity.PaidAmount = 0;
+                entity.SignedDate = null;
+                entity.SignedBy = null;
+                entity.IsAutoRenew = false;
                 await _unitOfWork.Repository<CryoStorageContract>().InsertAsync(entity);
+                CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
+                {
+                    Amount = entity.TotalAmount,
+                    RelatedEntityType = EntityTypeTransaction.CryoStorageContract,
+                    RelatedEntityId = entity.Id
+                };
+                await _transactionService.CreateTransactionAsync(createTransactionRequest, patient.Id);
                 await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
 
                 var data = _mapper.Map<CryoStorageContractResponse>(entity);
-                data.PatientName = entity.SignedBy;
+                data.PatientName = $"{patient.Account.FirstName} {patient.Account.LastName}";
                 data.CryoPackageName = package.PackageName;
 
                 return new BaseResponse<CryoStorageContractResponse>
