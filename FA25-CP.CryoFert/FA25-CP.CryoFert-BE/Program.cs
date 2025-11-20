@@ -191,10 +191,8 @@ namespace FA25_CP.CryoFert_BE
 
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapHub<TransactionHub>("/transactionHub");
-            });
+            app.MapHub<TransactionHub>("/transactionHub");
+
             app.MapControllers();
 
             // 9. Run application

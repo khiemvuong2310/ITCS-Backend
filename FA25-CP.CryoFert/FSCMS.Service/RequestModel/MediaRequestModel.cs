@@ -54,6 +54,8 @@ namespace FSCMS.Service.RequestModel
     {
         MedicalRecord = 0,
         TreatmentCycle = 1,
-        Account = 2
+        Account = 2,
+        Agreement = 3,
+        CryoStorageContract = 4,
     }
 }

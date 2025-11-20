@@ -75,12 +75,6 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status404NotFound,
                         Message = "Transaction not found"
                     };
-                if (transaction.Status == TransactionStatus.Failed)
-                    return new BaseResponse<TransactionResponseModel>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "Transaction not found"
-                    };
 
                 string paymentUrl = null;
                 paymentUrl = _paymentGateway.CreateVnPayUrl(transaction);
@@ -101,6 +95,41 @@ namespace FSCMS.Service.Services
                 {
                     Code = StatusCodes.Status500InternalServerError,
                     Message = "An internal error occurred while creating Url Payment"
+                };
+            }
+        }
+        public async Task<BaseResponse> CancellTransactionAsync(CancelltransactionRequest request)
+        {
+            try
+            {
+                var transaction = await _unitOfWork.Repository<Transaction>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(p => p.RelatedEntityType == request.RelatedEntityType.ToString() && !p.IsDeleted && p.RelatedEntityId == request.RelatedEntityId);
+
+                if (transaction == null)
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Transaction not found"
+                    };
+
+                transaction.Status = TransactionStatus.Cancelled;
+                await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                await _unitOfWork.CommitAsync();
+
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Transaction cancell successfully",
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating transaction");
+                return new BaseResponse
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "An internal error occurred while cancell transaction"
                 };
             }
         }
@@ -299,7 +328,7 @@ namespace FSCMS.Service.Services
                             var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
                                 .AsQueryable()
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
-                            serviceRequest.Status = ServiceRequestStatus.Approved;
+                            serviceRequest.Status = ServiceRequestStatus.Completed;
                             await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
                             break;
                         case "Appointment":

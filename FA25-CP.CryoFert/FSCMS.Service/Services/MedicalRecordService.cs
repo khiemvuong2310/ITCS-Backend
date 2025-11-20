@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
@@ -8,10 +13,6 @@ using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
 {
@@ -166,6 +167,28 @@ namespace FSCMS.Service.Services
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var appointment = await _unitOfWork.Repository<Appointment>()
+                                .AsQueryable()
+                                .Include(p => p.MedicalRecord)
+                                .FirstOrDefaultAsync(p => p.Id == request.AppointmentId && !p.IsDeleted);
+                if (appointment == null)
+                {
+                    return new BaseResponse<MedicalRecordResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Appointment Not Found",
+                        Data = null
+                    };
+                }
+                if (appointment.MedicalRecord != null)
+                {
+                    return new BaseResponse<MedicalRecordResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Appointment already have medical record",
+                        Data = null
+                    };
+                }
                 var entity = _mapper.Map<MedicalRecord>(request);
 
                 await _unitOfWork.Repository<MedicalRecord>().InsertAsync(entity);

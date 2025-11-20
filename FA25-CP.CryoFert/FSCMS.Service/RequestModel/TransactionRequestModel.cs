@@ -6,7 +6,14 @@ using FSCMS.Service.ReponseModel;
 
 namespace FSCMS.Service.RequestModel
 {
-    public class CreateUrlPaymentRequest
+    public class CancelltransactionRequest
+    {
+        [Required(ErrorMessage = "RelatedEntityType is required.")]
+        public EntityTypeTransaction RelatedEntityType { get; set; }
+        [Required(ErrorMessage = "RelatedEntityId is required.")]
+        public Guid RelatedEntityId { get; set; }
+    }
+        public class CreateUrlPaymentRequest
     {
         [Required(ErrorMessage = "RelatedEntityType is required.")]
         public EntityTypeTransaction RelatedEntityType { get; set; }
