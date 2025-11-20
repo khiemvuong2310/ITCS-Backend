@@ -34,6 +34,9 @@ namespace FSCMS.Service.RequestModel
 
         // Optional IVF data - used when TreatmentType is IVF
         public TreatmentIVFCreateUpdateRequest? IVF { get; set; }
+
+        // Auto-create treatment cycles when true
+        public bool AutoCreate { get; set; } = false;
     }
 }
 

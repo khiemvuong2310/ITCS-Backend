@@ -27,6 +27,11 @@ namespace FSCMS.Service.ReponseModel
         public TreatmentIUIResponseModel? IUI { get; set; }
     }
 
+    public class TreatmentWithCyclesResponseModel : TreatmentResponseModel
+    {
+        public List<TreatmentCycleResponseModel> AutoCreatedCycles { get; set; } = new();
+    }
+
     public class TreatmentIVFResponseModel
     {
         public Guid Id { get; set; }
