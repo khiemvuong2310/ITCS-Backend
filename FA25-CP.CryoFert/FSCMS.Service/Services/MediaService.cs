@@ -90,6 +90,14 @@ namespace FSCMS.Service.Services
                                     .AsQueryable()
                                     .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
                                     .FirstOrDefaultAsync(),
+                    EntityTypeMedia.Agreement => await _unitOfWork.Repository<Agreement>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeMedia.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
                     _ => null
                 };
 
@@ -109,6 +117,8 @@ namespace FSCMS.Service.Services
                     MedicalRecord mr => mr.Appointment?.PatientId,
                     TreatmentCycle tc => tc.Treatment?.PatientId,
                     Account acc => acc.Id,
+                    Agreement ag => ag.PatientId,
+                    CryoStorageContract csc => csc.PatientId,
                     _ => null
                 };
 
