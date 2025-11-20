@@ -478,7 +478,7 @@ namespace FSCMS.Service.Services
             {
                 var entity = await _unitOfWork.Repository<CryoStorageContract>()
                 .AsQueryable()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted && x.Status != ContractStatus.Active && x.Status != ContractStatus.Expired);
                 if (entity == null)
                 {
                     return new BaseResponse
@@ -492,6 +492,12 @@ namespace FSCMS.Service.Services
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
+                CancelltransactionRequest cancellTransactionRequest = new CancelltransactionRequest
+                {
+                    RelatedEntityType = EntityTypeTransaction.CryoStorageContract,
+                    RelatedEntityId = entity.Id
+                };
+                await _transactionService.CancellTransactionAsync(cancellTransactionRequest);
                 await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
 
