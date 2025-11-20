@@ -23,7 +23,7 @@ namespace FSCMS.Service.ReponseModel
         public string? Notes { get; set; }
 
         // Optional: thông tin tối thiểu của Appointment
-        public DateTime? AppointmentDate { get; set; }
+        public DateOnly AppointmentDate { get; set; }
         public Guid? PatientId { get; set; }
         public string? PatientName { get; set; }
 
