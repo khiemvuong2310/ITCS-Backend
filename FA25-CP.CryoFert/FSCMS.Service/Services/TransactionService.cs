@@ -328,7 +328,7 @@ namespace FSCMS.Service.Services
                             var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
                                 .AsQueryable()
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
-                            serviceRequest.Status = ServiceRequestStatus.Approved;
+                            serviceRequest.Status = ServiceRequestStatus.Completed;
                             await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
                             break;
                         case "Appointment":
