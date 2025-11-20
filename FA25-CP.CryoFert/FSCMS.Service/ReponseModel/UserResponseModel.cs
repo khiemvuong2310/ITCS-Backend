@@ -9,15 +9,19 @@ namespace FSCMS.Service.ReponseModel
     public class UserResponse
     {
         public Guid Id { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
         public string? UserName { get; set; }
         public int? Age { get; set; }
         public bool? Gender { get; set; } // true = male, false = female
         public DateTime? DOB { get; set; } // Date of Birth
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
         public string? Phone { get; set; }
         public string? Location { get; set; }
         public string? Country { get; set; }
         public string? Image { get; set; }
+        public Guid? AvatarId { get; set; }
+        public DateTime? LastLogin { get; set; }
         public bool? Status { get; set; }
         public bool EmailVerified { get; set; }
         public Guid RoleId { get; set; }

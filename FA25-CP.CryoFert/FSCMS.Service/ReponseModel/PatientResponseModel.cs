@@ -101,23 +101,58 @@ namespace FSCMS.Service.ReponseModel
     /// </summary>
     public class PatientAccountInfo
     {
+        [JsonPropertyName("id")]
+        public Guid Id { get; set; }
+
+        [JsonPropertyName("firstName")]
+        public string FirstName { get; set; } = default!;
+
+        [JsonPropertyName("lastName")]
+        public string LastName { get; set; } = default!;
+
+        [JsonPropertyName("birthDate")]
+        public DateTime? BirthDate { get; set; }
+
+        [JsonPropertyName("age")]
+        public int? Age => BirthDate.HasValue 
+            ? DateTime.UtcNow.Year - BirthDate.Value.Year - (DateTime.UtcNow.DayOfYear < BirthDate.Value.DayOfYear ? 1 : 0)
+            : null;
+
+        [JsonPropertyName("gender")]
+        public bool? Gender { get; set; }
+
         [JsonPropertyName("username")]
-        public string? Username { get; set; }
+        public string Username { get; set; } = default!;
 
         [JsonPropertyName("email")]
         public string Email { get; set; } = default!;
 
         [JsonPropertyName("phone")]
-        public string? Phone { get; set; }
+        public string Phone { get; set; } = default!;
 
         [JsonPropertyName("address")]
         public string? Address { get; set; }
+
+        [JsonPropertyName("avatarId")]
+        public Guid? AvatarId { get; set; }
+
+        [JsonPropertyName("lastLogin")]
+        public DateTime? LastLogin { get; set; }
+
+        [JsonPropertyName("roleId")]
+        public Guid RoleId { get; set; }
 
         [JsonPropertyName("isVerified")]
         public bool IsVerified { get; set; }
 
         [JsonPropertyName("isActive")]
         public bool IsActive { get; set; }
+
+        [JsonPropertyName("createdAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updatedAt")]
+        public DateTime? UpdatedAt { get; set; }
     }
 
     /// <summary>

@@ -320,7 +320,74 @@ namespace FSCMS.Service.Services
                     _logger.LogInformation("{MethodName}: IVF record created successfully for Treatment {TreatmentId}", methodName, entity.Id);
                 }
 
-                // Commit the transaction if everything succeeded
+                // Auto-create treatment cycles if requested
+                var createdCycles = new List<TreatmentCycle>();
+                if (request.AutoCreate)
+                {
+                    if (request.TreatmentType == TreatmentType.IUI)
+                    {
+                        // Create 3 cycles for IUI
+                        var cycleStartDate = entity.StartDate;
+                        for (int i = 1; i <= 3; i++)
+                        {
+                            // Cycle #1: Status = Planned (Scheduled equivalent), Cycles #2-3: Status = Planned
+                            // Note: Using Planned for all cycles since "Scheduled" status doesn't exist in TreatmentStatus enum
+                            var cycleStatus = TreatmentStatus.Planned;
+                            var expectedResultCheckDate = cycleStartDate.AddDays(14);
+                            var expectedDuration = "12-16 days";
+                            
+                            var cycleNotes = $"ExpectedDuration: {expectedDuration}; ExpectedResultCheckDate: {expectedResultCheckDate:yyyy-MM-dd}";
+                            
+                            var cycle = new TreatmentCycle(
+                                Guid.NewGuid(),
+                                entity.Id,
+                                $"{entity.TreatmentName} - Cycle {i}",
+                                i,
+                                cycleStartDate
+                            )
+                            {
+                                Status = cycleStatus,
+                                Protocol = request.IUI?.Protocol ?? "Default IUI Protocol",
+                                Notes = cycleNotes
+                            };
+
+                            await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
+                            createdCycles.Add(cycle);
+
+                            _logger.LogInformation("{MethodName}: Created IUI cycle {CycleNumber} for Treatment {TreatmentId}", methodName, i, entity.Id);
+
+                            // Next cycle starts 28 days after current cycle
+                            if (i < 3)
+                            {
+                                cycleStartDate = cycleStartDate.AddDays(28);
+                            }
+                        }
+                    }
+                    else if (request.TreatmentType == TreatmentType.IVF)
+                    {
+                        // Create 1 default cycle for IVF
+                        var cycle = new TreatmentCycle(
+                            Guid.NewGuid(),
+                            entity.Id,
+                            $"{entity.TreatmentName} - Cycle 1",
+                            1,
+                            entity.StartDate
+                        )
+                        {
+                            Status = TreatmentStatus.Planned, // Scheduled equivalent
+                            Protocol = request.IVF?.Protocol ?? "Default IVF Protocol",
+                            Notes = "Auto-generated default IVF cycle. Subsequent attempts should be created manually by clinician."
+                        };
+
+                        await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
+                        createdCycles.Add(cycle);
+
+                        _logger.LogInformation("{MethodName}: Created default IVF cycle for Treatment {TreatmentId}", methodName, entity.Id);
+                    }
+                }
+
+                // Commit all changes (Treatment + IUI/IVF + Cycles) in one transaction
+                await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
 
                 // Retrieve the created treatment with related data
@@ -329,6 +396,34 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(t => t.TreatmentIVF)
                     .FirstOrDefaultAsync(t => t.Id == entity.Id);
+
+                // If cycles were auto-created, return extended response with cycles
+                if (request.AutoCreate && createdCycles.Any())
+                {
+                    var baseResponse = created!.ToResponseModel();
+                    var responseWithCycles = new TreatmentWithCyclesResponseModel
+                    {
+                        Id = baseResponse.Id,
+                        PatientId = baseResponse.PatientId,
+                        DoctorId = baseResponse.DoctorId,
+                        TreatmentName = baseResponse.TreatmentName,
+                        TreatmentType = baseResponse.TreatmentType,
+                        StartDate = baseResponse.StartDate,
+                        EndDate = baseResponse.EndDate,
+                        Status = baseResponse.Status,
+                        Diagnosis = baseResponse.Diagnosis,
+                        Goals = baseResponse.Goals,
+                        Notes = baseResponse.Notes,
+                        EstimatedCost = baseResponse.EstimatedCost,
+                        ActualCost = baseResponse.ActualCost,
+                        CreatedAt = baseResponse.CreatedAt,
+                        UpdatedAt = baseResponse.UpdatedAt,
+                        AutoCreatedCycles = createdCycles.Select(c => c.ToResponseModel()).ToList()
+                    };
+
+                    _logger.LogInformation("{MethodName}: Treatment created with {CycleCount} auto-generated cycles", methodName, createdCycles.Count);
+                    return BaseResponse<TreatmentResponseModel>.CreateSuccess(responseWithCycles, $"Treatment created successfully with {createdCycles.Count} auto-generated cycle(s)", StatusCodes.Status201Created);
+                }
 
                 return BaseResponse<TreatmentResponseModel>.CreateSuccess(created!.ToResponseModel(), "Treatment created successfully", StatusCodes.Status201Created);
             }
