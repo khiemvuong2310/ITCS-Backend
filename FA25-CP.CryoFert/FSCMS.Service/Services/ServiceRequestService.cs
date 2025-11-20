@@ -259,13 +259,23 @@ namespace FSCMS.Service.Services
                 }
 
                 await _unitOfWork.CommitAsync();
-
+                
                 // Get the created service request with all details
                 var createdServiceRequest = await _unitOfWork.Repository<ServiceRequest>()
                     .GetQueryable()
+                    .Include(sr => sr.Appointment)
                     .Include(sr => sr.ServiceRequestDetails)
                         .ThenInclude(srd => srd.Service)
                     .FirstOrDefaultAsync(sr => sr.Id == entity.Id);
+
+                CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
+                {
+                    Amount = (decimal)createdServiceRequest.TotalAmount,
+                    RelatedEntityType = EntityTypeTransaction.Appointment,
+                    RelatedEntityId = createdServiceRequest.Id
+                };
+                await _transactionService.CreateTransactionAsync(createTransactionRequest, createdServiceRequest.Appointment.PatientId);
+                await _unitOfWork.CommitAsync();
 
                 var response = createdServiceRequest!.ToResponseModel();
                 _logger.LogInformation("{MethodName}: Successfully created service request {Id}", methodName, entity.Id);

@@ -23,12 +23,14 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<AppointmentService> _logger;
+        private readonly ITransactionService _transactionService;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger)
+        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
         }
 
         #region Appointment CRUD Operations
@@ -811,7 +813,13 @@ namespace FSCMS.Service.Services
                 }
 
                 // No direct slot booking flag; booking is inferred by Appointment presence
-
+                CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
+                {
+                    Amount = 100000,
+                    RelatedEntityType = EntityTypeTransaction.Appointment,
+                    RelatedEntityId = appointment.Id
+                };
+                await _transactionService.CreateTransactionAsync(createTransactionRequest, patient.Id);
                 await _unitOfWork.CommitAsync();
 
                 // Reload with related data
