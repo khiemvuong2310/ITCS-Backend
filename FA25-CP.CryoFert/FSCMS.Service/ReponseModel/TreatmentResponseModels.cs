@@ -19,12 +19,14 @@ namespace FSCMS.Service.ReponseModel
         public decimal? ActualCost { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<AgreementResponse>? Agreements { get; set; }
     }
 
     public class TreatmentDetailResponseModel : TreatmentResponseModel
     {
         public TreatmentIVFResponseModel? IVF { get; set; }
         public TreatmentIUIResponseModel? IUI { get; set; }
+        // Agreements already included in base class
     }
 
     public class TreatmentWithCyclesResponseModel : TreatmentResponseModel
@@ -55,6 +57,7 @@ namespace FSCMS.Service.ReponseModel
         public IVFCycleStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<AgreementResponse>? Agreements { get; set; }
     }
 
     public class TreatmentIUIResponseModel
@@ -73,6 +76,7 @@ namespace FSCMS.Service.ReponseModel
         public IUICycleStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<AgreementResponse>? Agreements { get; set; }
     }
 }
 

@@ -1,4 +1,5 @@
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 
@@ -14,6 +15,9 @@ namespace FSCMS.Service.Mapping
                 TreatmentId = entity.TreatmentId,
                 CycleName = entity.CycleName,
                 CycleNumber = entity.CycleNumber,
+                OrderIndex = entity.OrderIndex,
+                StepType = entity.StepType,
+                ExpectedDurationDays = entity.ExpectedDurationDays,
                 StartDate = entity.StartDate,
                 EndDate = entity.EndDate,
                 Status = entity.Status,
@@ -33,6 +37,9 @@ namespace FSCMS.Service.Mapping
                 TreatmentId = entity.TreatmentId,
                 CycleName = entity.CycleName,
                 CycleNumber = entity.CycleNumber,
+                OrderIndex = entity.OrderIndex,
+                StepType = entity.StepType,
+                ExpectedDurationDays = entity.ExpectedDurationDays,
                 StartDate = entity.StartDate,
                 EndDate = entity.EndDate,
                 Status = entity.Status,
@@ -49,7 +56,15 @@ namespace FSCMS.Service.Mapping
 
         public static TreatmentCycle ToEntity(this CreateTreatmentCycleRequest request)
         {
-            return new TreatmentCycle(Guid.NewGuid(), request.TreatmentId, request.CycleName, request.CycleNumber, request.StartDate)
+            return new TreatmentCycle(
+                Guid.NewGuid(),
+                request.TreatmentId,
+                request.CycleName,
+                request.CycleNumber,
+                request.StartDate,
+                TreatmentStepType.IUI_PreCyclePreparation,
+                request.CycleNumber,
+                0)
             {
                 EndDate = request.EndDate,
                 Protocol = request.Protocol,

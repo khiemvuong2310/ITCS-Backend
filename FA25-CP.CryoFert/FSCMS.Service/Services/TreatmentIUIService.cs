@@ -44,7 +44,25 @@ namespace FSCMS.Service.Services
                     return BaseResponse<TreatmentIUIResponseModel>.CreateError("IUI info not found", StatusCodes.Status404NotFound, "IUI_NOT_FOUND");
                 }
 
-                return BaseResponse<TreatmentIUIResponseModel>.CreateSuccess(entity.ToResponseModel(), "IUI info retrieved successfully", StatusCodes.Status200OK);
+                var response = entity.ToResponseModel();
+
+                // Load agreements for this treatment
+                var agreements = await _unitOfWork.Repository<Agreement>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(a => a.Treatment)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p!.Account)
+                    .Where(a => a.TreatmentId == treatmentId && !a.IsDeleted)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .ToListAsync();
+
+                if (agreements.Any())
+                {
+                    response.Agreements = agreements.Select(a => a.ToAgreementResponse()).ToList();
+                }
+
+                return BaseResponse<TreatmentIUIResponseModel>.CreateSuccess(response, "IUI info retrieved successfully", StatusCodes.Status200OK);
             }
             catch (Exception ex)
             {
@@ -78,7 +96,30 @@ namespace FSCMS.Service.Services
                     .OrderByDescending(x => x.CreatedAt)
                     .ToListAsync();
 
-                var responseModels = entities.Select(e => e.ToResponseModel()).ToList();
+                // Load agreements for all treatments in batch
+                var treatmentIds = entities.Select(e => e.Id).ToList();
+                var agreements = await _unitOfWork.Repository<Agreement>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(a => a.Treatment)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p!.Account)
+                    .Where(a => treatmentIds.Contains(a.TreatmentId) && !a.IsDeleted)
+                    .ToListAsync();
+
+                var agreementsByTreatmentId = agreements
+                    .GroupBy(a => a.TreatmentId)
+                    .ToDictionary(g => g.Key, g => g.Select(a => a.ToAgreementResponse()).ToList());
+
+                var responseModels = entities.Select(entity =>
+                {
+                    var response = entity.ToResponseModel();
+                    if (agreementsByTreatmentId.TryGetValue(entity.Id, out var treatmentAgreements))
+                    {
+                        response.Agreements = treatmentAgreements;
+                    }
+                    return response;
+                }).ToList();
 
                 _logger.LogInformation("{MethodName}: Retrieved {Count} IUI records for patient {PatientId}", methodName, responseModels.Count, patientId);
 

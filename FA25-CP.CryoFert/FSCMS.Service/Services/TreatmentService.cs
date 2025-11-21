@@ -131,7 +131,30 @@ namespace FSCMS.Service.Services
                     .Take(request.Size)
                     .ToListAsync();
 
-                var data = items.Select(x => x.ToResponseModel()).ToList();
+                // Load agreements for all treatments in batch
+                var treatmentIds = items.Select(t => t.Id).ToList();
+                var agreements = await _unitOfWork.Repository<Agreement>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(a => a.Treatment)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p!.Account)
+                    .Where(a => treatmentIds.Contains(a.TreatmentId) && !a.IsDeleted)
+                    .ToListAsync();
+
+                var agreementsByTreatmentId = agreements
+                    .GroupBy(a => a.TreatmentId)
+                    .ToDictionary(g => g.Key, g => g.Select(a => a.ToAgreementResponse()).ToList());
+
+                var data = items.Select(treatment =>
+                {
+                    var response = treatment.ToResponseModel();
+                    if (agreementsByTreatmentId.TryGetValue(treatment.Id, out var treatmentAgreements))
+                    {
+                        response.Agreements = treatmentAgreements;
+                    }
+                    return response;
+                }).ToList();
 
                 return new DynamicResponse<TreatmentResponseModel>
                 {
@@ -190,7 +213,13 @@ namespace FSCMS.Service.Services
 
                 var detail = entity.ToDetailResponseModel();
 
-                // Attach IUI if exists (1-1 by shared PK: IUI.Id == Treatment.Id)
+                // Load IVF data if exists
+                if (entity.TreatmentIVF != null && !entity.TreatmentIVF.IsDeleted)
+                {
+                    detail.IVF = entity.TreatmentIVF.ToResponseModel();
+                }
+
+                // Load IUI data if exists
                 var iui = await _unitOfWork.Repository<TreatmentIUI>()
                     .GetQueryable()
                     .AsNoTracking()
@@ -199,6 +228,33 @@ namespace FSCMS.Service.Services
                 if (iui != null)
                 {
                     detail.IUI = iui.ToResponseModel();
+                }
+
+                // Load agreements for this treatment
+                var agreements = await _unitOfWork.Repository<Agreement>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(a => a.Treatment)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p!.Account)
+                    .Where(a => a.TreatmentId == id && !a.IsDeleted)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .ToListAsync();
+
+                if (agreements.Any())
+                {
+                    var agreementList = agreements.Select(a => a.ToAgreementResponse()).ToList();
+                    detail.Agreements = agreementList;
+                    
+                    // Also attach agreements to IVF/IUI if they exist
+                    if (detail.IVF != null)
+                    {
+                        detail.IVF.Agreements = agreementList;
+                    }
+                    if (detail.IUI != null)
+                    {
+                        detail.IUI.Agreements = agreementList;
+                    }
                 }
 
                 return BaseResponse<TreatmentDetailResponseModel>.CreateSuccess(detail, "Treatment retrieved successfully", StatusCodes.Status200OK);
@@ -326,72 +382,109 @@ namespace FSCMS.Service.Services
                 {
                     if (request.TreatmentType == TreatmentType.IUI)
                     {
-                        // Create 3 cycles for IUI
-                        var cycleStartDate = entity.StartDate;
-                        for (int i = 1; i <= 3; i++)
+                        var baselineDate = request.PreferredStartDate ?? entity.StartDate;
+                        var procedureTriggerDate = baselineDate.AddDays(10);
+                        var iuiProcedureDate = procedureTriggerDate.AddHours(36);
+                        var stepPlan = new List<(int OrderIndex, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
                         {
-                            // Cycle #1: Status = Planned (Scheduled equivalent), Cycles #2-3: Status = Planned
-                            // Note: Using Planned for all cycles since "Scheduled" status doesn't exist in TreatmentStatus enum
-                            var cycleStatus = TreatmentStatus.Planned;
-                            var expectedResultCheckDate = cycleStartDate.AddDays(14);
-                            var expectedDuration = "12-16 days";
-                            
-                            var cycleNotes = $"ExpectedDuration: {expectedDuration}; ExpectedResultCheckDate: {expectedResultCheckDate:yyyy-MM-dd}";
-                            
+                            (1, "Pre-Cycle Preparation", baselineDate.AddDays(-14), TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase ~2 weeks before baseline."),
+                            (2, "Day 2-3 Assessment", baselineDate, TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
+                            (3, "Day 7-10 Follicle Monitoring", baselineDate.AddDays(7), TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 1, "Mid-cycle follicle monitoring."),
+                            (4, "Day 10-12 Trigger", procedureTriggerDate, TreatmentStepType.IUI_Day10_12_Trigger, 1, "Ovulation trigger planning."),
+                            (5, "IUI Procedure", iuiProcedureDate, TreatmentStepType.IUI_Procedure, 0, "Intrauterine insemination procedure."),
+                            (6, "Post-IUI Monitoring", iuiProcedureDate, TreatmentStepType.IUI_PostIUI, 1, "Immediate post-procedure care."),
+                            (7, "Beta HCG (14 days)", iuiProcedureDate.AddDays(14), TreatmentStepType.IUI_BetaHCGTest, 0, "Pregnancy test 14 days after procedure.")
+                        };
+
+                        var now = DateTime.UtcNow;
+                        var firstUpcomingIndex = stepPlan.FindIndex(step => step.ScheduledDate >= now);
+                        if (firstUpcomingIndex == -1)
+                        {
+                            firstUpcomingIndex = stepPlan.Count - 1;
+                        }
+
+                        for (int index = 0; index < stepPlan.Count; index++)
+                        {
+                            var step = stepPlan[index];
+                            var status = index < firstUpcomingIndex
+                                ? TreatmentStatus.Completed
+                                : index == firstUpcomingIndex
+                                    ? TreatmentStatus.Scheduled
+                                    : TreatmentStatus.Planned;
+
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
                                 entity.Id,
-                                $"{entity.TreatmentName} - Cycle {i}",
-                                i,
-                                cycleStartDate
-                            )
+                                $"{entity.TreatmentName} - {step.CycleName}",
+                                step.OrderIndex,
+                                step.ScheduledDate,
+                                step.StepType,
+                                step.OrderIndex,
+                                step.ExpectedDurationDays)
                             {
-                                Status = cycleStatus,
+                                Status = status,
                                 Protocol = request.IUI?.Protocol ?? "Default IUI Protocol",
-                                Notes = cycleNotes
+                                Notes = $"{step.Notes} ExpectedDurationDays={step.ExpectedDurationDays}."
                             };
 
                             await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
                             createdCycles.Add(cycle);
 
-                            _logger.LogInformation("{MethodName}: Created IUI cycle {CycleNumber} for Treatment {TreatmentId}", methodName, i, entity.Id);
-
-                            // Next cycle starts 28 days after current cycle
-                            if (i < 3)
-                            {
-                                cycleStartDate = cycleStartDate.AddDays(28);
-                            }
+                            _logger.LogInformation("{MethodName}: Created IUI step {OrderIndex} ({StepType}) for Treatment {TreatmentId}",
+                                methodName, step.OrderIndex, step.StepType, entity.Id);
                         }
                     }
                     else if (request.TreatmentType == TreatmentType.IVF)
                     {
-                        // Create 3 cycles for IVF: cycle1=Scheduled, cycle2-3=Planned
-                        // StartDate: cycle1 = Treatment.StartDate, cycle2 = +35 days, cycle3 = +70 days
-                        for (int i = 1; i <= 3; i++)
+                        var baselineDate = request.PreferredStartDate ?? entity.StartDate;
+                        var triggerDate = baselineDate.AddDays(10);
+                        var opuDate = triggerDate.AddHours(36);
+                        var fertilizationDate = opuDate;
+                        var embryoCultureDate = opuDate.AddDays(3);
+                        var embryoTransferDate = opuDate.AddDays(5);
+                        var betaTestDate = embryoTransferDate.AddDays(14);
+
+                        var ivfPlan = new List<(int OrderIndex, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
                         {
-                            var cycleStatus = i == 1 ? TreatmentStatus.Scheduled : TreatmentStatus.Planned;
-                            var cycleStartDate = entity.StartDate.AddDays((i - 1) * 35); // 0, 35, 70 days
-                            
+                            (1, "Pre-Cycle Preparation", baselineDate.AddDays(-14), TreatmentStepType.IVF_PreCyclePreparation, 14, "Patient prep and protocol confirmation (~2 weeks)."),
+                            (2, "Controlled Ovarian Stimulation", baselineDate, TreatmentStepType.IVF_StimulationStart, 10, "Stimulation start (COS day 1)."),
+                            (3, "Mid-Stimulation Monitoring", baselineDate.AddDays(4), TreatmentStepType.IVF_Monitoring, 1, "Ultrasound/bloodwork mid stimulation."),
+                            (4, "Ovulation Trigger", triggerDate, TreatmentStepType.IVF_Trigger, 0, "Trigger shot ~day 10."),
+                            (5, "Oocyte Pick-Up (OPU)", opuDate, TreatmentStepType.IVF_OPU, 0, "Oocyte retrieval ~36h post trigger."),
+                            (6, "Fertilization/Lab", fertilizationDate, TreatmentStepType.IVF_Fertilization, 1, "Fertilization/ICSI lab work."),
+                            (7, "Embryo Culture", embryoCultureDate, TreatmentStepType.IVF_EmbryoCulture, 3, "Embryo assessment (Day 3 checkpoint)."),
+                            (8, "Embryo Transfer", embryoTransferDate, TreatmentStepType.IVF_EmbryoTransfer, 0, $"Default day-5 transfer. Beta-hCG test on {betaTestDate:yyyy-MM-dd}.")
+                        };
+
+                        var now = DateTime.UtcNow;
+                        var scheduledIndex = ivfPlan.FindIndex(step => step.ScheduledDate >= now);
+                        if (scheduledIndex == -1) scheduledIndex = ivfPlan.Count - 1;
+
+                        for (int index = 0; index < ivfPlan.Count; index++)
+                        {
+                            var step = ivfPlan[index];
+                            var status = index == scheduledIndex ? TreatmentStatus.Scheduled : TreatmentStatus.Planned;
+
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
                                 entity.Id,
-                                $"{entity.TreatmentName} - Cycle {i}",
-                                i,
-                                cycleStartDate
-                            )
+                                $"{entity.TreatmentName} - {step.CycleName}",
+                                step.OrderIndex,
+                                step.ScheduledDate,
+                                step.StepType,
+                                step.OrderIndex,
+                                step.ExpectedDurationDays)
                             {
-                                Status = cycleStatus,
+                                Status = status,
                                 Protocol = request.IVF?.Protocol ?? "Default IVF Protocol",
-                                Notes = i == 1 
-                                    ? "Auto-generated scheduled IVF cycle." 
-                                    : $"Auto-generated planned IVF cycle. Will be cancelled if previous cycle results in pregnancy."
+                                Notes = step.Notes
                             };
 
                             await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
                             createdCycles.Add(cycle);
 
-                            _logger.LogInformation("{MethodName}: Created IVF cycle {CycleNumber} (Status: {Status}, StartDate: {StartDate}) for Treatment {TreatmentId}", 
-                                methodName, i, cycleStatus, cycleStartDate, entity.Id);
+                            _logger.LogInformation("{MethodName}: Created IVF step {OrderIndex} ({StepType}) with status {Status} for Treatment {TreatmentId}",
+                                methodName, step.OrderIndex, step.StepType, status, entity.Id);
                         }
                     }
                 }
