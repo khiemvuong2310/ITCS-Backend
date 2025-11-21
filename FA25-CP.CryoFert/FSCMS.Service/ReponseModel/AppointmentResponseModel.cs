@@ -73,6 +73,12 @@ namespace FSCMS.Service.ReponseModel
 
         [JsonPropertyName("doctorCount")]
         public int DoctorCount { get; set; }
+
+        /// <summary>
+        /// Transactions linked to this appointment (e.g. booking deposits, payments)
+        /// </summary>
+        [JsonPropertyName("transactions")]
+        public List<TransactionResponseModel> Transactions { get; set; } = new List<TransactionResponseModel>();
     }
 
     /// <summary>

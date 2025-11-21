@@ -365,24 +365,34 @@ namespace FSCMS.Service.Services
                     }
                     else if (request.TreatmentType == TreatmentType.IVF)
                     {
-                        // Create 1 default cycle for IVF
-                        var cycle = new TreatmentCycle(
-                            Guid.NewGuid(),
-                            entity.Id,
-                            $"{entity.TreatmentName} - Cycle 1",
-                            1,
-                            entity.StartDate
-                        )
+                        // Create 3 cycles for IVF: cycle1=Scheduled, cycle2-3=Planned
+                        // StartDate: cycle1 = Treatment.StartDate, cycle2 = +35 days, cycle3 = +70 days
+                        for (int i = 1; i <= 3; i++)
                         {
-                            Status = TreatmentStatus.Planned, // Scheduled equivalent
-                            Protocol = request.IVF?.Protocol ?? "Default IVF Protocol",
-                            Notes = "Auto-generated default IVF cycle. Subsequent attempts should be created manually by clinician."
-                        };
+                            var cycleStatus = i == 1 ? TreatmentStatus.Scheduled : TreatmentStatus.Planned;
+                            var cycleStartDate = entity.StartDate.AddDays((i - 1) * 35); // 0, 35, 70 days
+                            
+                            var cycle = new TreatmentCycle(
+                                Guid.NewGuid(),
+                                entity.Id,
+                                $"{entity.TreatmentName} - Cycle {i}",
+                                i,
+                                cycleStartDate
+                            )
+                            {
+                                Status = cycleStatus,
+                                Protocol = request.IVF?.Protocol ?? "Default IVF Protocol",
+                                Notes = i == 1 
+                                    ? "Auto-generated scheduled IVF cycle." 
+                                    : $"Auto-generated planned IVF cycle. Will be cancelled if previous cycle results in pregnancy."
+                            };
 
-                        await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
-                        createdCycles.Add(cycle);
+                            await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
+                            createdCycles.Add(cycle);
 
-                        _logger.LogInformation("{MethodName}: Created default IVF cycle for Treatment {TreatmentId}", methodName, entity.Id);
+                            _logger.LogInformation("{MethodName}: Created IVF cycle {CycleNumber} (Status: {Status}, StartDate: {StartDate}) for Treatment {TreatmentId}", 
+                                methodName, i, cycleStatus, cycleStartDate, entity.Id);
+                        }
                     }
                 }
 
@@ -680,6 +690,57 @@ namespace FSCMS.Service.Services
             {
                 _logger.LogError(ex, "{MethodName}: Error deleting treatment {Id}", methodName, id);
                 return BaseResponse<bool>.CreateError($"Error deleting treatment: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
+        /// <summary>
+        /// Cancels all remaining Planned cycles for a treatment when pregnancy is detected.
+        /// This method should be called when any cycle results in pregnancy (e.g., when TreatmentIVF.Status == PregnancyPositive).
+        /// </summary>
+        /// <param name="treatmentId">The treatment ID</param>
+        /// <param name="excludeCycleId">Optional cycle ID to exclude from cancellation (the cycle that resulted in pregnancy)</param>
+        /// <returns>Number of cycles cancelled</returns>
+        public async Task<int> CancelRemainingPlannedCyclesAsync(Guid treatmentId, Guid? excludeCycleId = null)
+        {
+            const string methodName = nameof(CancelRemainingPlannedCyclesAsync);
+            _logger.LogInformation("{MethodName}: Cancelling remaining Planned cycles for Treatment {TreatmentId}", methodName, treatmentId);
+
+            try
+            {
+                var plannedCycles = await _unitOfWork.Repository<TreatmentCycle>()
+                    .GetQueryable()
+                    .Where(tc => tc.TreatmentId == treatmentId 
+                        && tc.Status == TreatmentStatus.Planned 
+                        && !tc.IsDeleted
+                        && (excludeCycleId == null || tc.Id != excludeCycleId.Value))
+                    .ToListAsync();
+
+                if (!plannedCycles.Any())
+                {
+                    _logger.LogInformation("{MethodName}: No Planned cycles found to cancel for Treatment {TreatmentId}", methodName, treatmentId);
+                    return 0;
+                }
+
+                var now = DateTime.UtcNow;
+                foreach (var cycle in plannedCycles)
+                {
+                    cycle.Status = TreatmentStatus.Cancelled;
+                    cycle.UpdatedAt = now;
+                    await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(cycle, cycle.Id);
+                    _logger.LogInformation("{MethodName}: Cancelled cycle {CycleId} (Cycle #{CycleNumber}) for Treatment {TreatmentId}", 
+                        methodName, cycle.Id, cycle.CycleNumber, treatmentId);
+                }
+
+                await _unitOfWork.CommitAsync();
+                _logger.LogInformation("{MethodName}: Successfully cancelled {Count} Planned cycle(s) for Treatment {TreatmentId}", 
+                    methodName, plannedCycles.Count, treatmentId);
+
+                return plannedCycles.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error cancelling Planned cycles for Treatment {TreatmentId}", methodName, treatmentId);
+                throw;
             }
         }
     }

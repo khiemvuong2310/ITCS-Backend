@@ -7,6 +7,7 @@ namespace FSCMS.Core.Enum
         Completed = 3,
         Cancelled = 4,
         OnHold = 5,
-        Failed = 6
+        Failed = 6,
+        Scheduled = 7
     }
 }
