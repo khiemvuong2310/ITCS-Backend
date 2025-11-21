@@ -152,6 +152,15 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var result = await _treatmentService.DeleteAsync(id);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
+
+        [HttpPut("{treatmentId:guid}/cancel-remaining-cycles")]
+        [Authorize(Roles = "Doctor")]
+        [ApiDefaultResponse(typeof(int), UseDynamicWrapper = false)]
+        public async Task<IActionResult> CancelRemainingPlannedCycles(Guid treatmentId, Guid? excludeCycleId = null)
+        {
+            var canceledCount = await _treatmentService.CancelRemainingPlannedCyclesAsync(treatmentId, excludeCycleId);
+            return StatusCode(StatusCodes.Status200OK, BaseResponse<int>.CreateSuccess(canceledCount, "Remaining planned cycles canceled successfully"));
+        }
     }
 }
 

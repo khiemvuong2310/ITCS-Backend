@@ -103,17 +103,17 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
-        /// Get booking appointments by patient ID
+        /// Get history appointments by patient ID
         /// </summary>
         /// <param name="patientId">Patient ID</param>
         /// <param name="request">Filter and pagination parameters</param>
-        /// <returns>Paginated list of booking appointments</returns>
-        [HttpGet("patient/{patientId:guid}/booking")]
+        /// <returns>Paginated list of Type appointments</returns>
+        [HttpGet("patient/{patientId:guid}/history")]
         [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
-        public async Task<IActionResult> GetAppointmentsBooking(Guid patientId, [FromQuery] GetAppointmentsRequest request)
+        public async Task<IActionResult> GetAppointmentsHistory(Guid patientId, [FromQuery] GetAppointmentsRequest request)
         {
-            var result = await _appointmentService.GetAppointmentsBookingByPatientIdAsync(patientId, request);
+            var result = await _appointmentService.GetAppointmentsHistoryByPatientIdAsync(patientId, request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

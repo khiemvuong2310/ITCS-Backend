@@ -77,6 +77,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var appointmentResponse = MapToAppointmentResponse(appointment);
+                await AttachTransactionsAsync(new[] { appointmentResponse });
                 _logger.LogInformation("{MethodName}: Successfully retrieved appointment {AppointmentId}", methodName, appointmentId);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment retrieved successfully");
             }
@@ -142,6 +143,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var appointmentDetailResponse = MapToAppointmentDetailResponse(appointment);
+                await AttachTransactionsAsync(new[] { appointmentDetailResponse });
 
                 // Load service requests
                 var serviceRequests = await _unitOfWork.Repository<ServiceRequest>()
@@ -286,6 +288,7 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var appointmentResponses = appointments.Select(MapToAppointmentResponse).ToList();
+                await AttachTransactionsAsync(appointmentResponses);
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} appointments", methodName, appointmentResponses.Count);
 
@@ -447,9 +450,9 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Get booking appointments for a specific patient
         /// </summary>
-        public async Task<DynamicResponse<AppointmentResponse>> GetAppointmentsBookingByPatientIdAsync(Guid patientId, GetAppointmentsRequest request)
+        public async Task<DynamicResponse<AppointmentResponse>> GetAppointmentsHistoryByPatientIdAsync(Guid patientId, GetAppointmentsRequest request)
         {
-            const string methodName = nameof(GetAppointmentsBookingByPatientIdAsync);
+            const string methodName = nameof(GetAppointmentsHistoryByPatientIdAsync);
             _logger.LogInformation("{MethodName} called with patientId: {PatientId}, request: {@Request}", methodName, patientId, request);
 
             try
@@ -491,6 +494,8 @@ namespace FSCMS.Service.Services
                 request.Normalize();
 
                 // Build query for booking appointments of the patient
+
+
                 var query = _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
                     .AsNoTracking()
@@ -508,16 +513,19 @@ namespace FSCMS.Service.Services
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
-                    .Where(a => !a.IsDeleted 
-                        && a.PatientId == patientId 
-                        && a.Type == AppointmentType.Booking);
+                    .Where(a => !a.IsDeleted
+                        && a.PatientId == patientId);
 
                 // Apply additional filters from request
+                if(request.Type.HasValue)
+                {
+                    query = query.Where(a => a.Type == request.Type.Value);
+                }
                 if (request.Status.HasValue)
                 {
                     query = query.Where(a => a.Status == request.Status.Value);
                 }
-
+                
                 if (request.AppointmentDateFrom.HasValue)
                 {
                     query = query.Where(a => a.AppointmentDate >= request.AppointmentDateFrom.Value);
@@ -566,8 +574,9 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var appointmentResponses = appointments.Select(MapToAppointmentResponse).ToList();
+                await AttachTransactionsAsync(appointmentResponses);
 
-                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} booking appointments for patient {PatientId}", 
+                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} appointments (with booking transactions) for patient {PatientId}",
                     methodName, appointmentResponses.Count, patientId);
 
                 return new DynamicResponse<AppointmentResponse>
@@ -643,6 +652,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var appointmentResponse = MapToAppointmentResponse(appointment);
+                await AttachTransactionsAsync(new[] { appointmentResponse });
                 _logger.LogInformation("{MethodName}: Successfully retrieved appointment for slot {SlotId}", methodName, slotId);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment retrieved successfully");
             }
@@ -1647,6 +1657,87 @@ namespace FSCMS.Service.Services
             }
 
             return detailResponse;
+        }
+
+        /// <summary>
+        /// Map Transaction entity to TransactionResponseModel for appointment responses
+        /// </summary>
+        private static TransactionResponseModel MapToTransactionResponse(Transaction transaction)
+        {
+            return new TransactionResponseModel
+            {
+                Id = transaction.Id,
+                TransactionCode = transaction.TransactionCode,
+                PaymentUrl = string.Empty,
+                TransactionType = transaction.TransactionType,
+                Amount = transaction.Amount,
+                Currency = transaction.Currency,
+                TransactionDate = transaction.TransactionDate,
+                Status = transaction.Status,
+                PaymentMethod = transaction.PaymentMethod,
+                PaymentGateway = transaction.PaymentGateway,
+                ReferenceNumber = transaction.ReferenceNumber,
+                Description = transaction.Description,
+                Notes = transaction.Notes,
+                PatientId = transaction.PatientId,
+                PatientName = transaction.PatientName,
+                ProcessedDate = transaction.ProcessedDate,
+                ProcessedBy = transaction.ProcessedBy,
+                RelatedEntityType = transaction.RelatedEntityType,
+                RelatedEntityId = transaction.RelatedEntityId
+            };
+        }
+
+        /// <summary>
+        /// Attach transaction history to appointment responses (all GET endpoints share this logic)
+        /// </summary>
+        private async Task AttachTransactionsAsync(IEnumerable<AppointmentResponse> appointmentResponses)
+        {
+            if (appointmentResponses == null)
+            {
+                return;
+            }
+
+            var responses = appointmentResponses.Where(r => r != null).ToList();
+            if (!responses.Any())
+            {
+                return;
+            }
+
+            var appointmentIds = responses.Select(r => r.Id).Distinct().ToList();
+            if (!appointmentIds.Any())
+            {
+                return;
+            }
+
+            var appointmentTransactions = await _unitOfWork.Repository<Transaction>()
+                .AsQueryable()
+                .AsNoTracking()
+                .Where(t =>
+                    !t.IsDeleted &&
+                    t.RelatedEntityType == EntityTypeTransaction.Appointment.ToString() &&
+                    appointmentIds.Contains(t.RelatedEntityId))
+                .OrderByDescending(t => t.TransactionDate)
+                .ToListAsync();
+
+            if (!appointmentTransactions.Any())
+            {
+                return;
+            }
+
+            var transactionLookup = appointmentTransactions
+                .GroupBy(t => t.RelatedEntityId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(MapToTransactionResponse).ToList());
+
+            foreach (var response in responses)
+            {
+                if (transactionLookup.TryGetValue(response.Id, out var transactions))
+                {
+                    response.Transactions = transactions;
+                }
+            }
         }
 
         #endregion

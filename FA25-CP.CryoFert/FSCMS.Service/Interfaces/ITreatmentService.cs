@@ -12,6 +12,7 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<TreatmentResponseModel>> UpdateAsync(Guid id, TreatmentUpdateRequest request);
         Task<BaseResponse> UpdateStatusAsync(Guid id, TreatmentStatus status);
         Task<BaseResponse<bool>> DeleteAsync(Guid id);
+        Task<int> CancelRemainingPlannedCyclesAsync(Guid treatmentId, Guid? excludeCycleId = null);
     }
 }
 
