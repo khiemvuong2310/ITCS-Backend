@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -23,12 +23,21 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<AgreementService> _logger;
+        private readonly IOTPService _otpService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AgreementService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AgreementService> logger)
+        public AgreementService(
+            IUnitOfWork unitOfWork, 
+            IMapper mapper, 
+            ILogger<AgreementService> logger,
+            IOTPService otpService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
 
         #region Get All
@@ -287,7 +296,7 @@ namespace FSCMS.Service.Services
                 // Generate unique agreement code
                 var agreementCode = await GenerateAgreementCodeAsync();
 
-                // Create entity
+                // Create entity with Doctor auto-signed
                 var entity = new Agreement(
                     Guid.NewGuid(),
                     agreementCode,
@@ -301,7 +310,11 @@ namespace FSCMS.Service.Services
                     FileUrl = request.FileUrl,
                     Status = AgreementStatus.Pending,
                     SignedByPatient = false,
-                    SignedByDoctor = false
+                    SignedByDoctor = true, 
+                    SignedDate = null, // Patient chưa ký
+                    SignatureMethod = null,
+                    SignatureIPAddress = null,
+                    OTPSentDate = null
                 };
 
                 await _unitOfWork.Repository<Agreement>().InsertAsync(entity);
@@ -310,9 +323,10 @@ namespace FSCMS.Service.Services
 
                 var data = _mapper.Map<AgreementResponse>(entity);
 
-                _logger.LogInformation("{MethodName}: Successfully created agreement {Id} with code {Code}", methodName, entity.Id, agreementCode);
+                _logger.LogInformation("{MethodName}: Successfully created agreement {Id} with code {Code}. Doctor auto-signed.",
+                    methodName, entity.Id, agreementCode);
 
-                return BaseResponse<AgreementResponse>.CreateSuccess(data, "Agreement created successfully", StatusCodes.Status201Created);
+                return BaseResponse<AgreementResponse>.CreateSuccess(data, "Agreement created successfully. Awaiting patient signature.", StatusCodes.Status201Created);
             }
             catch (Exception ex)
             {
@@ -591,6 +605,198 @@ namespace FSCMS.Service.Services
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error deleting agreement {Id}", methodName, id);
                 return BaseResponse.CreateError($"Error deleting agreement: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+        #endregion
+
+        #region Request Signature
+        /// <summary>
+        /// Request signature by sending OTP to patient
+        /// </summary>
+        public async Task<BaseResponse> RequestSignatureAsync(Guid id)
+        {
+            const string methodName = nameof(RequestSignatureAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            try
+            {
+                if (id == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
+                    return BaseResponse.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                var entity = await _unitOfWork.Repository<Agreement>()
+                    .AsQueryable()
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.Account)
+                    .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
+
+                if (entity == null)
+                {
+                    _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
+                    return BaseResponse.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                }
+
+                // Check if agreement can be signed
+                if (entity.Status == AgreementStatus.Completed || entity.Status == AgreementStatus.Canceled)
+                {
+                    _logger.LogWarning("{MethodName}: Cannot request signature for agreement with status {Status}", methodName, entity.Status);
+                    return BaseResponse.CreateError($"Cannot request signature for agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                }
+
+                // Check if already signed by patient
+                if (entity.SignedByPatient)
+                {
+                    _logger.LogWarning("{MethodName}: Agreement {Id} already signed by patient", methodName, id);
+                    return BaseResponse.CreateError("Agreement already signed by patient", StatusCodes.Status400BadRequest, "ALREADY_SIGNED");
+                }
+
+                // Get patient account information
+                if (entity.Patient?.Account == null)
+                {
+                    _logger.LogWarning("{MethodName}: Patient account not found for agreement {Id}", methodName, id);
+                    return BaseResponse.CreateError("Patient account not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
+                }
+
+                var patientEmail = entity.Patient.Account.Email;
+                var patientPhone = entity.Patient.Account.Phone;
+
+                if (string.IsNullOrWhiteSpace(patientEmail))
+                {
+                    _logger.LogWarning("{MethodName}: Patient email not found for agreement {Id}", methodName, id);
+                    return BaseResponse.CreateError("Patient email not found", StatusCodes.Status400BadRequest, "EMAIL_NOT_FOUND");
+                }
+
+                // Generate OTP
+                var otpCode = _otpService.GenerateOTP();
+
+                // Store OTP in cache
+                await _otpService.StoreOTPAsync(id, entity.PatientId, otpCode, 10);
+
+                // Send OTP via email
+                var emailSent = await _otpService.SendOTPAsync(patientPhone, patientEmail, otpCode, entity.AgreementCode);
+
+                if (!emailSent)
+                {
+                    _logger.LogError("{MethodName}: Failed to send OTP email for agreement {Id}", methodName, id);
+                    return BaseResponse.CreateError("Failed to send OTP email", StatusCodes.Status500InternalServerError, "EMAIL_SEND_FAILED");
+                }
+
+                // Update OTPSentDate
+                entity.OTPSentDate = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<Agreement>().UpdateGuid(entity, id);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Successfully sent OTP for agreement {Id}", methodName, id);
+
+                return BaseResponse.CreateSuccess("OTP sent successfully to patient email");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error requesting signature for agreement {Id}", methodName, id);
+                return BaseResponse.CreateError($"Error requesting signature: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+        #endregion
+
+        #region Verify Signature
+        /// <summary>
+        /// Verify OTP and sign agreement
+        /// </summary>
+        public async Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode)
+        {
+            const string methodName = nameof(VerifySignatureAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                if (id == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                if (string.IsNullOrWhiteSpace(otpCode))
+                {
+                    _logger.LogWarning("{MethodName}: OTP code is required", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError("OTP code is required", StatusCodes.Status400BadRequest, "INVALID_OTP");
+                }
+
+                var entity = await _unitOfWork.Repository<Agreement>()
+                    .AsQueryable()
+                    .Include(a => a.Patient)
+                    .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
+
+                if (entity == null)
+                {
+                    _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
+                    return BaseResponse<AgreementResponse>.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                }
+
+                // Check if agreement can be signed
+                if (entity.Status == AgreementStatus.Completed || entity.Status == AgreementStatus.Canceled)
+                {
+                    _logger.LogWarning("{MethodName}: Cannot verify signature for agreement with status {Status}", methodName, entity.Status);
+                    return BaseResponse<AgreementResponse>.CreateError($"Cannot verify signature for agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                }
+
+                // Check if already signed by patient
+                if (entity.SignedByPatient)
+                {
+                    _logger.LogWarning("{MethodName}: Agreement {Id} already signed by patient", methodName, id);
+                    return BaseResponse<AgreementResponse>.CreateError("Agreement already signed by patient", StatusCodes.Status400BadRequest, "ALREADY_SIGNED");
+                }
+
+                // Validate OTP
+                var isValidOTP = await _otpService.ValidateOTPAsync(id, otpCode);
+
+                if (!isValidOTP)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid OTP code for agreement {Id}", methodName, id);
+                    return BaseResponse<AgreementResponse>.CreateError("Invalid or expired OTP code", StatusCodes.Status400BadRequest, "INVALID_OTP");
+                }
+
+                // Get IP address from HTTP context
+                var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() 
+                    ?? _httpContextAccessor.HttpContext?.Request?.Headers["X-Forwarded-For"].FirstOrDefault()
+                    ?? "Unknown";
+
+                // Sign agreement
+                entity.SignedByPatient = true;
+                entity.SignedDate = DateTime.UtcNow;
+                entity.SignatureMethod = "OTP";
+                entity.SignatureIPAddress = ipAddress;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                // Auto-update status if both parties have signed
+                if (entity.SignedByPatient && entity.SignedByDoctor && entity.Status == AgreementStatus.Pending)
+                {
+                    entity.Status = AgreementStatus.Active;
+                    _logger.LogInformation("{MethodName}: Agreement {Id} automatically set to Active status", methodName, id);
+                }
+
+                // Remove OTP from cache after successful verification
+                await _otpService.RemoveOTPAsync(id);
+
+                await _unitOfWork.Repository<Agreement>().UpdateGuid(entity, id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+
+                var data = _mapper.Map<AgreementResponse>(entity);
+
+                _logger.LogInformation("{MethodName}: Successfully verified signature for agreement {Id}", methodName, id);
+
+                return BaseResponse<AgreementResponse>.CreateSuccess(data, "Agreement signed successfully");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "{MethodName}: Error verifying signature for agreement {Id}", methodName, id);
+                return BaseResponse<AgreementResponse>.CreateError($"Error verifying signature: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
         }
         #endregion

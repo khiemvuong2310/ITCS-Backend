@@ -87,5 +87,15 @@ namespace FSCMS.Service.RequestModel
 
         public bool? SignedByDoctor { get; set; }
     }
+
+    /// <summary>
+    /// Request model for verifying signature with OTP
+    /// </summary>
+    public class VerifySignatureRequest
+    {
+        [Required(ErrorMessage = "OTP code is required.")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP code must be 6 digits.")]
+        public string OtpCode { get; set; } = string.Empty;
+    }
 }
 

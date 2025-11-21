@@ -48,6 +48,11 @@ namespace FSCMS.Core.Entities
 
         public string? FileUrl { get; set; }
 
+        public DateTime? SignedDate { get; set; }
+        public string? SignatureMethod { get; set; }
+        public string? SignatureIPAddress { get; set; }
+        public DateTime? OTPSentDate { get; set; }
+
         // Navigation properties
         public virtual Treatment? Treatment { get; set; }
         public virtual Patient? Patient { get; set; }

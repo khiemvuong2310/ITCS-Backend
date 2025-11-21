@@ -49,6 +49,16 @@ namespace FSCMS.Service.Interfaces
         /// Soft delete an agreement
         /// </summary>
         Task<BaseResponse> DeleteAsync(Guid id);
+
+        /// <summary>
+        /// Request signature by sending OTP to patient
+        /// </summary>
+        Task<BaseResponse> RequestSignatureAsync(Guid id);
+
+        /// <summary>
+        /// Verify OTP and sign agreement
+        /// </summary>
+        Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode);
     }
 }
 
