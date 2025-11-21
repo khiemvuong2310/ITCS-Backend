@@ -29,6 +29,11 @@ namespace FSCMS.Service.RequestModel
         public decimal? EstimatedCost { get; set; }
         public decimal? ActualCost { get; set; }
 
+        /// <summary>
+        /// Optional preferred baseline used for auto-scheduling cycles (defaults to StartDate when not provided)
+        /// </summary>
+        public DateTime? PreferredStartDate { get; set; }
+
         // Optional IUI data - used when TreatmentType is IUI
         public TreatmentIUICreateUpdateRequest? IUI { get; set; }
 

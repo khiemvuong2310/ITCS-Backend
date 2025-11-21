@@ -108,7 +108,7 @@ namespace FSCMS.Service.ReponseModel
         public int CycleNumber { get; set; }
 
         [JsonPropertyName("startDate")]
-        public DateTime StartDate { get; set; }
+        public DateTime? StartDate { get; set; }
 
         [JsonPropertyName("endDate")]
         public DateTime? EndDate { get; set; }

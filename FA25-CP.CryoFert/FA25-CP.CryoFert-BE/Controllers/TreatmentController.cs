@@ -98,10 +98,31 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] TreatmentCreateUpdateRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(new BaseResponse<TreatmentResponseModel> 
+                { 
+                    Code = StatusCodes.Status400BadRequest, 
+                    Message = "Request body is required",
+                    SystemCode = "INVALID_REQUEST"
+                });
+            }
+
             if (!ModelState.IsValid)
             {
-                return BadRequest(new BaseResponse<TreatmentResponseModel> { Code = StatusCodes.Status400BadRequest, Message = "Invalid request data" });
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors.Select(e => $"{x.Key}: {e.ErrorMessage}"))
+                    .ToList();
+                
+                return BadRequest(new BaseResponse<TreatmentResponseModel> 
+                { 
+                    Code = StatusCodes.Status400BadRequest, 
+                    Message = $"Invalid request data: {string.Join("; ", errors)}",
+                    SystemCode = "VALIDATION_ERROR"
+                });
             }
+            
             var result = await _treatmentService.CreateAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }

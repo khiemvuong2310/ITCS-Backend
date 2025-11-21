@@ -6,6 +6,34 @@ namespace FSCMS.Service.Mapping
 {
     public static class TreatmentMapping
     {
+        /// <summary>
+        /// Maps Agreement entity to AgreementResponse
+        /// </summary>
+        public static AgreementResponse ToAgreementResponse(this Agreement entity)
+        {
+            if (entity == null) return null!;
+            
+            return new AgreementResponse
+            {
+                Id = entity.Id,
+                AgreementCode = entity.AgreementCode,
+                TreatmentId = entity.TreatmentId,
+                TreatmentName = entity.Treatment?.TreatmentName,
+                PatientId = entity.PatientId,
+                PatientName = entity.Patient?.Account != null 
+                    ? $"{entity.Patient.Account.FirstName} {entity.Patient.Account.LastName}".Trim() 
+                    : null,
+                StartDate = entity.StartDate,
+                EndDate = entity.EndDate,
+                TotalAmount = entity.TotalAmount,
+                Status = entity.Status,
+                SignedByPatient = entity.SignedByPatient,
+                SignedByDoctor = entity.SignedByDoctor,
+                FileUrl = entity.FileUrl,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt
+            };
+        }
         public static TreatmentResponseModel ToResponseModel(this Treatment entity)
         {
             return new TreatmentResponseModel
@@ -47,8 +75,9 @@ namespace FSCMS.Service.Mapping
                 ActualCost = entity.ActualCost,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
-                IVF = entity.TreatmentIVF?.ToResponseModel(),
-                IUI = null // IUI relation not on Treatment entity; managed separately if needed
+                // IVF and IUI will be set explicitly in service based on TreatmentType
+                IVF = null,
+                IUI = null
             };
         }
 
