@@ -39,7 +39,7 @@ namespace FSCMS.Service.Services
             _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
-
+        #region Agreement CRUD Operations   
         #region Get All
         /// <summary>
         /// Get all agreements with pagination, filtering, and sorting
@@ -59,7 +59,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(a => a.Treatment)
                     .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
+                        .ThenInclude(p => p!.Account)
                     .Where(a => !a.IsDeleted);
 
                 // Filtering
@@ -95,10 +95,11 @@ namespace FSCMS.Service.Services
                     var searchTerm = request.SearchTerm.ToLower();
                     query = query.Where(a => 
                         a.AgreementCode.ToLower().Contains(searchTerm) ||
-                        (a.Treatment != null && a.Treatment.TreatmentName != null && a.Treatment.TreatmentName.ToLower().Contains(searchTerm)) ||
+                        (a.Treatment != null && !string.IsNullOrEmpty(a.Treatment.TreatmentName) && a.Treatment.TreatmentName.ToLower().Contains(searchTerm)) ||
                         (a.Patient != null && a.Patient.Account != null && 
+                         (!string.IsNullOrEmpty(a.Patient.Account.FirstName) || !string.IsNullOrEmpty(a.Patient.Account.LastName)) &&
                          ($"{a.Patient.Account.FirstName} {a.Patient.Account.LastName}".Trim().ToLower().Contains(searchTerm) ||
-                          a.Patient.Account.Email.ToLower().Contains(searchTerm))));
+                          (!string.IsNullOrEmpty(a.Patient.Account.Email) && a.Patient.Account.Email.ToLower().Contains(searchTerm)))));
                 }
 
                 // Count total
@@ -154,7 +155,7 @@ namespace FSCMS.Service.Services
                 return new DynamicResponse<AgreementResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred: {ex.Message}",
+                    Message = $"An error occurred while retrieving agreements: {ex.Message}",
                     Data = new List<AgreementResponse>(),
                     MetaData = new PagingMetaData()
                 };
@@ -184,7 +185,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(a => a.Treatment)
                     .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
+                        .ThenInclude(p => p!.Account)
                     .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
 
                 if (entity == null)
@@ -229,7 +230,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(a => a.Treatment)
                     .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
+                        .ThenInclude(p => p!.Account)
                     .FirstOrDefaultAsync(a => a.AgreementCode == agreementCode && !a.IsDeleted);
 
                 if (entity == null)
@@ -272,7 +273,7 @@ namespace FSCMS.Service.Services
                 if (treatment == null)
                 {
                     _logger.LogWarning("{MethodName}: Treatment not found with ID: {TreatmentId}", methodName, request.TreatmentId);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid TreatmentId", StatusCodes.Status400BadRequest, "INVALID_TREATMENT");
+                    return BaseResponse<AgreementResponse>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
                 }
 
                 // Validate Patient
@@ -283,14 +284,53 @@ namespace FSCMS.Service.Services
                 if (patient == null)
                 {
                     _logger.LogWarning("{MethodName}: Patient not found with ID: {PatientId}", methodName, request.PatientId);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid PatientId", StatusCodes.Status400BadRequest, "INVALID_PATIENT");
+                    return BaseResponse<AgreementResponse>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
+                }
+
+                // Validate PatientId belongs to TreatmentId
+                if (treatment.PatientId != request.PatientId)
+                {
+                    _logger.LogWarning("{MethodName}: PatientId {PatientId} does not belong to TreatmentId {TreatmentId}. Treatment belongs to PatientId {TreatmentPatientId}",
+                        methodName, request.PatientId, request.TreatmentId, treatment.PatientId);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "PatientId does not belong to the specified Treatment. The treatment belongs to a different patient.",
+                        StatusCodes.Status400BadRequest,
+                        "PATIENT_TREATMENT_MISMATCH");
+                }
+
+                // Check if agreement already exists for this treatment
+                var existingAgreement = await _unitOfWork.Repository<Agreement>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(a => a.TreatmentId == request.TreatmentId && !a.IsDeleted);
+
+                if (existingAgreement != null)
+                {
+                    _logger.LogWarning("{MethodName}: Agreement already exists for TreatmentId {TreatmentId} with AgreementId {AgreementId}",
+                        methodName, request.TreatmentId, existingAgreement.Id);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "An agreement already exists for this treatment",
+                        StatusCodes.Status400BadRequest,
+                        "AGREEMENT_ALREADY_EXISTS");
                 }
 
                 // Validate date range
                 if (request.EndDate.HasValue && request.EndDate.Value < request.StartDate)
                 {
                     _logger.LogWarning("{MethodName}: EndDate cannot be earlier than StartDate", methodName);
-                    return BaseResponse<AgreementResponse>.CreateError("EndDate cannot be earlier than StartDate", StatusCodes.Status400BadRequest, "INVALID_DATE_RANGE");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "EndDate cannot be earlier than StartDate",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_DATE_RANGE");
+                }
+
+                // Validate TotalAmount
+                if (request.TotalAmount < 0)
+                {
+                    _logger.LogWarning("{MethodName}: TotalAmount cannot be negative", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "TotalAmount must be greater than or equal to 0",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_AMOUNT");
                 }
 
                 // Generate unique agreement code
@@ -310,7 +350,7 @@ namespace FSCMS.Service.Services
                     FileUrl = request.FileUrl,
                     Status = AgreementStatus.Pending,
                     SignedByPatient = false,
-                    SignedByDoctor = true, 
+                    SignedByDoctor = true,
                     SignedDate = null, // Patient chưa ký
                     SignatureMethod = null,
                     SignatureIPAddress = null,
@@ -326,13 +366,19 @@ namespace FSCMS.Service.Services
                 _logger.LogInformation("{MethodName}: Successfully created agreement {Id} with code {Code}. Doctor auto-signed.",
                     methodName, entity.Id, agreementCode);
 
-                return BaseResponse<AgreementResponse>.CreateSuccess(data, "Agreement created successfully. Awaiting patient signature.", StatusCodes.Status201Created);
+                return BaseResponse<AgreementResponse>.CreateSuccess(
+                    data,
+                    "Agreement created successfully. Awaiting patient signature.",
+                    StatusCodes.Status201Created);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error creating agreement", methodName);
-                return BaseResponse<AgreementResponse>.CreateError($"Error creating agreement: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse<AgreementResponse>.CreateError(
+                    $"Error creating agreement: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -352,7 +398,10 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Invalid agreement ID",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
                 }
 
                 var entity = await _unitOfWork.Repository<Agreement>()
@@ -362,52 +411,96 @@ namespace FSCMS.Service.Services
                 if (entity == null)
                 {
                     _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
-                    return BaseResponse<AgreementResponse>.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Agreement not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
                 }
 
                 // Check if agreement can be updated (business rules)
                 if (entity.Status == AgreementStatus.Completed || entity.Status == AgreementStatus.Canceled)
                 {
                     _logger.LogWarning("{MethodName}: Cannot update agreement with status {Status}", methodName, entity.Status);
-                    return BaseResponse<AgreementResponse>.CreateError($"Cannot update agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        $"Cannot update agreement with status {entity.Status}",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_STATUS");
+                }
+
+                // Business rule: Cannot modify signed fields directly through Update
+                // Signatures should only be changed through SignAsync or VerifySignatureAsync
+                if (request.SignedByPatient.HasValue || request.SignedByDoctor.HasValue)
+                {
+                    _logger.LogWarning("{MethodName}: Cannot update signature fields directly. Use SignAsync or VerifySignatureAsync instead", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Signature fields cannot be updated directly. Use the sign or verify-signature endpoints instead.",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_OPERATION");
                 }
 
                 // Update fields
                 if (request.StartDate.HasValue)
+                {
+                    // Validate: Cannot change StartDate if agreement is already Active
+                    if (entity.Status == AgreementStatus.Active)
+                    {
+                        _logger.LogWarning("{MethodName}: Cannot change StartDate for Active agreement", methodName);
+                        return BaseResponse<AgreementResponse>.CreateError(
+                            "Cannot change StartDate for Active agreement",
+                            StatusCodes.Status400BadRequest,
+                            "INVALID_OPERATION");
+                    }
                     entity.StartDate = request.StartDate.Value;
+                }
 
                 if (request.EndDate.HasValue)
                 {
-                    if (request.EndDate.Value < entity.StartDate)
+                    var endDate = request.EndDate.Value;
+                    var startDate = request.StartDate ?? entity.StartDate;
+
+                    if (endDate < startDate)
                     {
                         _logger.LogWarning("{MethodName}: EndDate cannot be earlier than StartDate", methodName);
-                        return BaseResponse<AgreementResponse>.CreateError("EndDate cannot be earlier than StartDate", StatusCodes.Status400BadRequest, "INVALID_DATE_RANGE");
+                        return BaseResponse<AgreementResponse>.CreateError(
+                            "EndDate cannot be earlier than StartDate",
+                            StatusCodes.Status400BadRequest,
+                            "INVALID_DATE_RANGE");
                     }
-                    entity.EndDate = request.EndDate.Value;
+                    entity.EndDate = endDate;
                 }
 
                 if (request.TotalAmount.HasValue)
+                {
+                    if (request.TotalAmount.Value < 0)
+                    {
+                        _logger.LogWarning("{MethodName}: TotalAmount cannot be negative", methodName);
+                        return BaseResponse<AgreementResponse>.CreateError(
+                            "TotalAmount must be greater than or equal to 0",
+                            StatusCodes.Status400BadRequest,
+                            "INVALID_AMOUNT");
+                    }
                     entity.TotalAmount = request.TotalAmount.Value;
+                }
 
                 if (request.Status.HasValue)
+                {
+                    // Validate status transition
+                    if (!IsValidStatusTransition(entity.Status, request.Status.Value))
+                    {
+                        _logger.LogWarning("{MethodName}: Invalid status transition from {OldStatus} to {NewStatus}",
+                            methodName, entity.Status, request.Status.Value);
+                        return BaseResponse<AgreementResponse>.CreateError(
+                            $"Invalid status transition from {entity.Status} to {request.Status.Value}",
+                            StatusCodes.Status400BadRequest,
+                            "INVALID_STATUS_TRANSITION");
+                    }
                     entity.Status = request.Status.Value;
-
-                if (request.SignedByPatient.HasValue)
-                    entity.SignedByPatient = request.SignedByPatient.Value;
-
-                if (request.SignedByDoctor.HasValue)
-                    entity.SignedByDoctor = request.SignedByDoctor.Value;
+                }
 
                 if (request.FileUrl != null)
                     entity.FileUrl = request.FileUrl;
 
                 entity.UpdatedAt = DateTime.UtcNow;
-
-                // Auto-update status based on signatures
-                if (entity.SignedByPatient && entity.SignedByDoctor && entity.Status == AgreementStatus.Pending)
-                {
-                    entity.Status = AgreementStatus.Active;
-                }
 
                 await _unitOfWork.Repository<Agreement>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
@@ -423,7 +516,10 @@ namespace FSCMS.Service.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error updating agreement {Id}", methodName, id);
-                return BaseResponse<AgreementResponse>.CreateError($"Error updating agreement: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse<AgreementResponse>.CreateError(
+                    $"Error updating agreement: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -431,6 +527,7 @@ namespace FSCMS.Service.Services
         #region Sign
         /// <summary>
         /// Sign an agreement (by patient or doctor)
+        /// Note: For patient signature, use VerifySignatureAsync with OTP instead
         /// </summary>
         public async Task<BaseResponse<AgreementResponse>> SignAsync(Guid id, SignAgreementRequest request)
         {
@@ -443,7 +540,20 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Invalid agreement ID",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
+                }
+
+                // Validate request: At least one signature must be provided
+                if (!request.SignedByPatient.HasValue && !request.SignedByDoctor.HasValue)
+                {
+                    _logger.LogWarning("{MethodName}: At least one signature (SignedByPatient or SignedByDoctor) must be provided", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "At least one signature (SignedByPatient or SignedByDoctor) must be provided",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_REQUEST");
                 }
 
                 var entity = await _unitOfWork.Repository<Agreement>()
@@ -453,22 +563,45 @@ namespace FSCMS.Service.Services
                 if (entity == null)
                 {
                     _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
-                    return BaseResponse<AgreementResponse>.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Agreement not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
                 }
 
                 // Check if agreement can be signed
                 if (entity.Status == AgreementStatus.Completed || entity.Status == AgreementStatus.Canceled)
                 {
                     _logger.LogWarning("{MethodName}: Cannot sign agreement with status {Status}", methodName, entity.Status);
-                    return BaseResponse<AgreementResponse>.CreateError($"Cannot sign agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        $"Cannot sign agreement with status {entity.Status}",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_STATUS");
                 }
 
-                // Update signatures
-                if (request.SignedByPatient.HasValue)
-                    entity.SignedByPatient = request.SignedByPatient.Value;
+                // Business rule: Patient should use OTP verification instead of direct sign
+                if (request.SignedByPatient.HasValue && request.SignedByPatient.Value && !entity.SignedByPatient)
+                {
+                    _logger.LogWarning("{MethodName}: Patient signature should be done through OTP verification. Use VerifySignatureAsync instead", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Patient signature must be done through OTP verification. Please use the verify-signature endpoint.",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_OPERATION");
+                }
 
+                // Update doctor signature
                 if (request.SignedByDoctor.HasValue)
+                {
+                    if (request.SignedByDoctor.Value && entity.SignedByDoctor)
+                    {
+                        _logger.LogWarning("{MethodName}: Agreement {Id} already signed by doctor", methodName, id);
+                        return BaseResponse<AgreementResponse>.CreateError(
+                            "Agreement already signed by doctor",
+                            StatusCodes.Status400BadRequest,
+                            "ALREADY_SIGNED");
+                    }
                     entity.SignedByDoctor = request.SignedByDoctor.Value;
+                }
 
                 // Auto-update status if both parties have signed
                 if (entity.SignedByPatient && entity.SignedByDoctor && entity.Status == AgreementStatus.Pending)
@@ -493,7 +626,10 @@ namespace FSCMS.Service.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error signing agreement {Id}", methodName, id);
-                return BaseResponse<AgreementResponse>.CreateError($"Error signing agreement: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse<AgreementResponse>.CreateError(
+                    $"Error signing agreement: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -513,7 +649,10 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Invalid agreement ID",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
                 }
 
                 var entity = await _unitOfWork.Repository<Agreement>()
@@ -523,7 +662,21 @@ namespace FSCMS.Service.Services
                 if (entity == null)
                 {
                     _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
-                    return BaseResponse<AgreementResponse>.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Agreement not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
+                }
+
+                // Validate status transition
+                if (!IsValidStatusTransition(entity.Status, status))
+                {
+                    _logger.LogWarning("{MethodName}: Invalid status transition from {OldStatus} to {NewStatus}",
+                        methodName, entity.Status, status);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        $"Invalid status transition from {entity.Status} to {status}",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_STATUS_TRANSITION");
                 }
 
                 entity.Status = status;
@@ -549,7 +702,10 @@ namespace FSCMS.Service.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error updating status of agreement {Id}", methodName, id);
-                return BaseResponse<AgreementResponse>.CreateError($"Error updating agreement status: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse<AgreementResponse>.CreateError(
+                    $"Error updating agreement status: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -569,7 +725,10 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
-                    return BaseResponse.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    return BaseResponse.CreateError(
+                        "Invalid agreement ID",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
                 }
 
                 var entity = await _unitOfWork.Repository<Agreement>()
@@ -579,14 +738,22 @@ namespace FSCMS.Service.Services
                 if (entity == null)
                 {
                     _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
-                    return BaseResponse.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return BaseResponse.CreateError(
+                        "Agreement not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
                 }
 
                 // Business rule: Cannot delete active or completed agreements
+                // Only Pending or Canceled agreements can be deleted
                 if (entity.Status == AgreementStatus.Active || entity.Status == AgreementStatus.Completed)
                 {
-                    _logger.LogWarning("{MethodName}: Cannot delete agreement with status {Status}", methodName, entity.Status);
-                    return BaseResponse.CreateError($"Cannot delete agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    _logger.LogWarning("{MethodName}: Cannot delete agreement with status {Status}. Only Pending or Canceled agreements can be deleted",
+                        methodName, entity.Status);
+                    return BaseResponse.CreateError(
+                        $"Cannot delete agreement with status {entity.Status}. Only Pending or Canceled agreements can be deleted.",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_STATUS");
                 }
 
                 entity.IsDeleted = true;
@@ -604,7 +771,10 @@ namespace FSCMS.Service.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error deleting agreement {Id}", methodName, id);
-                return BaseResponse.CreateError($"Error deleting agreement: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse.CreateError(
+                    $"Error deleting agreement: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -618,45 +788,61 @@ namespace FSCMS.Service.Services
             const string methodName = nameof(RequestSignatureAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
-                    return BaseResponse.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    return BaseResponse.CreateError(
+                        "Invalid agreement ID",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
                 }
 
                 var entity = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
                     .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
+                        .ThenInclude(p => p!.Account)
                     .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
 
                 if (entity == null)
                 {
                     _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
-                    return BaseResponse.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return BaseResponse.CreateError(
+                        "Agreement not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
                 }
 
                 // Check if agreement can be signed
                 if (entity.Status == AgreementStatus.Completed || entity.Status == AgreementStatus.Canceled)
                 {
                     _logger.LogWarning("{MethodName}: Cannot request signature for agreement with status {Status}", methodName, entity.Status);
-                    return BaseResponse.CreateError($"Cannot request signature for agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    return BaseResponse.CreateError(
+                        $"Cannot request signature for agreement with status {entity.Status}",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_STATUS");
                 }
 
                 // Check if already signed by patient
                 if (entity.SignedByPatient)
                 {
                     _logger.LogWarning("{MethodName}: Agreement {Id} already signed by patient", methodName, id);
-                    return BaseResponse.CreateError("Agreement already signed by patient", StatusCodes.Status400BadRequest, "ALREADY_SIGNED");
+                    return BaseResponse.CreateError(
+                        "Agreement already signed by patient",
+                        StatusCodes.Status400BadRequest,
+                        "ALREADY_SIGNED");
                 }
 
                 // Get patient account information
                 if (entity.Patient?.Account == null)
                 {
                     _logger.LogWarning("{MethodName}: Patient account not found for agreement {Id}", methodName, id);
-                    return BaseResponse.CreateError("Patient account not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
+                    return BaseResponse.CreateError(
+                        "Patient account not found",
+                        StatusCodes.Status404NotFound,
+                        "PATIENT_NOT_FOUND");
                 }
 
                 var patientEmail = entity.Patient.Account.Email;
@@ -665,13 +851,31 @@ namespace FSCMS.Service.Services
                 if (string.IsNullOrWhiteSpace(patientEmail))
                 {
                     _logger.LogWarning("{MethodName}: Patient email not found for agreement {Id}", methodName, id);
-                    return BaseResponse.CreateError("Patient email not found", StatusCodes.Status400BadRequest, "EMAIL_NOT_FOUND");
+                    return BaseResponse.CreateError(
+                        "Patient email not found",
+                        StatusCodes.Status400BadRequest,
+                        "EMAIL_NOT_FOUND");
+                }
+
+                // Check if OTP was recently sent (prevent spam - cooldown period: 1 minute)
+                if (entity.OTPSentDate.HasValue)
+                {
+                    var timeSinceLastOTP = DateTime.UtcNow - entity.OTPSentDate.Value;
+                    if (timeSinceLastOTP.TotalMinutes < 1)
+                    {
+                        var remainingSeconds = 60 - (int)timeSinceLastOTP.TotalSeconds;
+                        _logger.LogWarning("{MethodName}: OTP was recently sent. Please wait {RemainingSeconds} seconds", methodName, remainingSeconds);
+                        return BaseResponse.CreateError(
+                            $"OTP was recently sent. Please wait {remainingSeconds} seconds before requesting again.",
+                            StatusCodes.Status429TooManyRequests,
+                            "OTP_COOLDOWN");
+                    }
                 }
 
                 // Generate OTP
                 var otpCode = _otpService.GenerateOTP();
 
-                // Store OTP in cache
+                // Store OTP in cache (10 minutes expiry)
                 await _otpService.StoreOTPAsync(id, entity.PatientId, otpCode, 10);
 
                 // Send OTP via email
@@ -680,7 +884,10 @@ namespace FSCMS.Service.Services
                 if (!emailSent)
                 {
                     _logger.LogError("{MethodName}: Failed to send OTP email for agreement {Id}", methodName, id);
-                    return BaseResponse.CreateError("Failed to send OTP email", StatusCodes.Status500InternalServerError, "EMAIL_SEND_FAILED");
+                    return BaseResponse.CreateError(
+                        "Failed to send OTP email",
+                        StatusCodes.Status500InternalServerError,
+                        "EMAIL_SEND_FAILED");
                 }
 
                 // Update OTPSentDate
@@ -689,6 +896,7 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<Agreement>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
 
                 _logger.LogInformation("{MethodName}: Successfully sent OTP for agreement {Id}", methodName, id);
 
@@ -696,8 +904,12 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error requesting signature for agreement {Id}", methodName, id);
-                return BaseResponse.CreateError($"Error requesting signature: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse.CreateError(
+                    $"Error requesting signature: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -717,13 +929,29 @@ namespace FSCMS.Service.Services
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid agreement ID provided", methodName);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Invalid agreement ID",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
                 }
 
                 if (string.IsNullOrWhiteSpace(otpCode))
                 {
                     _logger.LogWarning("{MethodName}: OTP code is required", methodName);
-                    return BaseResponse<AgreementResponse>.CreateError("OTP code is required", StatusCodes.Status400BadRequest, "INVALID_OTP");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "OTP code is required",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_OTP");
+                }
+
+                // Validate OTP format (should be 6 digits)
+                if (otpCode.Length != 6 || !otpCode.All(char.IsDigit))
+                {
+                    _logger.LogWarning("{MethodName}: Invalid OTP format. OTP must be 6 digits", methodName);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Invalid OTP format. OTP must be 6 digits",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_OTP_FORMAT");
                 }
 
                 var entity = await _unitOfWork.Repository<Agreement>()
@@ -734,21 +962,40 @@ namespace FSCMS.Service.Services
                 if (entity == null)
                 {
                     _logger.LogWarning("{MethodName}: Agreement not found with ID: {Id}", methodName, id);
-                    return BaseResponse<AgreementResponse>.CreateError("Agreement not found", StatusCodes.Status404NotFound, "NOT_FOUND");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Agreement not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
                 }
 
                 // Check if agreement can be signed
                 if (entity.Status == AgreementStatus.Completed || entity.Status == AgreementStatus.Canceled)
                 {
                     _logger.LogWarning("{MethodName}: Cannot verify signature for agreement with status {Status}", methodName, entity.Status);
-                    return BaseResponse<AgreementResponse>.CreateError($"Cannot verify signature for agreement with status {entity.Status}", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        $"Cannot verify signature for agreement with status {entity.Status}",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_STATUS");
                 }
 
                 // Check if already signed by patient
                 if (entity.SignedByPatient)
                 {
                     _logger.LogWarning("{MethodName}: Agreement {Id} already signed by patient", methodName, id);
-                    return BaseResponse<AgreementResponse>.CreateError("Agreement already signed by patient", StatusCodes.Status400BadRequest, "ALREADY_SIGNED");
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Agreement already signed by patient",
+                        StatusCodes.Status400BadRequest,
+                        "ALREADY_SIGNED");
+                }
+
+                // Check if OTP was requested
+                if (!entity.OTPSentDate.HasValue)
+                {
+                    _logger.LogWarning("{MethodName}: OTP was not requested for agreement {Id}", methodName, id);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "OTP was not requested. Please request OTP first.",
+                        StatusCodes.Status400BadRequest,
+                        "OTP_NOT_REQUESTED");
                 }
 
                 // Validate OTP
@@ -756,8 +1003,11 @@ namespace FSCMS.Service.Services
 
                 if (!isValidOTP)
                 {
-                    _logger.LogWarning("{MethodName}: Invalid OTP code for agreement {Id}", methodName, id);
-                    return BaseResponse<AgreementResponse>.CreateError("Invalid or expired OTP code", StatusCodes.Status400BadRequest, "INVALID_OTP");
+                    _logger.LogWarning("{MethodName}: Invalid or expired OTP code for agreement {Id}", methodName, id);
+                    return BaseResponse<AgreementResponse>.CreateError(
+                        "Invalid or expired OTP code",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_OTP");
                 }
 
                 // Get IP address from HTTP context
@@ -796,7 +1046,10 @@ namespace FSCMS.Service.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "{MethodName}: Error verifying signature for agreement {Id}", methodName, id);
-                return BaseResponse<AgreementResponse>.CreateError($"Error verifying signature: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse<AgreementResponse>.CreateError(
+                    $"Error verifying signature: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
         #endregion
@@ -832,6 +1085,38 @@ namespace FSCMS.Service.Services
             // Fallback: use GUID if all attempts fail
             return $"AGR-{Guid.NewGuid().ToString("N").Substring(0, 12).ToUpper()}";
         }
+
+        /// <summary>
+        /// Validate if status transition is allowed
+        /// Business rules:
+        /// - Pending -> Active (when both parties sign)
+        /// - Pending -> Canceled (can cancel anytime)
+        /// - Active -> Completed (when treatment is done)
+        /// - Active -> Canceled (can cancel active agreement)
+        /// - Completed -> (no transitions allowed)
+        /// - Canceled -> (no transitions allowed)
+        /// </summary>
+        private bool IsValidStatusTransition(AgreementStatus currentStatus, AgreementStatus newStatus)
+        {
+            // No change
+            if (currentStatus == newStatus)
+                return true;
+
+            // Cannot change from Completed or Canceled
+            if (currentStatus == AgreementStatus.Completed || currentStatus == AgreementStatus.Canceled)
+                return false;
+
+            // Valid transitions
+            return (currentStatus, newStatus) switch
+            {
+                (AgreementStatus.Pending, AgreementStatus.Active) => true,
+                (AgreementStatus.Pending, AgreementStatus.Canceled) => true,
+                (AgreementStatus.Active, AgreementStatus.Completed) => true,
+                (AgreementStatus.Active, AgreementStatus.Canceled) => true,
+                _ => false
+            };
+        }
+        #endregion
         #endregion
     }
 }
