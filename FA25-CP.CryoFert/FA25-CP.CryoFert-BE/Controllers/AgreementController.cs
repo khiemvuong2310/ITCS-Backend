@@ -157,6 +157,40 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var result = await _agreementService.DeleteAsync(id);
             return StatusCode(result.Code ?? 500, result);
         }
+
+        /// <summary>
+        /// Request signature by sending OTP to patient
+        /// </summary>
+        /// <param name="id">Agreement ID</param>
+        /// <returns>Result of OTP request</returns>
+        [HttpPost("{id}/request-signature")]
+        [Authorize(Roles = "Doctor,Staff,Patient")]
+        [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
+        public async Task<IActionResult> RequestSignature(Guid id)
+        {
+            var result = await _agreementService.RequestSignatureAsync(id);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
+        /// <summary>
+        /// Verify OTP and sign agreement
+        /// </summary>
+        /// <param name="id">Agreement ID</param>
+        /// <param name="request">OTP verification data</param>
+        /// <returns>Updated agreement information</returns>
+        [HttpPost("{id}/verify-signature")]
+        [Authorize(Roles = "Patient")]
+        [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> VerifySignature(Guid id, [FromBody] VerifySignatureRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(BaseResponse<AgreementResponse>.CreateError("Invalid input data", 400, "INVALID_REQUEST"));
+            }
+
+            var result = await _agreementService.VerifySignatureAsync(id, request.OtpCode);
+            return StatusCode(result.Code ?? 500, result);
+        }
     }
 }
 

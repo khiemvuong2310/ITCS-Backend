@@ -51,6 +51,18 @@ namespace FSCMS.Service.ReponseModel
         [JsonPropertyName("fileUrl")]
         public string? FileUrl { get; set; }
 
+        [JsonPropertyName("signedDate")]
+        public DateTime? SignedDate { get; set; }
+
+        [JsonPropertyName("signatureMethod")]
+        public string? SignatureMethod { get; set; }
+
+        [JsonPropertyName("signatureIPAddress")]
+        public string? SignatureIPAddress { get; set; }
+
+        [JsonPropertyName("otpSentDate")]
+        public DateTime? OTPSentDate { get; set; }
+
         [JsonPropertyName("createdAt")]
         public DateTime CreatedAt { get; set; }
 

@@ -8,7 +8,7 @@ namespace FSCMS.Core.Enum
 {
     public enum TreatmentStepType
     {
-        // IUI steps (1..99)
+        // IUI 
         IUI_PreCyclePreparation = 1,
         IUI_Day2_3_Assessment = 2,
         IUI_Day7_10_FollicleMonitoring = 3,
@@ -17,7 +17,7 @@ namespace FSCMS.Core.Enum
         IUI_PostIUI = 6,
         IUI_BetaHCGTest = 7,
 
-        // IVF steps (100..199)
+        // IVF 
         IVF_PreCyclePreparation = 100,
         IVF_StimulationStart = 101,
         IVF_Monitoring = 102,

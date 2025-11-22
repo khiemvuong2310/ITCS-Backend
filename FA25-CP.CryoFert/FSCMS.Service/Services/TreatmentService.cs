@@ -185,6 +185,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves a treatment by its unique identifier with all related data (IVF/IUI, Agreements)
+        /// </summary>
+        /// <param name="id">The unique identifier of the treatment</param>
+        /// <returns>BaseResponse containing TreatmentDetailResponseModel with all related information</returns>
         public async Task<BaseResponse<TreatmentDetailResponseModel>> GetByIdAsync(Guid id)
         {
             const string methodName = nameof(GetByIdAsync);
@@ -192,78 +197,133 @@ namespace FSCMS.Service.Services
 
             try
             {
+                // Validate input parameter
                 if (id == Guid.Empty)
                 {
-                    return BaseResponse<TreatmentDetailResponseModel>.CreateError("Treatment ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+                    _logger.LogWarning("{MethodName}: Invalid treatment ID provided - {TreatmentId}", methodName, id);
+                    return BaseResponse<TreatmentDetailResponseModel>.CreateError(
+                        "Treatment ID cannot be empty", 
+                        StatusCodes.Status400BadRequest, 
+                        "INVALID_ID");
                 }
 
-                var entity = await _unitOfWork.Repository<Treatment>()
-                    .GetQueryable()
-                    .AsNoTracking()
-                    .Include(t => t.Patient)
-                    .Include(t => t.Doctor)
-                    .Include(t => t.TreatmentIVF)
-                    .Where(t => t.Id == id && !t.IsDeleted)
-                    .FirstOrDefaultAsync();
-
-                if (entity == null)
+                // Retrieve treatment entity with related data in a single optimized query
+                var treatment = await GetTreatmentWithRelatedDataAsync(id);
+                
+                if (treatment == null)
                 {
-                    return BaseResponse<TreatmentDetailResponseModel>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+                    _logger.LogWarning("{MethodName}: Treatment not found with ID: {TreatmentId}", methodName, id);
+                    return BaseResponse<TreatmentDetailResponseModel>.CreateError(
+                        "Treatment not found", 
+                        StatusCodes.Status404NotFound, 
+                        "TREATMENT_NOT_FOUND");
                 }
 
-                var detail = entity.ToDetailResponseModel();
+                // Map entity to response model
+                var responseModel = await MapToDetailResponseModelAsync(treatment, id);
 
-                // Load IVF data if exists
-                if (entity.TreatmentIVF != null && !entity.TreatmentIVF.IsDeleted)
-                {
-                    detail.IVF = entity.TreatmentIVF.ToResponseModel();
-                }
+                _logger.LogInformation(
+                    "{MethodName}: Successfully retrieved treatment {TreatmentId} with Type: {TreatmentType}", 
+                    methodName, id, treatment.TreatmentType);
 
-                // Load IUI data if exists
-                var iui = await _unitOfWork.Repository<TreatmentIUI>()
-                    .GetQueryable()
-                    .AsNoTracking()
-                    .Where(x => x.Id == id && !x.IsDeleted)
-                    .FirstOrDefaultAsync();
-                if (iui != null)
-                {
-                    detail.IUI = iui.ToResponseModel();
-                }
-
-                // Load agreements for this treatment
-                var agreements = await _unitOfWork.Repository<Agreement>()
-                    .GetQueryable()
-                    .AsNoTracking()
-                    .Include(a => a.Treatment)
-                    .Include(a => a.Patient)
-                        .ThenInclude(p => p!.Account)
-                    .Where(a => a.TreatmentId == id && !a.IsDeleted)
-                    .OrderByDescending(a => a.CreatedAt)
-                    .ToListAsync();
-
-                if (agreements.Any())
-                {
-                    var agreementList = agreements.Select(a => a.ToAgreementResponse()).ToList();
-                    detail.Agreements = agreementList;
-                    
-                    // Also attach agreements to IVF/IUI if they exist
-                    if (detail.IVF != null)
-                    {
-                        detail.IVF.Agreements = agreementList;
-                    }
-                    if (detail.IUI != null)
-                    {
-                        detail.IUI.Agreements = agreementList;
-                    }
-                }
-
-                return BaseResponse<TreatmentDetailResponseModel>.CreateSuccess(detail, "Treatment retrieved successfully", StatusCodes.Status200OK);
+                return BaseResponse<TreatmentDetailResponseModel>.CreateSuccess(
+                    responseModel, 
+                    "Treatment retrieved successfully", 
+                    StatusCodes.Status200OK);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error retrieving treatment {Id}", methodName, id);
-                return BaseResponse<TreatmentDetailResponseModel>.CreateError($"Error retrieving treatment: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                _logger.LogError(ex, "{MethodName}: Unexpected error retrieving treatment {Id}", methodName, id);
+                return BaseResponse<TreatmentDetailResponseModel>.CreateError(
+                    "An error occurred while retrieving the treatment. Please try again later.", 
+                    StatusCodes.Status500InternalServerError, 
+                    "INTERNAL_ERROR");
             }
+        }
+
+        /// <summary>
+        /// Retrieves treatment entity with all related navigation properties
+        /// </summary>
+        private async Task<Treatment?> GetTreatmentWithRelatedDataAsync(Guid id)
+        {
+            return await _unitOfWork.Repository<Treatment>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Include(t => t.Patient)
+                .Include(t => t.Doctor)
+                .Include(t => t.TreatmentIVF)
+                .Where(t => t.Id == id && !t.IsDeleted)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Maps Treatment entity to TreatmentDetailResponseModel with all related data
+        /// </summary>
+        private async Task<TreatmentDetailResponseModel> MapToDetailResponseModelAsync(Treatment treatment, Guid treatmentId)
+        {
+            // Map base treatment data
+            var responseModel = treatment.ToDetailResponseModel();
+
+            // Load and map IVF data if treatment type is IVF
+            if (treatment.TreatmentType == TreatmentType.IVF && 
+                treatment.TreatmentIVF != null && 
+                !treatment.TreatmentIVF.IsDeleted)
+            {
+                responseModel.IVF = treatment.TreatmentIVF.ToResponseModel();
+            }
+
+            // Load and map IUI data if treatment type is IUI
+            if (treatment.TreatmentType == TreatmentType.IUI)
+            {
+                var iui = await _unitOfWork.Repository<TreatmentIUI>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Where(x => x.Id == treatmentId && !x.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (iui != null)
+                {
+                    responseModel.IUI = iui.ToResponseModel();
+                }
+            }
+
+            // Load and map agreements
+            var agreements = await LoadAgreementsAsync(treatmentId);
+            
+            if (agreements.Any())
+            {
+                var agreementList = agreements.Select(a => a.ToAgreementResponse()).ToList();
+                responseModel.Agreements = agreementList;
+
+                // Attach agreements to IVF/IUI if they exist
+                if (responseModel.IVF != null)
+                {
+                    responseModel.IVF.Agreements = agreementList;
+                }
+
+                if (responseModel.IUI != null)
+                {
+                    responseModel.IUI.Agreements = agreementList;
+                }
+            }
+
+            return responseModel;
+        }
+
+        /// <summary>
+        /// Loads all agreements associated with a treatment
+        /// </summary>
+        private async Task<List<Agreement>> LoadAgreementsAsync(Guid treatmentId)
+        {
+            return await _unitOfWork.Repository<Agreement>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Include(a => a.Treatment)
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p!.Account)
+                .Where(a => a.TreatmentId == treatmentId && !a.IsDeleted)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<BaseResponse<TreatmentResponseModel>> CreateAsync(TreatmentCreateUpdateRequest request)
