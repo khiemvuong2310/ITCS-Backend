@@ -81,6 +81,13 @@ namespace FSCMS.Service.Services
                 var response = _mapper.Map<TransactionResponseModel>(transaction);
                 response.PaymentUrl = paymentUrl;
 
+                var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var vnTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+                response.Exp = vnTime.AddMinutes(15).ToString("yyyyMMddHHmmss");
+                response.Local = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                response.Now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
                 return new BaseResponse<TransactionResponseModel>
                 {
                     Code = StatusCodes.Status201Created,
