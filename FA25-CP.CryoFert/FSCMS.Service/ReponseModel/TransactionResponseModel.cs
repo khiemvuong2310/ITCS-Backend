@@ -29,5 +29,8 @@ namespace FSCMS.Service.ReponseModel
         // Optional: related entity info
         public string? RelatedEntityType { get; set; } // "Invoice", "Contract", etc.
         public Guid RelatedEntityId { get; set; }
+        public string Exp { get; set; }
+        public string Local { get; set; }
+        public string Now { get; set; }
     }
 }
