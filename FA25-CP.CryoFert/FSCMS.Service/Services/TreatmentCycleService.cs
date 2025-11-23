@@ -604,7 +604,7 @@ namespace FSCMS.Service.Services
 
         private async Task AddAuditLog(string entityType, Guid entityId, string action, string? oldValues, string? newValues)
         {
-            var log = new AuditLog(Guid.NewGuid(), Guid.Empty, entityType, entityId, action, oldValues, newValues, null, null, DateTime.UtcNow.AddHours(7));
+            var log = new AuditLog(Guid.NewGuid(), null, entityType, entityId, action, oldValues, newValues, null, null, DateTime.UtcNow.AddHours(7));
             await _unitOfWork.Repository<AuditLog>().InsertAsync(log);
         }
     }
