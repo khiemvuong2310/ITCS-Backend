@@ -8,7 +8,7 @@ namespace FSCMS.Service.RequestModel
         public Guid? AppointmentId { get; set; }
 
         [Required(ErrorMessage = "Request date is required")]
-        public DateTime RequestDate { get; set; } = DateTime.Now;
+        public DateTime RequestDate { get; set; } = DateTime.UtcNow;
 
         [StringLength(1000, ErrorMessage = "Notes cannot exceed 1000 characters")]
         public string? Notes { get; set; }

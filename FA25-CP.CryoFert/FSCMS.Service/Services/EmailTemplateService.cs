@@ -63,7 +63,7 @@ namespace FSCMS.Service.Services
             return template
                 .Replace("{email}", email)
                 .Replace("{password}", password)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
 
         public async Task<string> GetPasswordResetTemplateAsync(string email, string password)
@@ -79,7 +79,7 @@ namespace FSCMS.Service.Services
             return template
                 .Replace("{email}", email)
                 .Replace("{password}", password)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
 
         public async Task<string> GetVerificationEmailTemplateAsync(string verificationCode)
@@ -94,7 +94,7 @@ namespace FSCMS.Service.Services
             var template = await File.ReadAllTextAsync(templatePath);
             return template
                 .Replace("{verificationCode}", verificationCode)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
 
         public async Task<string> GetCryoStorageContractOtpTemplateAsync(string Otp)
@@ -109,7 +109,7 @@ namespace FSCMS.Service.Services
             var template = await File.ReadAllTextAsync(templatePath);
             return template
                 .Replace("{otpCode}", Otp)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
 
         public async Task<string> GetRelationshipConfirmationTemplateAsync(
@@ -141,7 +141,7 @@ namespace FSCMS.Service.Services
                 .Replace("{approvalUrl}", approvalUrl)
                 .Replace("{rejectionUrl}", rejectionUrl)
                 .Replace("{notes}", notesSection)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
 
         public async Task<string> GetRelationshipApprovalTemplateAsync(
@@ -161,7 +161,7 @@ namespace FSCMS.Service.Services
                 .Replace("{patient1Name}", patient1Name)
                 .Replace("{patient2Name}", patient2Name)
                 .Replace("{relationshipTypeName}", relationshipTypeName)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
 
         public async Task<string> GetRelationshipRejectionTemplateAsync(
@@ -187,7 +187,7 @@ namespace FSCMS.Service.Services
                 .Replace("{patient2Name}", patient2Name)
                 .Replace("{relationshipTypeName}", relationshipTypeName)
                 .Replace("{rejectionReason}", reasonSection)
-                .Replace("{year}", DateTime.Now.Year.ToString());
+                .Replace("{year}", DateTime.UtcNow.Year.ToString());
         }
     }
 } 

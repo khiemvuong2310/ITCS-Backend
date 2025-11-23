@@ -25,12 +25,12 @@ namespace FSCMS.Service.Services
             vnpay.AddRequestData("vnp_Command", "pay");
             vnpay.AddRequestData("vnp_TmnCode", _options.vnp_TmnCode);
             vnpay.AddRequestData("vnp_Amount", ((long)(transaction.Amount * 100)).ToString());
-            vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            vnpay.AddRequestData("vnp_CreateDate", DateTime.UtcNow.ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", transaction.Currency ?? "VND");
             vnpay.AddRequestData("vnp_Locale", "vn");
             vnpay.AddRequestData("vnp_OrderInfo", transaction.Description);
             vnpay.AddRequestData("vnp_OrderType", "other");
-            vnpay.AddRequestData("vnp_ExpireDate", DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss"));
+            vnpay.AddRequestData("vnp_ExpireDate", DateTime.UtcNow.AddMinutes(15).ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_ReturnUrl", _options.vnp_Returnurl);
             //vnpay.AddRequestData("vnp_IpnUrl", _options.vnp_IpnUrl);
             vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1");

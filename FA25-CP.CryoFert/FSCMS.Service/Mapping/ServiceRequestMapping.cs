@@ -75,7 +75,7 @@ namespace FSCMS.Service.Mapping
             
             if (request.Status == ServiceRequestStatus.Approved && entity.ApprovedDate == null)
             {
-                entity.ApprovedDate = DateTime.Now;
+                entity.ApprovedDate = DateTime.UtcNow;
             }
         }
 
