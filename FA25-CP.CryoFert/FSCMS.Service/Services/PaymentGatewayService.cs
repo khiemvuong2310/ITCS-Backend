@@ -30,7 +30,14 @@ namespace FSCMS.Service.Services
             vnpay.AddRequestData("vnp_Locale", "vn");
             vnpay.AddRequestData("vnp_OrderInfo", transaction.Description);
             vnpay.AddRequestData("vnp_OrderType", "other");
-            vnpay.AddRequestData("vnp_ExpireDate", DateTime.UtcNow.AddMinutes(15).ToString("yyyyMMddHHmmss"));
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            var vnTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            vnpay.AddRequestData(
+                "vnp_ExpireDate",
+                vnTime.AddMinutes(15).ToString("yyyyMMddHHmmss")
+            );
+
             vnpay.AddRequestData("vnp_ReturnUrl", _options.vnp_Returnurl);
             //vnpay.AddRequestData("vnp_IpnUrl", _options.vnp_IpnUrl);
             vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1");
