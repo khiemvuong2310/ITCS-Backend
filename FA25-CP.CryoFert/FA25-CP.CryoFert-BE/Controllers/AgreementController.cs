@@ -7,6 +7,7 @@ using FSCMS.Core.Enum;
 using System;
 using System.Threading.Tasks;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -189,6 +190,19 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var result = await _agreementService.VerifySignatureAsync(id, request.OtpCode);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
+        /// <summary>
+        /// Get agreement file(s) from Media table
+        /// </summary>
+        /// <param name="id">Agreement ID</param>
+        /// <returns>List of media files associated with the agreement</returns>
+        [HttpGet("{id}/file")]
+        [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> GetAgreementFile(Guid id)
+        {
+            var result = await _agreementService.GetAgreementFileAsync(id);
             return StatusCode(result.Code ?? 500, result);
         }
     }

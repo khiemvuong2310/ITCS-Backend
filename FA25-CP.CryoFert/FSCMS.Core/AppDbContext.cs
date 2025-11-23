@@ -59,6 +59,7 @@ namespace FSCMS.Core
         // ========== Nhóm 6: Bảng Phụ trợ ==========
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Media> Medias { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -360,10 +361,17 @@ namespace FSCMS.Core
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ========================================
-            // Nhóm 6: Transaction & Media
+            // Nhóm 6: Transaction & Media & AuditLog
             // ========================================
             // These are independent tables with logical relationships only
             // No foreign key constraints needed
+
+            // AuditLog & Account Relationship
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(al => al.User)
+                .WithMany()
+                .HasForeignKey(al => al.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // ========================================
             // Seed Data: Roles

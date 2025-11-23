@@ -17,7 +17,7 @@ namespace FSCMS.Core.Entities
 
         public AuditLog(
             Guid id,
-            Guid userId,
+            Guid? userId,
             string entityType,
             Guid entityId,
             string action,
@@ -28,7 +28,7 @@ namespace FSCMS.Core.Entities
             DateTime createdAt)
         {
             Id = id;
-            UserId = userId; // We already checked for null in AddAuditLogs method
+            UserId = userId;
             EntityType = entityType;
             EntityId = entityId;
             Action = action;
@@ -39,7 +39,7 @@ namespace FSCMS.Core.Entities
             CreatedAt = createdAt;
         }
         public Guid Id { get; set; }
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; }
         public string EntityType { get; set; } = string.Empty;
         public Guid EntityId { get; set; }
         public string? OldValues { get; set; }
