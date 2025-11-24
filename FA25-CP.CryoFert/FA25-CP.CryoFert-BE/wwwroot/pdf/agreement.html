@@ -1,0 +1,114 @@
+<!-- Agreement Template HTML -->
+<div style="font-family: Arial, sans-serif; font-size: 12pt; color: #333; line-height:1.5;">
+
+    <!-- Title -->
+    <h2 style="text-align:center; margin-bottom:5px;">TREATMENT AGREEMENT</h2>
+    <p style="text-align:center; font-size:10pt; margin-top:0;">
+        Agreement Code: <strong>@Model.Agreement.AgreementCode</strong>
+    </p>
+
+    <hr style="margin:15px 0;" />
+
+    <!-- Patient Information -->
+    <h3 style="margin-bottom:5px;">Patient Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Full Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Patient.FirstName @Model.Patient.LastName</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Date of Birth</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Patient.BirthDate?.ToString("yyyy-MM-dd")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Email</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Patient.Email</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Phone</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Patient.Phone</td>
+        </tr>
+    </table>
+
+    <!-- Doctor Information -->
+    <h3 style="margin-bottom:5px;">Doctor Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Full Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Doctor?.Account?.FirstName @Model.Agreement.Treatment?.Doctor?.Account?.LastName</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Date of Birth</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Doctor?.Account?.BirthDate.ToString("yyyy-MM-dd") ?? "-"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Email</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Doctor?.Account?.Email ?? "-"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Phone</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Doctor?.Account?.Phone ?? "-"</td>
+        </tr>
+    </table>
+
+    <!-- Treatment Information -->
+    <h3 style="margin-bottom:5px;">Treatment Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Treatment Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.TreatmentName ?? "-"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Diagnosis</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Diagnosis ?? "-"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Goals</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Goals ?? "-"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Notes</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Treatment?.Notes ?? "-"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Start Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.StartDate.ToString("yyyy-MM-dd")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">End Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @(Model.Agreement.EndDate.HasValue ? Model.Agreement.EndDate.Value.ToString("yyyy-MM-dd") : "-")
+            </td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Total Amount</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.TotalAmount.ToString("C")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Status</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Status.ToString()</td>
+        </tr>
+    </table>
+
+    <!-- Signatures -->
+    <h3 style="margin-bottom:5px;">Signatures</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Patient</th>
+            <th style="border:1px solid #ccc; padding:8px;">Doctor</th>
+        </tr>
+        <tr style="height:80px;">
+            <td style="border:1px solid #ccc; padding:8px; vertical-align:bottom; text-align:center;">
+                @(Model.Agreement.SignedByPatient ? "Signed on " + Model.Agreement.SignedDate?.ToString("yyyy-MM-dd") : "Pending")
+            </td>
+            <td style="border:1px solid #ccc; padding:8px; vertical-align:bottom; text-align:center;">
+                @(Model.Agreement.SignedByDoctor ? "Signed on " + Model.Agreement.SignedDate?.ToString("yyyy-MM-dd") : "Pending")
+            </td>
+        </tr>
+    </table>
+
+    <!-- Footer Note -->
+    <p style="font-size:10pt; text-align:center; margin-top:20px; color:#666;">
+        Document generated on @Model.GeneratedAt.ToString("yyyy-MM-dd HH:mm")
+    </p>
+</div>
