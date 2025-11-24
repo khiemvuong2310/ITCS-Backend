@@ -460,17 +460,14 @@ namespace FSCMS.Service.Services
                         var firstUpcomingIndex = stepPlan.FindIndex(step => step.ScheduledDate >= now);
                         if (firstUpcomingIndex == -1)
                         {
+                            // All steps are in the past, mark the last one as Scheduled
                             firstUpcomingIndex = stepPlan.Count - 1;
                         }
 
                         for (int index = 0; index < stepPlan.Count; index++)
                         {
                             var step = stepPlan[index];
-                            var status = index < firstUpcomingIndex
-                                ? TreatmentStatus.Completed
-                                : index == firstUpcomingIndex
-                                    ? TreatmentStatus.Scheduled
-                                    : TreatmentStatus.Planned;
+                            var status = DetermineCycleStatus(step.ScheduledDate, index, firstUpcomingIndex, now);
 
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
@@ -518,12 +515,16 @@ namespace FSCMS.Service.Services
 
                         var now = DateTime.UtcNow;
                         var scheduledIndex = ivfPlan.FindIndex(step => step.ScheduledDate >= now);
-                        if (scheduledIndex == -1) scheduledIndex = ivfPlan.Count - 1;
+                        if (scheduledIndex == -1)
+                        {
+                            // All steps are in the past, mark the last one as Scheduled
+                            scheduledIndex = ivfPlan.Count - 1;
+                        }
 
                         for (int index = 0; index < ivfPlan.Count; index++)
                         {
                             var step = ivfPlan[index];
-                            var status = index == scheduledIndex ? TreatmentStatus.Scheduled : TreatmentStatus.Planned;
+                            var status = DetermineCycleStatus(step.ScheduledDate, index, scheduledIndex, now);
 
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
@@ -895,6 +896,36 @@ namespace FSCMS.Service.Services
                 _logger.LogError(ex, "{MethodName}: Error cancelling Planned cycles for Treatment {TreatmentId}", methodName, treatmentId);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Determines the status of a treatment cycle based on its scheduled date and position in the sequence.
+        /// Unified logic for both IUI and IVF treatments:
+        /// - Completed: steps with ScheduledDate < now (past steps)
+        /// - Scheduled: the first step with ScheduledDate >= now (next upcoming step)
+        /// - Planned: all remaining steps after the Scheduled step
+        /// </summary>
+        /// <param name="scheduledDate">The scheduled date of the cycle step</param>
+        /// <param name="currentIndex">The current index in the step plan</param>
+        /// <param name="scheduledIndex">The index of the first upcoming step (Scheduled status)</param>
+        /// <param name="now">The current UTC time</param>
+        /// <returns>The appropriate TreatmentStatus for the cycle</returns>
+        private TreatmentStatus DetermineCycleStatus(DateTime scheduledDate, int currentIndex, int scheduledIndex, DateTime now)
+        {
+            // If the scheduled date is in the past, mark as Completed
+            if (scheduledDate < now)
+            {
+                return TreatmentStatus.Completed;
+            }
+
+            // If this is the first upcoming step (scheduledIndex), mark as Scheduled
+            if (currentIndex == scheduledIndex)
+            {
+                return TreatmentStatus.Scheduled;
+            }
+
+            // All other future steps are Planned
+            return TreatmentStatus.Planned;
         }
     }
 }

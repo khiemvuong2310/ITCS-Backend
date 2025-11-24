@@ -45,6 +45,7 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</None>
+		<!-- Templates are provided by FSCMS.Service project, no need to copy from here -->
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Common\Constants\" />
