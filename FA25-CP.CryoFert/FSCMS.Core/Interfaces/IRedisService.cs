@@ -19,7 +19,7 @@ namespace FSCMS.Core.Interfaces
         /// Deletes a key from Redis.
         /// </summary>
         /// <param name="key">The key to delete.</param>
-        Task DeleteKeyAsync(string key);
+        Task<bool> DeleteKeyAsync(string key);
 
         /// <summary>
         /// Sets a serialized object in Redis.
@@ -28,7 +28,7 @@ namespace FSCMS.Core.Interfaces
         /// <param name="key">The key under which to store the object.</param>
         /// <param name="value">The object to store.</param>
         /// <param name="expiry">Optional expiration time.</param>
-        Task SetAsync<T>(string key, T value, TimeSpan? expiry = null);
+        Task<bool> SetAsync<T>(string key, T value, TimeSpan? expiry = null);
 
         /// <summary>
         /// Gets a deserialized object from Redis.

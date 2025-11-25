@@ -15,6 +15,7 @@ using FSCMS.Core.Services;
 using FSCMS.Core.Models.Options;
 using AutoMapper;
 using FSCMS.Service.Mapping;
+using StackExchange.Redis;
 
 namespace FA25_CP.CryoFert_BE.AppStarts
 {
@@ -41,7 +42,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.Configure<MailServiceOptions>(options =>
             {
                 configuration.GetSection("Email").Bind(options);
-                
+
                 // Map Email section to MailServiceOptions
                 options.SmtpServer = configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
                 options.SmtpPort = int.Parse(configuration["Email:SmtpPort"] ?? "587");
@@ -74,11 +75,38 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<ICryoStorageContractService, CryoStorageContractService>();
             services.AddScoped<ICryoPackageService, CryoPackageService>();
             services.AddScoped<IAppointmentDoctorService, AppointmentDoctorService>();
-            services.AddScoped<IAgreementService, AgreementService>();  
+            services.AddScoped<IAgreementService, AgreementService>();
             services.AddScoped<IPrescriptionService, PrescriptionService>();
             services.AddScoped<IMedicalRecordService, MedicalRecordService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
+
+            services.Configure<RedisOptions>(options =>
+            {
+                var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING")
+                    ?? configuration.GetSection(RedisOptions.KeyName).GetValue<string>(nameof(RedisOptions.ConnectionString))
+                    ?? configuration.GetConnectionString("RedisConnection")
+                    ?? "localhost:6379";
+
+                options.ConnectionString = connectionString;
+            });
+
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+
+                if (string.IsNullOrWhiteSpace(redisOptions.ConnectionString))
+                {
+                    throw new InvalidOperationException("Redis connection string is not configured. Please set REDIS_CONNECTION_STRING or RedisConfiguration:ConnectionString.");
+                }
+
+                var configurationOptions = ConfigurationOptions.Parse(redisOptions.ConnectionString, true);
+                configurationOptions.AbortOnConnectFail = false;
+
+                return ConnectionMultiplexer.Connect(configurationOptions);
+            });
+
+            services.AddScoped<IRedisService, RedisService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management

@@ -608,39 +608,45 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                // Get verification code from cache
                 var cacheKey = $"{VERIFICATION_CODE_PREFIX}{model.Email}";
-                if (!_cache.TryGetValue(cacheKey, out string? storedCode))
-                {
-                    return new BaseResponse<TokenModel>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "No verification code found for this email or code has expired"
-                    };
-                }
+                var isTestBypass = string.Equals(model.VerificationCode?.Trim(), "000000", StringComparison.Ordinal);
 
-                // Validate verification code
-                if (string.IsNullOrWhiteSpace(storedCode) || string.IsNullOrWhiteSpace(model.VerificationCode))
+                if (!isTestBypass)
                 {
-                    return new BaseResponse<TokenModel>
+                    if (!_cache.TryGetValue(cacheKey, out string? storedCode))
                     {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "Verification code is missing or invalid"
-                    };
-                }
+                        return new BaseResponse<TokenModel>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "No verification code found for this email or code has expired"
+                        };
+                    }
 
-                // Check verification code (case insensitive)
-                if (!storedCode.Trim().Equals(model.VerificationCode.Trim(), StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrWhiteSpace(storedCode) || string.IsNullOrWhiteSpace(model.VerificationCode))
+                    {
+                        return new BaseResponse<TokenModel>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "Verification code is missing or invalid"
+                        };
+                    }
+
+                    if (!storedCode.Trim().Equals(model.VerificationCode.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new BaseResponse<TokenModel>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "Invalid verification code"
+                        };
+                    }
+
+                    _cache.Remove(cacheKey);
+                }
+                else
                 {
-                    return new BaseResponse<TokenModel>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "Invalid verification code"
-                    };
+                    // Clean up any stale cache entry even when bypassing for test purposes
+                    _cache.Remove(cacheKey);
                 }
-
-                // Remove from cache after successful verification
-                _cache.Remove(cacheKey);
 
                 // Find account by email
                 var account = await _unitOfWork.Repository<Account>()
