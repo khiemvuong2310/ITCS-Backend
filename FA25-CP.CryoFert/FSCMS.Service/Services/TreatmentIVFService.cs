@@ -71,6 +71,52 @@ namespace FSCMS.Service.Services
             }
         }
 
+        public async Task<BaseResponse<int>> GetCurrentStepAsync(Guid treatmentId)
+        {
+            const string methodName = nameof(GetCurrentStepAsync);
+            _logger.LogInformation("{MethodName} called with treatmentId: {TreatmentId}", methodName, treatmentId);
+
+            try
+            {
+                if (treatmentId == Guid.Empty)
+                {
+                    return BaseResponse<int>.CreateError("Treatment ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+                }
+
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+
+                if (treatment == null)
+                {
+                    return BaseResponse<int>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+                }
+
+                if (treatment.TreatmentType != TreatmentType.IVF)
+                {
+                    return BaseResponse<int>.CreateError("Treatment type must be IVF to retrieve IVF step", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_TYPE");
+                }
+
+                var entity = await _unitOfWork.Repository<TreatmentIVF>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                if (entity == null)
+                {
+                    return BaseResponse<int>.CreateError("IVF info not found", StatusCodes.Status404NotFound, "IVF_NOT_FOUND");
+                }
+
+                return BaseResponse<int>.CreateSuccess(entity.CurrentStep, "Current step retrieved successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving current step for treatment {TreatmentId}", methodName, treatmentId);
+                return BaseResponse<int>.CreateError($"Error retrieving current step: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         public async Task<BaseResponse<List<TreatmentIVFResponseModel>>> GetByPatientIdAsync(Guid patientId)
         {
             const string methodName = nameof(GetByPatientIdAsync);

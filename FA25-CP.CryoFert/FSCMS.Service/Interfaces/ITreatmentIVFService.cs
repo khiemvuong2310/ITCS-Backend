@@ -7,6 +7,7 @@ namespace FSCMS.Service.Interfaces
     {
         Task<BaseResponse<TreatmentIVFResponseModel>> GetByTreatmentIdAsync(Guid treatmentId);
         Task<BaseResponse<List<TreatmentIVFResponseModel>>> GetByPatientIdAsync(Guid patientId);
+        Task<BaseResponse<int>> GetCurrentStepAsync(Guid treatmentId);
         Task<BaseResponse<TreatmentIVFResponseModel>> CreateAsync(TreatmentIVFCreateUpdateRequest request);
         Task<BaseResponse<TreatmentIVFResponseModel>> UpdateAsync(Guid id, TreatmentIVFUpdateRequest request);
         Task<BaseResponse<bool>> DeleteAsync(Guid id);

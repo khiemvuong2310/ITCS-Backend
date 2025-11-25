@@ -740,20 +740,10 @@ namespace FSCMS.Service.Services
 
                     // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
                     var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
-                    var workDate = appointmentDate;
                     if (primaryDoctorId.HasValue)
                     {
-                        var existingSchedule = await _unitOfWork.Repository<DoctorSchedule>()
-                            .AsQueryable()
-                            .FirstOrDefaultAsync(ds => ds.DoctorId == primaryDoctorId.Value && ds.SlotId == slot.Id && ds.WorkDate == workDate && !ds.IsDeleted);
-
-                        if (existingSchedule == null)
-                        {
-                            // Create an available schedule for this doctor, date, and slot
-                            var newSchedule = new DoctorSchedule(Guid.NewGuid(), primaryDoctorId.Value, slot.Id, workDate, true);
-                            await _unitOfWork.Repository<DoctorSchedule>().InsertAsync(newSchedule);
-                        }
-                        else if (!existingSchedule.IsAvailable)
+                        var doctorAvailable = await IsDoctorAvailableForSlotAsync(primaryDoctorId.Value, slot.Id, appointmentDate);
+                        if (!doctorAvailable)
                         {
                             _logger.LogWarning("{MethodName}: Doctor not available for selected slot/date", methodName);
                             return BaseResponse<AppointmentResponse>.CreateError("Doctor is not available for the selected slot/date", StatusCodes.Status400BadRequest, "DOCTOR_NOT_AVAILABLE");
@@ -1446,6 +1436,39 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region Private Helper Methods
+
+        /// <summary>
+        /// Determine if a doctor is free for the specified slot and appointment date.
+        /// Absence of schedule data is treated as available.
+        /// </summary>
+        private async Task<bool> IsDoctorAvailableForSlotAsync(Guid doctorId, Guid slotId, DateOnly appointmentDate)
+        {
+            var hasUnavailableSchedule = await _unitOfWork.Repository<DoctorSchedule>()
+                .AsQueryable()
+                .AnyAsync(ds =>
+                    !ds.IsDeleted &&
+                    ds.DoctorId == doctorId &&
+                    ds.SlotId == slotId &&
+                    ds.WorkDate == appointmentDate &&
+                    !ds.IsAvailable);
+
+            if (hasUnavailableSchedule)
+            {
+                return false;
+            }
+
+            var hasConflictingAppointment = await _unitOfWork.Repository<Appointment>()
+                .AsQueryable()
+                .AnyAsync(a =>
+                    !a.IsDeleted &&
+                    a.SlotId == slotId &&
+                    a.AppointmentDate == appointmentDate &&
+                    a.AppointmentDoctors.Any(ad => ad.DoctorId == doctorId && !ad.IsDeleted) &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    a.Status != AppointmentStatus.Rescheduled);
+
+            return !hasConflictingAppointment;
+        }
 
         /// <summary>
         /// Map Appointment entity to AppointmentResponse

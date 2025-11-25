@@ -69,7 +69,7 @@ namespace FSCMS.Service.RequestModel
         public Guid TreatmentId { get; set; }
 
         [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "OrderIndex must be greater than 0")]
+        [Range(1, int.MaxValue, ErrorMessage = "CycleNumber must be greater than 0")]
         public int CycleNumber { get; set; }
 
         [Required]
