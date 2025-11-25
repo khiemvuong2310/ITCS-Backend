@@ -55,6 +55,7 @@ namespace FSCMS.Service.ReponseModel
         public bool? UsedICSI { get; set; }
         public string? Complications { get; set; }
         public IVFCycleStatus Status { get; set; }
+        public int CurrentStep { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<AgreementResponse>? Agreements { get; set; }
@@ -74,6 +75,7 @@ namespace FSCMS.Service.ReponseModel
         public string? Outcome { get; set; }
         public string? Notes { get; set; }
         public IUICycleStatus Status { get; set; }
+        public int CurrentStep { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<AgreementResponse>? Agreements { get; set; }

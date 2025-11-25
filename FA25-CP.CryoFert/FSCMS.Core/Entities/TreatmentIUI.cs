@@ -25,6 +25,7 @@ namespace FSCMS.Core.Entities
         public string? Outcome { get; set; }
         public string? Notes { get; set; }
         public IUICycleStatus Status { get; set; } = IUICycleStatus.Planned;
+        public int CurrentStep { get; set; } = 0;
         public virtual Treatment? Treatment { get; set; }
     }
 }

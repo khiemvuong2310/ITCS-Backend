@@ -179,6 +179,19 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPut("status")]
+        [Authorize(Roles = "Doctor")]
+        [ApiDefaultResponse(typeof(TreatmentCycleResponseModel), UseDynamicWrapper = false)]
+        public async Task<IActionResult> UpdateStatusByOrder([FromQuery] UpdateTreatmentCycleStatusByOrderRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<TreatmentCycleResponseModel> { Code = StatusCodes.Status400BadRequest, Message = "Invalid request data" });
+            }
+            var result = await _service.UpdateStatusByOrderAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         [HttpGet("{id:guid}/samples")]
         [Authorize(Roles = "Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(List<object>), UseDynamicWrapper = false)]

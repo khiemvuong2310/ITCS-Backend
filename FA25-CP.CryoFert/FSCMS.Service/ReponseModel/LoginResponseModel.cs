@@ -12,5 +12,6 @@ namespace FSCMS.Service.ReponseModel
         public string RefreshToken { get; set; }
         public UserResponse User { get; set; }
         public bool EmailVerified { get; set; }
+        public PatientResponse? Patient { get; set; }
     }
 }
