@@ -83,25 +83,89 @@ namespace FA25_CP.CryoFert_BE.AppStarts
 
             services.Configure<RedisOptions>(options =>
             {
-                var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING")
-                    ?? configuration.GetSection(RedisOptions.KeyName).GetValue<string>(nameof(RedisOptions.ConnectionString))
-                    ?? configuration.GetConnectionString("RedisConnection")
-                    ?? "localhost:6379";
+                configuration.GetSection(RedisOptions.KeyName).Bind(options);
 
-                options.ConnectionString = connectionString;
+                var envConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING");
+                var envHost = Environment.GetEnvironmentVariable("REDIS_HOST");
+                var envPort = Environment.GetEnvironmentVariable("REDIS_PORT");
+                var envUser = Environment.GetEnvironmentVariable("REDIS_USER");
+                var envPassword = Environment.GetEnvironmentVariable("REDIS_PASSWORD");
+                var envSsl = Environment.GetEnvironmentVariable("REDIS_SSL");
+
+                if (!string.IsNullOrWhiteSpace(envConnectionString))
+                {
+                    options.ConnectionString = envConnectionString;
+                }
+
+                if (!string.IsNullOrWhiteSpace(envHost))
+                {
+                    options.Host = envHost;
+                }
+
+                if (int.TryParse(envPort, out var parsedPort))
+                {
+                    options.Port = parsedPort;
+                }
+
+                if (!string.IsNullOrWhiteSpace(envUser))
+                {
+                    options.User = envUser;
+                }
+
+                if (!string.IsNullOrWhiteSpace(envPassword))
+                {
+                    options.Password = envPassword;
+                }
+
+                if (bool.TryParse(envSsl, out var parsedSsl))
+                {
+                    options.UseSsl = parsedSsl;
+                }
+
+                options.ConnectionString ??= configuration.GetConnectionString("RedisConnection");
+
+                if (string.IsNullOrWhiteSpace(options.ConnectionString) &&
+                    (string.IsNullOrWhiteSpace(options.Host) || !options.Port.HasValue))
+                {
+                    throw new InvalidOperationException("Redis is not configured. Provide REDIS_CONNECTION_STRING or REDIS_HOST/REDIS_PORT in environment variables or appsettings.");
+                }
             });
 
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
 
-                if (string.IsNullOrWhiteSpace(redisOptions.ConnectionString))
+                ConfigurationOptions configurationOptions;
+
+                if (!string.IsNullOrWhiteSpace(redisOptions.ConnectionString))
                 {
-                    throw new InvalidOperationException("Redis connection string is not configured. Please set REDIS_CONNECTION_STRING or RedisConfiguration:ConnectionString.");
+                    configurationOptions = ConfigurationOptions.Parse(redisOptions.ConnectionString, true);
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(redisOptions.Host) || !redisOptions.Port.HasValue)
+                    {
+                        throw new InvalidOperationException("Redis host/port configuration is missing.");
+                    }
+
+                    configurationOptions = new ConfigurationOptions();
+                    configurationOptions.EndPoints.Add(redisOptions.Host, redisOptions.Port.Value);
+                    if (!string.IsNullOrWhiteSpace(redisOptions.User))
+                    {
+                        configurationOptions.User = redisOptions.User;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(redisOptions.Password))
+                    {
+                        configurationOptions.Password = redisOptions.Password;
+                    }
+
+                    configurationOptions.Ssl = redisOptions.UseSsl;
                 }
 
-                var configurationOptions = ConfigurationOptions.Parse(redisOptions.ConnectionString, true);
-                configurationOptions.AbortOnConnectFail = false;
+                configurationOptions.AbortOnConnectFail = redisOptions.AbortOnConnectFail;
+                configurationOptions.ConnectRetry = redisOptions.ConnectRetry;
+                configurationOptions.ConnectTimeout = redisOptions.ConnectTimeout;
 
                 return ConnectionMultiplexer.Connect(configurationOptions);
             });

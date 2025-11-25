@@ -604,7 +604,7 @@ namespace FSCMS.Service.Services
         /// </summary>
         /// <param name="model">Email verification model containing email and verification code</param>
         /// <returns>Response containing token and refresh token upon successful verification</returns>
-        public async Task<BaseResponse<TokenModel>> VerifyAccountAsync(EmailVerificationModel model)
+        public async Task<BaseResponse<TokenModel>> VerifyAccountAsync (EmailVerificationModel model)
         {
             try
             {

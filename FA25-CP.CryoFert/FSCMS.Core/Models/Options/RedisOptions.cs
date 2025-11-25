@@ -16,6 +16,22 @@ namespace FSCMS.Core.Models.Options
         /// <summary>
         /// The connection string for Redis
         /// </summary>
-        public string ConnectionString { get; set; } = null!;
+        public string? ConnectionString { get; set; }
+
+        public string? Host { get; set; }
+
+        public int? Port { get; set; }
+
+        public string? User { get; set; }
+
+        public string? Password { get; set; }
+
+        public bool UseSsl { get; set; } = true;
+
+        public bool AbortOnConnectFail { get; set; } = false;
+
+        public int ConnectRetry { get; set; } = 3;
+
+        public int ConnectTimeout { get; set; } = 5000;
     }
 }
