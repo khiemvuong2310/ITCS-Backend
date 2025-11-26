@@ -15,6 +15,7 @@ using FSCMS.Core.Services;
 using FSCMS.Core.Models.Options;
 using AutoMapper;
 using FSCMS.Service.Mapping;
+using StackExchange.Redis;
 
 namespace FA25_CP.CryoFert_BE.AppStarts
 {
@@ -41,7 +42,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.Configure<MailServiceOptions>(options =>
             {
                 configuration.GetSection("Email").Bind(options);
-                
+
                 // Map Email section to MailServiceOptions
                 options.SmtpServer = configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
                 options.SmtpPort = int.Parse(configuration["Email:SmtpPort"] ?? "587");
@@ -74,12 +75,103 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<ICryoStorageContractService, CryoStorageContractService>();
             services.AddScoped<ICryoPackageService, CryoPackageService>();
             services.AddScoped<IAppointmentDoctorService, AppointmentDoctorService>();
-            services.AddScoped<IAgreementService, AgreementService>();  
+            services.AddScoped<IAgreementService, AgreementService>();
             services.AddScoped<IPrescriptionService, PrescriptionService>();
             services.AddScoped<IMedicalRecordService, MedicalRecordService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
             services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
+
+            services.Configure<RedisOptions>(options =>
+            {
+                configuration.GetSection(RedisOptions.KeyName).Bind(options);
+
+                var envConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING");
+                var envHost = Environment.GetEnvironmentVariable("REDIS_HOST");
+                var envPort = Environment.GetEnvironmentVariable("REDIS_PORT");
+                var envUser = Environment.GetEnvironmentVariable("REDIS_USER");
+                var envPassword = Environment.GetEnvironmentVariable("REDIS_PASSWORD");
+                var envSsl = Environment.GetEnvironmentVariable("REDIS_SSL");
+
+                if (!string.IsNullOrWhiteSpace(envConnectionString))
+                {
+                    options.ConnectionString = envConnectionString;
+                }
+
+                if (!string.IsNullOrWhiteSpace(envHost))
+                {
+                    options.Host = envHost;
+                }
+
+                if (int.TryParse(envPort, out var parsedPort))
+                {
+                    options.Port = parsedPort;
+                }
+
+                if (!string.IsNullOrWhiteSpace(envUser))
+                {
+                    options.User = envUser;
+                }
+
+                if (!string.IsNullOrWhiteSpace(envPassword))
+                {
+                    options.Password = envPassword;
+                }
+
+                if (bool.TryParse(envSsl, out var parsedSsl))
+                {
+                    options.UseSsl = parsedSsl;
+                }
+
+                options.ConnectionString ??= configuration.GetConnectionString("RedisConnection");
+
+                if (string.IsNullOrWhiteSpace(options.ConnectionString) &&
+                    (string.IsNullOrWhiteSpace(options.Host) || !options.Port.HasValue))
+                {
+                    throw new InvalidOperationException("Redis is not configured. Provide REDIS_CONNECTION_STRING or REDIS_HOST/REDIS_PORT in environment variables or appsettings.");
+                }
+            });
+
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+
+                ConfigurationOptions configurationOptions;
+
+                if (!string.IsNullOrWhiteSpace(redisOptions.ConnectionString))
+                {
+                    configurationOptions = ConfigurationOptions.Parse(redisOptions.ConnectionString, true);
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(redisOptions.Host) || !redisOptions.Port.HasValue)
+                    {
+                        throw new InvalidOperationException("Redis host/port configuration is missing.");
+                    }
+
+                    configurationOptions = new ConfigurationOptions();
+                    configurationOptions.EndPoints.Add(redisOptions.Host, redisOptions.Port.Value);
+                    if (!string.IsNullOrWhiteSpace(redisOptions.User))
+                    {
+                        configurationOptions.User = redisOptions.User;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(redisOptions.Password))
+                    {
+                        configurationOptions.Password = redisOptions.Password;
+                    }
+
+                    configurationOptions.Ssl = redisOptions.UseSsl;
+                }
+
+                configurationOptions.AbortOnConnectFail = redisOptions.AbortOnConnectFail;
+                configurationOptions.ConnectRetry = redisOptions.ConnectRetry;
+                configurationOptions.ConnectTimeout = redisOptions.ConnectTimeout;
+
+                return ConnectionMultiplexer.Connect(configurationOptions);
+            });
+
+            services.AddScoped<IRedisService, RedisService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management

@@ -388,6 +388,8 @@ namespace FSCMS.Service.Services
 
                     // Ensure TreatmentId matches the created Treatment
                     iuiRequest.TreatmentId = entity.Id;
+                    // Set CurrentStep to 1 when creating new treatment (or 0 if starting from beginning)
+                    iuiRequest.CurrentStep = iuiRequest.CurrentStep ?? 1;
 
                     var iuiResult = await _treatmentIUIService.CreateAsync(iuiRequest);
                     if (!iuiResult.Success)
@@ -420,6 +422,8 @@ namespace FSCMS.Service.Services
 
                     // Ensure TreatmentId matches the created Treatment
                     ivfRequest.TreatmentId = entity.Id;
+                    // Set CurrentStep to 1 when creating new treatment (or 0 if starting from beginning)
+                    ivfRequest.CurrentStep = ivfRequest.CurrentStep ?? 1;
 
                     var ivfResult = await _treatmentIVFService.CreateAsync(ivfRequest);
                     if (!ivfResult.Success)
@@ -445,7 +449,7 @@ namespace FSCMS.Service.Services
                         var baselineDate = request.PreferredStartDate ?? entity.StartDate;
                         var procedureTriggerDate = baselineDate.AddDays(10);
                         var iuiProcedureDate = procedureTriggerDate.AddHours(36);
-                        var stepPlan = new List<(int OrderIndex, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
+                        var stepPlan = new List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
                         {
                             (1, "Pre-Cycle Preparation", baselineDate.AddDays(-14), TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase ~2 weeks before baseline."),
                             (2, "Day 2-3 Assessment", baselineDate, TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
@@ -460,26 +464,22 @@ namespace FSCMS.Service.Services
                         var firstUpcomingIndex = stepPlan.FindIndex(step => step.ScheduledDate >= now);
                         if (firstUpcomingIndex == -1)
                         {
+                            // All steps are in the past, mark the last one as Scheduled
                             firstUpcomingIndex = stepPlan.Count - 1;
                         }
 
                         for (int index = 0; index < stepPlan.Count; index++)
                         {
                             var step = stepPlan[index];
-                            var status = index < firstUpcomingIndex
-                                ? TreatmentStatus.Completed
-                                : index == firstUpcomingIndex
-                                    ? TreatmentStatus.Scheduled
-                                    : TreatmentStatus.Planned;
+                            var status = DetermineCycleStatus(step.ScheduledDate, index, firstUpcomingIndex, now);
 
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
                                 entity.Id,
                                 $"{entity.TreatmentName} - {step.CycleName}",
-                                step.OrderIndex,
+                                step.CycleNumber,
                                 step.ScheduledDate,
                                 step.StepType,
-                                step.OrderIndex,
                                 step.ExpectedDurationDays)
                             {
                                 Status = status,
@@ -490,8 +490,8 @@ namespace FSCMS.Service.Services
                             await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
                             createdCycles.Add(cycle);
 
-                            _logger.LogInformation("{MethodName}: Created IUI step {OrderIndex} ({StepType}) for Treatment {TreatmentId}",
-                                methodName, step.OrderIndex, step.StepType, entity.Id);
+                            _logger.LogInformation("{MethodName}: Created IUI step {CycleNumber} ({StepType}) for Treatment {TreatmentId}",
+                                methodName, step.CycleNumber, step.StepType, entity.Id);
                         }
                     }
                     else if (request.TreatmentType == TreatmentType.IVF)
@@ -504,7 +504,7 @@ namespace FSCMS.Service.Services
                         var embryoTransferDate = opuDate.AddDays(5);
                         var betaTestDate = embryoTransferDate.AddDays(14);
 
-                        var ivfPlan = new List<(int OrderIndex, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
+                        var ivfPlan = new List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
                         {
                             (1, "Pre-Cycle Preparation", baselineDate.AddDays(-14), TreatmentStepType.IVF_PreCyclePreparation, 14, "Patient prep and protocol confirmation (~2 weeks)."),
                             (2, "Controlled Ovarian Stimulation", baselineDate, TreatmentStepType.IVF_StimulationStart, 10, "Stimulation start (COS day 1)."),
@@ -518,21 +518,24 @@ namespace FSCMS.Service.Services
 
                         var now = DateTime.UtcNow;
                         var scheduledIndex = ivfPlan.FindIndex(step => step.ScheduledDate >= now);
-                        if (scheduledIndex == -1) scheduledIndex = ivfPlan.Count - 1;
+                        if (scheduledIndex == -1)
+                        {
+                            // All steps are in the past, mark the last one as Scheduled
+                            scheduledIndex = ivfPlan.Count - 1;
+                        }
 
                         for (int index = 0; index < ivfPlan.Count; index++)
                         {
                             var step = ivfPlan[index];
-                            var status = index == scheduledIndex ? TreatmentStatus.Scheduled : TreatmentStatus.Planned;
+                            var status = DetermineCycleStatus(step.ScheduledDate, index, scheduledIndex, now);
 
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
                                 entity.Id,
                                 $"{entity.TreatmentName} - {step.CycleName}",
-                                step.OrderIndex,
+                                step.CycleNumber,
                                 step.ScheduledDate,
                                 step.StepType,
-                                step.OrderIndex,
                                 step.ExpectedDurationDays)
                             {
                                 Status = status,
@@ -543,8 +546,8 @@ namespace FSCMS.Service.Services
                             await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
                             createdCycles.Add(cycle);
 
-                            _logger.LogInformation("{MethodName}: Created IVF step {OrderIndex} ({StepType}) with status {Status} for Treatment {TreatmentId}",
-                                methodName, step.OrderIndex, step.StepType, status, entity.Id);
+                            _logger.LogInformation("{MethodName}: Created IVF step {CycleNumber} ({StepType}) with status {Status} for Treatment {TreatmentId}",
+                                methodName, step.CycleNumber, step.StepType, status, entity.Id);
                         }
                     }
                 }
@@ -895,6 +898,36 @@ namespace FSCMS.Service.Services
                 _logger.LogError(ex, "{MethodName}: Error cancelling Planned cycles for Treatment {TreatmentId}", methodName, treatmentId);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Determines the status of a treatment cycle based on its scheduled date and position in the sequence.
+        /// Unified logic for both IUI and IVF treatments:
+        /// - Completed: steps with ScheduledDate < now (past steps)
+        /// - Scheduled: the first step with ScheduledDate >= now (next upcoming step)
+        /// - Planned: all remaining steps after the Scheduled step
+        /// </summary>
+        /// <param name="scheduledDate">The scheduled date of the cycle step</param>
+        /// <param name="currentIndex">The current index in the step plan</param>
+        /// <param name="scheduledIndex">The index of the first upcoming step (Scheduled status)</param>
+        /// <param name="now">The current UTC time</param>
+        /// <returns>The appropriate TreatmentStatus for the cycle</returns>
+        private TreatmentStatus DetermineCycleStatus(DateTime scheduledDate, int currentIndex, int scheduledIndex, DateTime now)
+        {
+            // If the scheduled date is in the past, mark as Completed
+            if (scheduledDate < now)
+            {
+                return TreatmentStatus.Completed;
+            }
+
+            // If this is the first upcoming step (scheduledIndex), mark as Scheduled
+            if (currentIndex == scheduledIndex)
+            {
+                return TreatmentStatus.Scheduled;
+            }
+
+            // All other future steps are Planned
+            return TreatmentStatus.Planned;
         }
     }
 }

@@ -271,7 +271,7 @@ namespace FSCMS.Service.Services
                 CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
                 {
                     Amount = (decimal)createdServiceRequest.TotalAmount,
-                    RelatedEntityType = EntityTypeTransaction.Appointment,
+                    RelatedEntityType = EntityTypeTransaction.ServiceRequest,
                     RelatedEntityId = createdServiceRequest.Id
                 };
                 await _transactionService.CreateTransactionAsync(createTransactionRequest, createdServiceRequest.Appointment.PatientId);

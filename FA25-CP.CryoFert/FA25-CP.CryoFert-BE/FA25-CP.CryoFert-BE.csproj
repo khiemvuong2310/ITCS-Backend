@@ -32,6 +32,7 @@
 		<!-- Thêm EFCore.Tools để build migration -->
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+		<PackageReference Include="StackExchange.Redis" Version="2.9.32" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.8.0" />
 		<PackageReference Include="Twilio" Version="7.8.3" />
@@ -45,6 +46,7 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</None>
+		<!-- Templates are provided by FSCMS.Service project, no need to copy from here -->
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Common\Constants\" />
