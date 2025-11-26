@@ -11,6 +11,8 @@ using Microsoft.OpenApi.Models;
 using Pomelo.EntityFrameworkCore.MySql;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using DinkToPdf;
+using DinkToPdf.Contracts;
 
 namespace FA25_CP.CryoFert_BE
 {
@@ -43,6 +45,9 @@ namespace FA25_CP.CryoFert_BE
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
+            builder.Services.AddControllersWithViews();
+            builder.Services.AddRazorPages();
+            builder.Services.AddMvc();
 
             // 3. DbContext config (MySQL)
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -68,6 +73,7 @@ namespace FA25_CP.CryoFert_BE
             //builder.Services.Configure<VnPayOptions>(
             //    builder.Configuration.GetSection("VnPay")
             //);
+            builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
 
             builder.Services.AddSignalR();

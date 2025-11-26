@@ -1,0 +1,233 @@
+<div style="font-family: Arial, sans-serif; font-size: 12pt; color: #333; line-height:1.5;">
+
+    <!-- Title -->
+    <h2 style="text-align:center; margin-bottom:5px;">MEDICAL RECORD</h2>
+    <p style="text-align:center; font-size:10pt; margin-top:0;">
+        Record ID: <strong>@Model.MedicalRecord.Id</strong>
+    </p>
+    <hr style="margin:15px 0;" />
+
+    <!-- Patient & Appointment Information -->
+    <h3 style="margin-bottom:5px;">Patient & Appointment Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Patient Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @Model.Patient.Account?.FirstName @Model.Patient.Account?.LastName
+            </td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Appointment Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @(Model.Appointment.AppointmentDate.ToString("yyyy-MM-dd") ?? "N/A")
+            </td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Appointment Type</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @(Model.Appointment.Type.ToString() ?? "N/A")
+            </td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Appointment Status</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @(Model.Appointment.Status.ToString() ?? "N/A")
+            </td>
+        </tr>
+    </table>
+
+    <!-- Medical Record Details -->
+    <h3 style="margin-bottom:5px;">Medical Record Details</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Chief Complaint</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.ChiefComplaint ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">History</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.History ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Physical Examination</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.PhysicalExamination ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Diagnosis</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.Diagnosis ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Treatment Plan</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.TreatmentPlan ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Follow Up Instructions</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.FollowUpInstructions ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Vital Signs</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.VitalSigns ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Lab Results</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.LabResults ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Imaging Results</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.ImagingResults ?? "N/A"</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Notes</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.MedicalRecord.Notes ?? "N/A"</td>
+        </tr>
+    </table>
+
+    <!-- Treatment Information -->
+    @if(Model.Treatment != null)
+    {
+        dynamic? treatment = Model.Treatment;
+
+        <h3 style="margin-bottom:5px;">Treatment Summary</h3>
+        <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Treatment Name</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.TreatmentName</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Treatment Type</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.TreatmentType</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Status</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.Status</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Start Date</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.StartDate.ToString("yyyy-MM-dd")</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">End Date</th>
+                <td style="border:1px solid #ccc; padding:8px;">@(treatment.EndDate?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Doctor</th>
+                <td style="border:1px solid #ccc; padding:8px;">@(treatment.Doctor != null ? $"{treatment.Doctor.FirstName} {treatment.Doctor.LastName}" : "N/A")</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Diagnosis</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.Diagnosis ?? "N/A"</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Goals</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.Goals ?? "N/A"</td>
+            </tr>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Notes</th>
+                <td style="border:1px solid #ccc; padding:8px;">@treatment.Notes ?? "N/A"</td>
+            </tr>
+        </table>
+
+        <!-- Treatment Cycle -->
+        @if(Model.TreatmentCycle != null)
+        {
+            dynamic? cycle = Model.TreatmentCycle;
+            <h4>Cycle Info: @cycle.CycleName (@cycle.CycleNumber)</h4>
+            <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Step Type</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@cycle.StepType</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Order Index</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@cycle.OrderIndex</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Start Date</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@cycle.StartDate?.ToString("yyyy-MM-dd")</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">End Date</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@(cycle.EndDate?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Status</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@cycle.Status</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Protocol</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@cycle.Protocol ?? "N/A"</td>
+                </tr>
+            </table>
+        }
+    }
+
+    <!-- Prescriptions -->
+    <h3 style="margin-bottom:5px;">Prescriptions</h3>
+    @if(Model.MedicalRecord.Prescriptions != null && Model.MedicalRecord.Prescriptions.Any())
+    {
+        @foreach(dynamic pres in Model.MedicalRecord.Prescriptions)
+        {
+            <h4 style="margin-bottom:5px;">Prescription: @pres.Id</h4>
+            <table style="width:100%; border-collapse: collapse; margin-bottom:10px;">
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Prescription Date</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@pres.PrescriptionDate.ToString("yyyy-MM-dd")</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Diagnosis</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@pres.Diagnosis ?? "N/A"</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Instructions</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@pres.Instructions ?? "N/A"</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Notes</th>
+                    <td style="border:1px solid #ccc; padding:8px;">@pres.Notes ?? "N/A"</td>
+                </tr>
+                <tr>
+                    <th style="border:1px solid #ccc; padding:8px;">Filled Status</th>
+                    <td style="border:1px solid #ccc; padding:8px;">
+                        @(pres.IsFilled ? $"Filled on {pres.FilledDate?.ToString("yyyy-MM-dd")}" : "Not Filled")
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Prescription Details -->
+            @if(pres.PrescriptionDetails != null && pres.PrescriptionDetails.Any())
+            {
+                <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+                    <thead>
+                        <tr>
+                            <th style="border:1px solid #ccc; padding:8px;">Medicine</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Dosage</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Form</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Quantity</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Frequency</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Duration (days)</th>
+                            <th style="border:1px solid #ccc; padding:8px;">Instructions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach(dynamic d in pres.PrescriptionDetails)
+                    {
+                        <tr>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.Medicine?.Name ?? "N/A"</td>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.Dosage</td>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.Medicine?.Form ?? "N/A"</td>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.Quantity</td>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.Frequency</td>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.DurationDays</td>
+                            <td style="border:1px solid #ccc; padding:8px;">@d.Instructions ?? "N/A"</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        }
+    }
+    else
+    {
+        <p>No prescriptions available.</p>
+    }
+
+</div>
