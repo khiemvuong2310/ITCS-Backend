@@ -407,7 +407,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        // Cancels a cycle and optionally schedules the next one.
+        // Cancels a cycle and marks all subsequent cycles as Failed.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CancelAsync(Guid id, CancelTreatmentCycleRequest request)
         {
             const string methodName = nameof(CancelAsync);
@@ -434,7 +434,6 @@ namespace FSCMS.Service.Services
                         "PREVIOUS_CYCLE_INCOMPLETE");
                 }
 
-                var oldStatus = entity.Status;
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
                 entity.Status = TreatmentStatus.Cancelled;
@@ -444,12 +443,8 @@ namespace FSCMS.Service.Services
 
                 await AddAuditLog("TreatmentCycle", id, "Cancel", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
 
-                // Auto-update next cycle status from Planned to Scheduled (if current cycle was Scheduled/InProgress)
-                // This ensures workflow continuity when a cycle is cancelled but treatment continues
-                if (oldStatus == TreatmentStatus.Scheduled || oldStatus == TreatmentStatus.InProgress)
-                {
-                    await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.CycleNumber, methodName);
-                }
+                // Update all subsequent cycles in the same treatment to Failed status
+                await UpdateAllSubsequentCyclesToFailedAsync(entity.TreatmentId, entity.CycleNumber, request?.Reason, methodName);
 
                 await _unitOfWork.CommitAsync();
 
@@ -895,6 +890,69 @@ namespace FSCMS.Service.Services
                 // Log error but don't fail the main operation
                 _logger.LogWarning(ex, 
                     "{CallingMethodName}: Error updating next cycle status to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
+                    callingMethodName, treatmentId, currentCycleNumber);
+            }
+        }
+
+        /// <summary>
+        /// Updates all subsequent treatment cycles (with higher CycleNumber) to Failed status when the current cycle is cancelled.
+        /// This ensures that when a cycle fails/is cancelled, all remaining cycles in the treatment are also marked as Failed.
+        /// </summary>
+        /// <param name="treatmentId">The treatment ID to find cycles for</param>
+        /// <param name="currentCycleNumber">The CycleNumber of the current cancelled cycle</param>
+        /// <param name="reason">The reason for cancellation to include in notes</param>
+        /// <param name="callingMethodName">The name of the calling method for logging purposes</param>
+        private async Task UpdateAllSubsequentCyclesToFailedAsync(Guid treatmentId, int currentCycleNumber, string? reason, string callingMethodName)
+        {
+            try
+            {
+                var subsequentCycles = await _unitOfWork.Repository<TreatmentCycle>()
+                    .GetQueryable()
+                    .Where(tc => 
+                        tc.TreatmentId == treatmentId 
+                        && tc.CycleNumber > currentCycleNumber 
+                        && !tc.IsDeleted
+                        && tc.Status != TreatmentStatus.Completed
+                        && tc.Status != TreatmentStatus.Failed
+                        && tc.Status != TreatmentStatus.Cancelled)
+                    .OrderBy(tc => tc.CycleNumber)
+                    .ToListAsync();
+
+                if (subsequentCycles.Any())
+                {
+                    foreach (var cycle in subsequentCycles)
+                    {
+                        var oldStatus = cycle.Status;
+                        cycle.Status = TreatmentStatus.Failed;
+                        cycle.UpdatedAt = DateTime.UtcNow;
+                        cycle.EndDate ??= DateTime.UtcNow;
+                        cycle.Notes = cycle.Notes == null 
+                            ? $"Failed due to cycle #{currentCycleNumber} cancelled: {reason}" 
+                            : cycle.Notes + $"\nFailed due to cycle #{currentCycleNumber} cancelled: {reason}";
+                        
+                        await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(cycle, cycle.Id);
+
+                        _logger.LogInformation(
+                            "{CallingMethodName}: Auto-updated cycle {CycleId} (CycleNumber: {CycleNumber}) status from {OldStatus} to Failed for Treatment {TreatmentId}",
+                            callingMethodName, cycle.Id, cycle.CycleNumber, oldStatus, treatmentId);
+                    }
+
+                    _logger.LogInformation(
+                        "{CallingMethodName}: Updated {Count} subsequent cycles to Failed status for Treatment {TreatmentId}",
+                        callingMethodName, subsequentCycles.Count, treatmentId);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "{CallingMethodName}: No subsequent cycles found to update for Treatment {TreatmentId} after CycleNumber {CycleNumber}",
+                        callingMethodName, treatmentId, currentCycleNumber);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the main operation
+                _logger.LogWarning(ex, 
+                    "{CallingMethodName}: Error updating subsequent cycles to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
                     callingMethodName, treatmentId, currentCycleNumber);
             }
         }
