@@ -30,7 +30,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create default CryoBank structure from configuration
         /// </summary>
         [HttpPost("initialize-default-bank")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Admin")]
         [ApiDefaultResponse(typeof(CryoLocationSummaryResponse))]
         public async Task<IActionResult> CreateDefaultBank()
         {
