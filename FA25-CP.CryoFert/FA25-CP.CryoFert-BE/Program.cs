@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using DinkToPdf;
 using DinkToPdf.Contracts;
+using FSCMS.Service.Utils;
 
 namespace FA25_CP.CryoFert_BE
 {
@@ -73,6 +74,13 @@ namespace FA25_CP.CryoFert_BE
             //builder.Services.Configure<VnPayOptions>(
             //    builder.Configuration.GetSection("VnPay")
             //);
+            var wkHtmlPath = Path.Combine(builder.Environment.ContentRootPath,
+                "NativeLibs", "win-x64", "libwkhtmltox.dll");
+
+
+            var context = new CustomAssemblyLoadContext();
+                    context.LoadUnmanagedLibrary(wkHtmlPath);
+
             builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
 

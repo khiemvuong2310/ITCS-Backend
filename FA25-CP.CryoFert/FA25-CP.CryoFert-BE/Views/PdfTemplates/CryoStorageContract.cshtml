@@ -48,7 +48,7 @@
             <th style="border:1px solid #ccc; padding:8px;">Max Samples</th>
             <td style="border:1px solid #ccc; padding:8px;">@Model.CryoPackage.MaxSamples</td>
         </tr>
-        @if (Model.CryoStorageContract.Package.Benefits != null)
+        @if (Model.CryoPackage.Benefits != null)
         {
             <tr>
                 <th style="border:1px solid #ccc; padding:8px;">Benefits</th>
@@ -99,7 +99,7 @@
             </tr>
         </thead>
         <tbody>
-        @foreach (dynamic s in Model.CryoStorageContract.CPSDetail)
+            @foreach (dynamic s in Model.CryoStorageContract.CPSDetails)
         {
             <tr>
                 <td style="border:1px solid #ccc; padding:8px;">@s.LabSample.SampleCode</td>
