@@ -13,6 +13,8 @@ namespace FSCMS.Service.Services
 {
     public class TreatmentIVFService : ITreatmentIVFService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TreatmentIVFService> _logger;
 
@@ -22,6 +24,11 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        #endregion
+
+        #region Queries
+
+        // Retrieves IVF details for a treatment (agreements included).
         public async Task<BaseResponse<TreatmentIVFResponseModel>> GetByTreatmentIdAsync(Guid treatmentId)
         {
             const string methodName = nameof(GetByTreatmentIdAsync);
@@ -71,6 +78,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns current IVF step index for a treatment.
         public async Task<BaseResponse<int>> GetCurrentStepAsync(Guid treatmentId)
         {
             const string methodName = nameof(GetCurrentStepAsync);
@@ -117,6 +125,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Lists IVF plans for a given patient.
         public async Task<BaseResponse<List<TreatmentIVFResponseModel>>> GetByPatientIdAsync(Guid patientId)
         {
             const string methodName = nameof(GetByPatientIdAsync);
@@ -178,6 +187,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Commands
+
+        // Creates IVF metadata for the treatment (shared PK).
         public async Task<BaseResponse<TreatmentIVFResponseModel>> CreateAsync(TreatmentIVFCreateUpdateRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -230,6 +244,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates stored IVF details.
         public async Task<BaseResponse<TreatmentIVFResponseModel>> UpdateAsync(Guid id, TreatmentIVFUpdateRequest request)
         {
             const string methodName = nameof(UpdateAsync);
@@ -283,6 +298,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Soft deletes IVF info for the treatment.
         public async Task<BaseResponse<bool>> DeleteAsync(Guid id)
         {
             const string methodName = nameof(DeleteAsync);
@@ -317,6 +333,8 @@ namespace FSCMS.Service.Services
                 return BaseResponse<bool>.CreateError($"Error deleting IVF: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
         }
+
+        #endregion
     }
 }
 

@@ -388,8 +388,8 @@ namespace FSCMS.Service.Services
 
                     // Ensure TreatmentId matches the created Treatment
                     iuiRequest.TreatmentId = entity.Id;
-                    // Set CurrentStep to 1 when creating new treatment (or 0 if starting from beginning)
-                    iuiRequest.CurrentStep = iuiRequest.CurrentStep ?? 1;
+                    // Start CurrentStep at 0 (no steps completed yet)
+                    iuiRequest.CurrentStep = iuiRequest.CurrentStep ?? 0;
 
                     var iuiResult = await _treatmentIUIService.CreateAsync(iuiRequest);
                     if (!iuiResult.Success)
@@ -422,8 +422,8 @@ namespace FSCMS.Service.Services
 
                     // Ensure TreatmentId matches the created Treatment
                     ivfRequest.TreatmentId = entity.Id;
-                    // Set CurrentStep to 1 when creating new treatment (or 0 if starting from beginning)
-                    ivfRequest.CurrentStep = ivfRequest.CurrentStep ?? 1;
+                    // Start CurrentStep at 0 (no steps completed yet)
+                    ivfRequest.CurrentStep = ivfRequest.CurrentStep ?? 0;
 
                     var ivfResult = await _treatmentIVFService.CreateAsync(ivfRequest);
                     if (!ivfResult.Success)
