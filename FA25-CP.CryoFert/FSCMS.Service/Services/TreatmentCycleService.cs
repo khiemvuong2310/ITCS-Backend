@@ -14,6 +14,8 @@ namespace FSCMS.Service.Services
 {
     public class TreatmentCycleService : ITreatmentCycleService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TreatmentCycleService> _logger;
 
@@ -23,6 +25,11 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        #endregion
+
+        #region Retrieval
+
+        // Returns paginated treatment cycles filtered by request parameters.
         public async Task<DynamicResponse<TreatmentCycleResponseModel>> GetAllAsync(GetTreatmentCyclesRequest request)
         {
             const string methodName = nameof(GetAllAsync);
@@ -122,6 +129,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns detailed info (appointments + docs) for a specific cycle.
         public async Task<BaseResponse<TreatmentCycleDetailResponseModel>> GetByIdAsync(Guid id)
         {
             const string methodName = nameof(GetByIdAsync);
@@ -176,6 +184,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Lifecycle Management
+
+        // Creates a cycle for an existing treatment.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CreateAsync(CreateTreatmentCycleRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -210,6 +223,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates editable fields of a cycle and optionally its status.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> UpdateAsync(Guid id, UpdateTreatmentCycleRequest request)
         {
             const string methodName = nameof(UpdateAsync);
@@ -233,6 +247,15 @@ namespace FSCMS.Service.Services
 
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
+                var isStatusChange = request.Status.HasValue && request.Status.Value != entity.Status;
+                if (isStatusChange && !await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot update cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
                 var statusChangedToCompleted = request.Status.HasValue && request.Status.Value == TreatmentStatus.Completed;
 
                 entity.UpdateEntity(request);
@@ -241,7 +264,7 @@ namespace FSCMS.Service.Services
 
                 if (statusChangedToCompleted)
                 {
-                    await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber + 1, methodName);
+                    await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber, methodName);
                 }
 
                 await AddAuditLog("TreatmentCycle", id, "Update", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
@@ -262,6 +285,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Soft deletes a cycle and records an audit trail.
         public async Task<BaseResponse<bool>> DeleteAsync(Guid id)
         {
             const string methodName = nameof(DeleteAsync);
@@ -298,6 +322,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Moves a cycle into InProgress (optionally overriding start date).
         public async Task<BaseResponse<TreatmentCycleResponseModel>> StartAsync(Guid id, StartTreatmentCycleRequest request)
         {
             const string methodName = nameof(StartAsync);
@@ -332,6 +357,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Completes a cycle, updates next cycle + treatment step tracking.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CompleteAsync(Guid id, CompleteTreatmentCycleRequest request)
         {
             const string methodName = nameof(CompleteAsync);
@@ -347,6 +373,14 @@ namespace FSCMS.Service.Services
                 if (entity.Status == TreatmentStatus.Completed)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("Treatment cycle is already completed", StatusCodes.Status400BadRequest, "ALREADY_COMPLETED");
 
+                if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot complete cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
                 entity.Status = TreatmentStatus.Completed;
@@ -360,7 +394,7 @@ namespace FSCMS.Service.Services
                 // Auto-update next cycle status from Planned to Scheduled
                 await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.CycleNumber, methodName);
 
-                await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber + 1, methodName);
+                await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber, methodName);
 
                 await _unitOfWork.CommitAsync();
 
@@ -373,6 +407,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Cancels a cycle and optionally schedules the next one.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CancelAsync(Guid id, CancelTreatmentCycleRequest request)
         {
             const string methodName = nameof(CancelAsync);
@@ -390,6 +425,14 @@ namespace FSCMS.Service.Services
 
                 if (entity.Status == TreatmentStatus.Completed)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("Cannot cancel a completed cycle", StatusCodes.Status400BadRequest, "CYCLE_COMPLETED");
+
+                if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot cancel cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
 
                 var oldStatus = entity.Status;
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
@@ -419,6 +462,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates a cycle status by treatmentId + cycle number lookup.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> UpdateStatusByOrderAsync(UpdateTreatmentCycleStatusByOrderRequest request)
         {
             const string methodName = nameof(UpdateStatusByOrderAsync);
@@ -459,7 +503,15 @@ namespace FSCMS.Service.Services
                 var oldStatus = entity.Status;
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
-                // Update status
+                var isStatusChange = request.Status != entity.Status;
+                if (isStatusChange && !await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot update cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
                 entity.Status = request.Status;
                 entity.UpdatedAt = DateTime.UtcNow;
 
@@ -487,7 +539,7 @@ namespace FSCMS.Service.Services
                 {
                     // Update next cycle from Planned to Scheduled
                     await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.CycleNumber, methodName);
-                    await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber + 1, methodName);
+                    await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber, methodName);
                 }
                 else if (request.Status == TreatmentStatus.Failed)
                 {
@@ -518,10 +570,17 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Samples & Appointments
+
+        // Returns lab samples tied to the patient of a cycle.
         public async Task<BaseResponse<List<object>>> GetSamplesAsync(Guid id)
         {
             try
             {
+                if (id == Guid.Empty)
+                    return BaseResponse<List<object>>.CreateError("ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 var cycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
                     .Include(tc => tc.Treatment)
@@ -546,6 +605,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Records a new sample for the cycle's patient.
         public async Task<BaseResponse<object>> AddSampleAsync(Guid id, AddCycleSampleRequest request)
         {
             try
@@ -579,6 +639,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Lists appointments linked to a cycle.
         public async Task<BaseResponse<List<AppointmentSummary>>> GetAppointmentsAsync(Guid id)
         {
             try
@@ -605,6 +666,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Creates a new appointment and associates it with the cycle.
         public async Task<BaseResponse<AppointmentSummary>> AddAppointmentAsync(Guid id, AddCycleAppointmentRequest request)
         {
             try
@@ -648,6 +710,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Billing & Documents
+
+        // Returns billing snapshot (estimated cost only for now).
         public async Task<BaseResponse<TreatmentCycleBillingResponse>> GetBillingAsync(Guid id)
         {
             try
@@ -677,6 +744,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Lists uploaded documents for the given cycle.
         public async Task<BaseResponse<List<DocumentSummary>>> GetDocumentsAsync(Guid id)
         {
             try
@@ -707,6 +775,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Uploads metadata for a new document tied to the cycle.
         public async Task<BaseResponse<DocumentSummary>> UploadDocumentAsync(Guid id, UploadCycleDocumentRequest request)
         {
             try
@@ -731,6 +800,10 @@ namespace FSCMS.Service.Services
                 return BaseResponse<DocumentSummary>.CreateError($"Error: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
         }
+
+        #endregion
+
+        #region Helper Methods
 
         /// <summary>
         /// Updates the next treatment cycle status from Planned to Scheduled when the current cycle is completed or cancelled.
@@ -826,7 +899,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        private async Task UpdateTreatmentCurrentStepAsync(Guid treatmentId, int nextCycleNumber, string callingMethodName)
+        private async Task UpdateTreatmentCurrentStepAsync(Guid treatmentId, int completedCycleNumber, string callingMethodName)
         {
             try
             {
@@ -846,12 +919,12 @@ namespace FSCMS.Service.Services
                         .GetQueryable()
                         .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
 
-                    if (iui != null && iui.CurrentStep != nextCycleNumber)
+                    if (iui != null && iui.CurrentStep != completedCycleNumber)
                     {
-                        iui.CurrentStep = nextCycleNumber;
+                        iui.CurrentStep = completedCycleNumber;
                         iui.UpdatedAt = DateTime.UtcNow;
                         await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(iui, iui.Id);
-                        _logger.LogInformation("{CallingMethodName}: Updated IUI current step to {CurrentStep} for Treatment {TreatmentId}", callingMethodName, nextCycleNumber, treatmentId);
+                        _logger.LogInformation("{CallingMethodName}: Updated IUI current step to {CurrentStep} for Treatment {TreatmentId}", callingMethodName, completedCycleNumber, treatmentId);
                     }
                 }
                 else if (treatment.TreatmentType == TreatmentType.IVF)
@@ -860,12 +933,12 @@ namespace FSCMS.Service.Services
                         .GetQueryable()
                         .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
 
-                    if (ivf != null && ivf.CurrentStep != nextCycleNumber)
+                    if (ivf != null && ivf.CurrentStep != completedCycleNumber)
                     {
-                        ivf.CurrentStep = nextCycleNumber;
+                        ivf.CurrentStep = completedCycleNumber;
                         ivf.UpdatedAt = DateTime.UtcNow;
                         await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(ivf, ivf.Id);
-                        _logger.LogInformation("{CallingMethodName}: Updated IVF current step to {CurrentStep} for Treatment {TreatmentId}", callingMethodName, nextCycleNumber, treatmentId);
+                        _logger.LogInformation("{CallingMethodName}: Updated IVF current step to {CurrentStep} for Treatment {TreatmentId}", callingMethodName, completedCycleNumber, treatmentId);
                     }
                 }
             }
@@ -875,11 +948,43 @@ namespace FSCMS.Service.Services
             }
         }
 
+        private async Task<bool> IsPreviousCycleCompletedAsync(Guid treatmentId, int cycleNumber, string callingMethodName)
+        {
+            if (cycleNumber <= 1)
+            {
+                return true;
+            }
+
+            var previousCycle = await _unitOfWork.Repository<TreatmentCycle>()
+                .GetQueryable()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(tc =>
+                    tc.TreatmentId == treatmentId &&
+                    tc.CycleNumber == cycleNumber - 1 &&
+                    !tc.IsDeleted);
+
+            if (previousCycle == null)
+            {
+                _logger.LogWarning("{CallingMethodName}: Previous cycle #{PreviousCycleNumber} not found for Treatment {TreatmentId}", callingMethodName, cycleNumber - 1, treatmentId);
+                return true;
+            }
+
+            var isCompleted = previousCycle.Status == TreatmentStatus.Completed;
+            if (!isCompleted)
+            {
+                _logger.LogInformation("{CallingMethodName}: Previous cycle #{PreviousCycleNumber} for Treatment {TreatmentId} is not completed (Status: {Status})", callingMethodName, cycleNumber - 1, treatmentId, previousCycle.Status);
+            }
+
+            return isCompleted;
+        }
+
         private async Task AddAuditLog(string entityType, Guid entityId, string action, string? oldValues, string? newValues)
         {
             var log = new AuditLog(Guid.NewGuid(), null, entityType, entityId, action, oldValues, newValues, null, null, DateTime.UtcNow.AddHours(7));
             await _unitOfWork.Repository<AuditLog>().InsertAsync(log);
         }
+
+        #endregion
     }
 }
 

@@ -13,6 +13,8 @@ namespace FSCMS.Service.Services
 {
     public class TreatmentIUIService : ITreatmentIUIService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TreatmentIUIService> _logger;
 
@@ -22,6 +24,11 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        #endregion
+
+        #region Queries
+
+        // Retrieves IUI details for a treatment id (agreements included).
         public async Task<BaseResponse<TreatmentIUIResponseModel>> GetByTreatmentIdAsync(Guid treatmentId)
         {
             const string methodName = nameof(GetByTreatmentIdAsync);
@@ -71,6 +78,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns current IUI step index for a treatment.
         public async Task<BaseResponse<int>> GetCurrentStepAsync(Guid treatmentId)
         {
             const string methodName = nameof(GetCurrentStepAsync);
@@ -117,6 +125,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Lists every IUI plan for a patient.
         public async Task<BaseResponse<List<TreatmentIUIResponseModel>>> GetByPatientIdAsync(Guid patientId)
         {
             const string methodName = nameof(GetByPatientIdAsync);
@@ -178,6 +187,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Commands
+
+        // Creates IUI details for a treatment (shared PK).
         public async Task<BaseResponse<TreatmentIUIResponseModel>> CreateAsync(TreatmentIUICreateUpdateRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -231,6 +245,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates IUI metadata for the treatment.
         public async Task<BaseResponse<TreatmentIUIResponseModel>> UpdateAsync(Guid id, TreatmentIUIUpdateRequest request)
         {
             const string methodName = nameof(UpdateAsync);
@@ -283,6 +298,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Soft deletes the IUI info.
         public async Task<BaseResponse<bool>> DeleteAsync(Guid id)
         {
             const string methodName = nameof(DeleteAsync);
@@ -317,6 +333,8 @@ namespace FSCMS.Service.Services
                 return BaseResponse<bool>.CreateError($"Error deleting IUI: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
         }
+
+        #endregion
     }
 }
 

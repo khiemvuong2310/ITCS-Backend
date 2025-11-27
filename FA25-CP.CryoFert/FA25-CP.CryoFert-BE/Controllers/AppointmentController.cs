@@ -9,6 +9,7 @@ using System;
 using System.Threading.Tasks;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using FSCMS.Core.Interfaces;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -22,7 +23,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
     public class AppointmentController : ControllerBase
     {
         private readonly IAppointmentService _appointmentService;
-
+        private readonly IRedisService _redisService;
         public AppointmentController(IAppointmentService appointmentService)
         {
             _appointmentService = appointmentService ?? throw new ArgumentNullException(nameof(appointmentService));
