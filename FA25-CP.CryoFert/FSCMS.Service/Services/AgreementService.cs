@@ -1028,7 +1028,7 @@ namespace FSCMS.Service.Services
                 // Auto-update status if both parties have signed
                 if (entity.SignedByPatient && entity.SignedByDoctor && entity.Status == AgreementStatus.Pending)
                 {
-                    entity.Status = AgreementStatus.Active;
+                    entity.Status = AgreementStatus.Completed;
                     _logger.LogInformation("{MethodName}: Agreement {Id} automatically set to Active status", methodName, id);
                 }
 
