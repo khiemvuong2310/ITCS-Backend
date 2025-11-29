@@ -778,6 +778,9 @@ namespace FSCMS.Service.Services
                 }
 
                 // 6. Create relationship with Pending status
+                // Generate secure approval token for email-based verification
+                var approvalToken = GenerateSecureToken();
+                
                 var relationship = new Relationship(
                     Guid.NewGuid(),
                     request.Patient1Id,
@@ -790,7 +793,8 @@ namespace FSCMS.Service.Services
                     IsActive = request.IsActive,
                     Status = RelationshipStatus.Pending,
                     RequestedBy = currentPatientId,
-                    ExpiresAt = DateTime.UtcNow.AddDays(7) // 7-day expiration for pending requests
+                    ExpiresAt = DateTime.UtcNow.AddDays(7), // 7-day expiration for pending requests
+                    ApprovalToken = approvalToken
                 };
 
                 await _unitOfWork.Repository<Relationship>().InsertAsync(relationship);
@@ -1956,8 +1960,9 @@ namespace FSCMS.Service.Services
 
             var subject = $"Relationship Request from {patient1Name}";
             var baseUrl = _httpContextAccessor.HttpContext?.Request?.Scheme + "://" + _httpContextAccessor.HttpContext?.Request?.Host;
-            var approvalUrl = $"{baseUrl}/api/relationship/approve/{relationship.Id}";
-            var rejectionUrl = $"{baseUrl}/api/relationship/reject/{relationship.Id}";
+            // Include token in URL for email-based verification
+            var approvalUrl = $"{baseUrl}/api/relationship/email-approve/{relationship.Id}?token={relationship.ApprovalToken}";
+            var rejectionUrl = $"{baseUrl}/api/relationship/email-reject/{relationship.Id}?token={relationship.ApprovalToken}";
             var expiresAt = relationship.ExpiresAt?.ToString("yyyy-MM-dd HH:mm") ?? "N/A";
 
             var body = await _emailTemplateService.GetRelationshipConfirmationTemplateAsync(
@@ -2034,6 +2039,197 @@ namespace FSCMS.Service.Services
                 subject,
                 body
             );
+        }
+
+        /// <summary>
+        /// Generates a secure random token for email-based verification
+        /// </summary>
+        private static string GenerateSecureToken()
+        {
+            var tokenBytes = new byte[32];
+            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(tokenBytes);
+            }
+            return Convert.ToBase64String(tokenBytes)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .Replace("=", ""); // URL-safe base64
+        }
+
+        #endregion
+
+        #region Email-Based Relationship Operations (Token-based)
+
+        /// <summary>
+        /// Approves a relationship request via email link with token verification
+        /// </summary>
+        public async Task<BaseResponse<RelationshipResponse>> ApproveRelationshipByTokenAsync(Guid relationshipId, string token)
+        {
+            const string methodName = nameof(ApproveRelationshipByTokenAsync);
+            _logger.LogInformation("{MethodName} called for RelationshipId: {RelationshipId}", methodName, relationshipId);
+
+            try
+            {
+                // 1. Find relationship
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Include(r => r.Patient1)
+                        .ThenInclude(p => p!.Account)
+                    .Include(r => r.Patient2)
+                        .ThenInclude(p => p!.Account)
+                    .Where(r => r.Id == relationshipId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (relationship == null)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship not found - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship request not found", StatusCodes.Status404NotFound, "RELATIONSHIP_EMAIL_001");
+                }
+
+                // 2. Validate token
+                if (string.IsNullOrEmpty(relationship.ApprovalToken) || relationship.ApprovalToken != token)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid token for RelationshipId: {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Invalid or expired approval token", StatusCodes.Status401Unauthorized, "RELATIONSHIP_EMAIL_002");
+                }
+
+                // 3. Check if already processed
+                if (relationship.Status == RelationshipStatus.Approved)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship already approved - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship is already approved", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_APPROVED");
+                }
+
+                if (relationship.Status == RelationshipStatus.Rejected)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship already rejected - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship has been rejected and cannot be approved", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_REJECTED");
+                }
+
+                // 4. Check expiration
+                if (relationship.ExpiresAt.HasValue && relationship.ExpiresAt.Value < DateTime.UtcNow)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship request has expired - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("This relationship request has expired", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_004_EXPIRED");
+                }
+
+                // 5. Update status
+                relationship.Status = RelationshipStatus.Approved;
+                relationship.RespondedBy = relationship.Patient2Id;
+                relationship.RespondedAt = DateTime.UtcNow;
+                relationship.ApprovalToken = null; // Clear token after use
+
+                await _unitOfWork.Repository<Relationship>().UpdateAsync(relationship);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Relationship approved successfully via email - {RelationshipId}", methodName, relationshipId);
+
+                // 6. Send notification email to requester
+                try
+                {
+                    if (relationship.Patient1 != null && relationship.Patient2 != null)
+                    {
+                        await SendRelationshipApprovalEmailAsync(relationship, relationship.Patient1, relationship.Patient2);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "{MethodName}: Failed to send approval notification email", methodName);
+                }
+
+                var response = _mapper.Map<RelationshipResponse>(relationship);
+                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship approved successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error approving relationship via email: {ErrorMessage}", methodName, ex.Message);
+                return BaseResponse<RelationshipResponse>.CreateError($"An error occurred while approving relationship: {ex.Message}", StatusCodes.Status500InternalServerError, "RELATIONSHIP_EMAIL_500");
+            }
+        }
+
+        /// <summary>
+        /// Rejects a relationship request via email link with token verification
+        /// </summary>
+        public async Task<BaseResponse<RelationshipResponse>> RejectRelationshipByTokenAsync(Guid relationshipId, string token, string? rejectionReason = null)
+        {
+            const string methodName = nameof(RejectRelationshipByTokenAsync);
+            _logger.LogInformation("{MethodName} called for RelationshipId: {RelationshipId}", methodName, relationshipId);
+
+            try
+            {
+                // 1. Find relationship
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Include(r => r.Patient1)
+                        .ThenInclude(p => p!.Account)
+                    .Include(r => r.Patient2)
+                        .ThenInclude(p => p!.Account)
+                    .Where(r => r.Id == relationshipId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (relationship == null)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship not found - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship request not found", StatusCodes.Status404NotFound, "RELATIONSHIP_EMAIL_001");
+                }
+
+                // 2. Validate token
+                if (string.IsNullOrEmpty(relationship.ApprovalToken) || relationship.ApprovalToken != token)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid token for RelationshipId: {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Invalid or expired approval token", StatusCodes.Status401Unauthorized, "RELATIONSHIP_EMAIL_002");
+                }
+
+                // 3. Check if already processed
+                if (relationship.Status == RelationshipStatus.Approved)
+                {
+                    _logger.LogWarning("{MethodName}: Cannot reject already approved relationship - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Cannot reject an already approved relationship", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_APPROVED");
+                }
+
+                if (relationship.Status == RelationshipStatus.Rejected)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship already rejected - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship has already been rejected", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_REJECTED");
+                }
+
+                // 4. Check expiration (allow rejection even after expiration for user experience)
+                // Users should be able to explicitly reject even if expired
+
+                // 5. Update status
+                relationship.Status = RelationshipStatus.Rejected;
+                relationship.RespondedBy = relationship.Patient2Id;
+                relationship.RespondedAt = DateTime.UtcNow;
+                relationship.RejectionReason = rejectionReason;
+                relationship.ApprovalToken = null; // Clear token after use
+
+                await _unitOfWork.Repository<Relationship>().UpdateAsync(relationship);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Relationship rejected successfully via email - {RelationshipId}", methodName, relationshipId);
+
+                // 6. Send notification email to requester
+                try
+                {
+                    if (relationship.Patient1 != null && relationship.Patient2 != null)
+                    {
+                        await SendRelationshipRejectionEmailAsync(relationship, relationship.Patient1, relationship.Patient2, rejectionReason);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "{MethodName}: Failed to send rejection notification email", methodName);
+                }
+
+                var response = _mapper.Map<RelationshipResponse>(relationship);
+                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship rejected successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error rejecting relationship via email: {ErrorMessage}", methodName, ex.Message);
+                return BaseResponse<RelationshipResponse>.CreateError($"An error occurred while rejecting relationship: {ex.Message}", StatusCodes.Status500InternalServerError, "RELATIONSHIP_EMAIL_500");
+            }
         }
 
         #endregion
