@@ -36,6 +36,7 @@ namespace FSCMS.Core.Entities
         public bool? UsedICSI { get; set; }
         public string? Complications { get; set; }
         public IVFCycleStatus Status { get; set; } = IVFCycleStatus.Planned;
+        public int CurrentStep { get; set; } = 0;
         public virtual Treatment? Treatment { get; set; }
     }
 }

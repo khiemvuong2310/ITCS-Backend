@@ -96,8 +96,10 @@ namespace FA25_CP.CryoFert_BE
                 {
                     policy.WithOrigins(
                             "http://localhost:5173",
-                            "https://localhost",
+                            "https://localhost:5173",
+                            "http://localhost:3000",
                             "https://localhost:3000",
+                            "https://localhost",
                             "https://fscms.pages.dev",
                             "https://cryo.devnguyen.xyz",
                             "https://cryofert.runasp.net"

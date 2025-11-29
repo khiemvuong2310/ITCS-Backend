@@ -9,6 +9,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.Mapping;
 using FSCMS.Core.Models;
 using FSCMS.Core.Enum;
+using System.Security.Claims;
 
 namespace FSCMS.Service.Services
 {
@@ -17,13 +18,50 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ServiceRequestService> _logger;
         private readonly ITransactionService _transactionService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ServiceRequestService(IUnitOfWork unitOfWork, ILogger<ServiceRequestService> logger, ITransactionService transactionService)
+        public ServiceRequestService(
+            IUnitOfWork unitOfWork, 
+            ILogger<ServiceRequestService> logger, 
+            ITransactionService transactionService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _transactionService = transactionService;
+            _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
+
+        #region Private Helper Methods
+        private async Task<string?> GetCurrentUsernameAsync()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    _logger.LogWarning("Unable to get current user ID from token");
+                    return null;
+                }
+
+                var account = await _unitOfWork.Repository<Account>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Where(a => a.Id == accountId && !a.IsDeleted)
+                    .Select(a => a.Username)
+                    .FirstOrDefaultAsync();
+
+                return account;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting current username from token");
+                return null;
+            }
+        }
+
+        #endregion
 
         public async Task<DynamicResponse<ServiceRequestResponseModel>> GetAllAsync(GetServiceRequestsRequest request)
         {
@@ -271,7 +309,7 @@ namespace FSCMS.Service.Services
                 CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
                 {
                     Amount = (decimal)createdServiceRequest.TotalAmount,
-                    RelatedEntityType = EntityTypeTransaction.Appointment,
+                    RelatedEntityType = EntityTypeTransaction.ServiceRequest,
                     RelatedEntityId = createdServiceRequest.Id
                 };
                 await _transactionService.CreateTransactionAsync(createTransactionRequest, createdServiceRequest.Appointment.PatientId);
@@ -483,10 +521,10 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<ServiceRequestResponseModel>> ApproveAsync(Guid id, string approvedBy)
+        public async Task<BaseResponse<ServiceRequestResponseModel>> ApproveAsync(Guid id)
         {
             const string methodName = nameof(ApproveAsync);
-            _logger.LogInformation("{MethodName} called with id: {Id}, approvedBy: {ApprovedBy}", methodName, id, approvedBy);
+            _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
 
             try
             {
@@ -496,10 +534,12 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Service request ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 }
 
+                // Get current authenticated user's username
+                var approvedBy = await GetCurrentUsernameAsync();
                 if (string.IsNullOrWhiteSpace(approvedBy))
                 {
-                    _logger.LogWarning("{MethodName}: ApprovedBy is null or empty", methodName);
-                    return BaseResponse<ServiceRequestResponseModel>.CreateError("ApprovedBy cannot be empty", StatusCodes.Status400BadRequest, "INVALID_APPROVED_BY");
+                    _logger.LogWarning("{MethodName}: Unable to get current user from token", methodName);
+                    return BaseResponse<ServiceRequestResponseModel>.CreateError("Unable to identify the current user. Please ensure you are authenticated.", StatusCodes.Status401Unauthorized, "UNAUTHORIZED");
                 }
 
                 var entity = await _unitOfWork.Repository<ServiceRequest>()
@@ -524,12 +564,13 @@ namespace FSCMS.Service.Services
                 entity.Status = ServiceRequestStatus.Approved;
                 entity.ApprovedDate = DateTime.UtcNow;
                 entity.ApprovedBy = approvedBy;
+                entity.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
                 var response = entity.ToResponseModel();
-                _logger.LogInformation("{MethodName}: Successfully approved service request {Id}", methodName, id);
+                _logger.LogInformation("{MethodName}: Successfully approved service request {Id} by {ApprovedBy}", methodName, id, approvedBy);
 
                 return BaseResponse<ServiceRequestResponseModel>.CreateSuccess(response, "Service request approved successfully", StatusCodes.Status200OK);
             }
@@ -540,10 +581,10 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<ServiceRequestResponseModel>> RejectAsync(Guid id, string rejectedBy)
+        public async Task<BaseResponse<ServiceRequestResponseModel>> RejectAsync(Guid id)
         {
             const string methodName = nameof(RejectAsync);
-            _logger.LogInformation("{MethodName} called with id: {Id}, rejectedBy: {RejectedBy}", methodName, id, rejectedBy);
+            _logger.LogInformation("{MethodName} called with id: {Id}", methodName, id);
 
             try
             {
@@ -553,10 +594,12 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Service request ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 }
 
+                // Get current authenticated user's username
+                var rejectedBy = await GetCurrentUsernameAsync();
                 if (string.IsNullOrWhiteSpace(rejectedBy))
                 {
-                    _logger.LogWarning("{MethodName}: RejectedBy is null or empty", methodName);
-                    return BaseResponse<ServiceRequestResponseModel>.CreateError("RejectedBy cannot be empty", StatusCodes.Status400BadRequest, "INVALID_REJECTED_BY");
+                    _logger.LogWarning("{MethodName}: Unable to get current user from token", methodName);
+                    return BaseResponse<ServiceRequestResponseModel>.CreateError("Unable to identify the current user. Please ensure you are authenticated.", StatusCodes.Status401Unauthorized, "UNAUTHORIZED");
                 }
 
                 var entity = await _unitOfWork.Repository<ServiceRequest>()
@@ -580,12 +623,13 @@ namespace FSCMS.Service.Services
 
                 entity.Status = ServiceRequestStatus.Rejected;
                 entity.ApprovedBy = rejectedBy;
+                entity.UpdatedAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
                 var response = entity.ToResponseModel();
-                _logger.LogInformation("{MethodName}: Successfully rejected service request {Id}", methodName, id);
+                _logger.LogInformation("{MethodName}: Successfully rejected service request {Id} by {RejectedBy}", methodName, id, rejectedBy);
 
                 return BaseResponse<ServiceRequestResponseModel>.CreateSuccess(response, "Service request rejected successfully", StatusCodes.Status200OK);
             }

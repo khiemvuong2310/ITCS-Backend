@@ -50,10 +50,10 @@ namespace FA25_CP.CryoFert_BE.Common.Filters
             }
             // thêm/ghi đè 200, 400, 401, 404, 500
             AddOrReplaceResponse(operation, "200", "OK", okSchema);
-            AddOrReplaceResponse(operation, "400", "Bad Request", errorSchema);
-            AddOrReplaceResponse(operation, "401", "Unauthorized", errorSchema);
-            AddOrReplaceResponse(operation, "404", "Not Found", errorSchema);
-            AddOrReplaceResponse(operation, "500", "Internal Server Error", errorSchema);
+            //AddOrReplaceResponse(operation, "400", "Bad Request", errorSchema);
+            //AddOrReplaceResponse(operation, "401", "Unauthorized", errorSchema);
+            //AddOrReplaceResponse(operation, "404", "Not Found", errorSchema);
+            //AddOrReplaceResponse(operation, "500", "Internal Server Error", errorSchema);
         }
 
         private void AddOrReplaceResponse(OpenApiOperation operation, string statusCode, string description, OpenApiSchema schema)

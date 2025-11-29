@@ -151,7 +151,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                         {
                             code = 403,
                             systemCode = (string?)null,
-                            message = "Access denied. You don't have permission to access this resource. Admin role required.",
+                            message = "Access denied. You don't have permission to access this resource.",
                             data = (object?)null
                         };
 

@@ -187,6 +187,191 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         #endregion
 
+        #region Email-Based Relationship Operations (Token-based, No Auth Required)
+
+        /// <summary>
+        /// Approves a relationship request via email link with token verification.
+        /// This endpoint is accessible without authentication for email-based approval.
+        /// </summary>
+        /// <param name="id">Relationship ID</param>
+        /// <param name="token">Approval token from email</param>
+        /// <returns>Redirect to success/error page or JSON response</returns>
+        [HttpGet("email-approve/{id:guid}")]
+        [AllowAnonymous]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> ApproveRelationshipByEmail(Guid id, [FromQuery] string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest(new BaseResponse<RelationshipResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Token is required",
+                    SystemCode = "INVALID_TOKEN"
+                });
+            }
+
+            var result = await _patientService.ApproveRelationshipByTokenAsync(id, token);
+            
+            // Return HTML response for better user experience when clicking from email
+            if (result.Success)
+            {
+                return Content(GenerateHtmlResponse(
+                    "Relationship Approved", 
+                    "The relationship request has been approved successfully!", 
+                    true), "text/html");
+            }
+            else
+            {
+                return Content(GenerateHtmlResponse(
+                    "Approval Failed", 
+                    result.Message ?? "Failed to approve the relationship request.", 
+                    false), "text/html");
+            }
+        }
+
+        /// <summary>
+        /// Rejects a relationship request via email link with token verification.
+        /// This endpoint is accessible without authentication for email-based rejection.
+        /// </summary>
+        /// <param name="id">Relationship ID</param>
+        /// <param name="token">Approval token from email</param>
+        /// <param name="reason">Optional rejection reason</param>
+        /// <returns>Redirect to success/error page or JSON response</returns>
+        [HttpGet("email-reject/{id:guid}")]
+        [AllowAnonymous]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> RejectRelationshipByEmail(Guid id, [FromQuery] string token, [FromQuery] string? reason = null)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest(new BaseResponse<RelationshipResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Token is required",
+                    SystemCode = "INVALID_TOKEN"
+                });
+            }
+
+            var result = await _patientService.RejectRelationshipByTokenAsync(id, token, reason);
+            
+            // Return HTML response for better user experience when clicking from email
+            if (result.Success)
+            {
+                return Content(GenerateHtmlResponse(
+                    "Relationship Rejected", 
+                    "The relationship request has been rejected.", 
+                    true), "text/html");
+            }
+            else
+            {
+                return Content(GenerateHtmlResponse(
+                    "Rejection Failed", 
+                    result.Message ?? "Failed to reject the relationship request.", 
+                    false), "text/html");
+            }
+        }
+
+        /// <summary>
+        /// Generates an HTML response page for email-based actions
+        /// </summary>
+        private static string GenerateHtmlResponse(string title, string message, bool isSuccess)
+        {
+            var backgroundColor = isSuccess ? "#d4edda" : "#f8d7da";
+            var textColor = isSuccess ? "#155724" : "#721c24";
+            var borderColor = isSuccess ? "#c3e6cb" : "#f5c6cb";
+            var icon = isSuccess ? "✓" : "✕";
+
+            return $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>{title} - CryoFert</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }}
+        .container {{
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }}
+        .icon {{
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: {backgroundColor};
+            border: 3px solid {borderColor};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 40px;
+            color: {textColor};
+        }}
+        h1 {{
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 24px;
+        }}
+        p {{
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }}
+        .alert {{
+            background: {backgroundColor};
+            border: 1px solid {borderColor};
+            color: {textColor};
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }}
+        .logo {{
+            color: #667eea;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 24px;
+        }}
+        .footer {{
+            color: #999;
+            font-size: 14px;
+            margin-top: 24px;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='logo'>🧬 CryoFert</div>
+        <div class='icon'>{icon}</div>
+        <h1>{title}</h1>
+        <div class='alert'>
+            <p style='margin: 0;'>{message}</p>
+        </div>
+        <p>You can now close this window.</p>
+        <div class='footer'>
+            Healthcare/Fertility Management System
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        #endregion
+
         #region Utility Operations
 
         /// <summary>

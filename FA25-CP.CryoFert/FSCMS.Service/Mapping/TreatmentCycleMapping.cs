@@ -15,7 +15,6 @@ namespace FSCMS.Service.Mapping
                 TreatmentId = entity.TreatmentId,
                 CycleName = entity.CycleName,
                 CycleNumber = entity.CycleNumber,
-                OrderIndex = entity.OrderIndex,
                 StepType = entity.StepType,
                 ExpectedDurationDays = entity.ExpectedDurationDays,
                 StartDate = entity.StartDate,
@@ -37,7 +36,6 @@ namespace FSCMS.Service.Mapping
                 TreatmentId = entity.TreatmentId,
                 CycleName = entity.CycleName,
                 CycleNumber = entity.CycleNumber,
-                OrderIndex = entity.OrderIndex,
                 StepType = entity.StepType,
                 ExpectedDurationDays = entity.ExpectedDurationDays,
                 StartDate = entity.StartDate,
@@ -63,7 +61,6 @@ namespace FSCMS.Service.Mapping
                 request.CycleNumber,
                 request.StartDate,
                 TreatmentStepType.IUI_PreCyclePreparation,
-                request.CycleNumber,
                 0)
             {
                 EndDate = request.EndDate,

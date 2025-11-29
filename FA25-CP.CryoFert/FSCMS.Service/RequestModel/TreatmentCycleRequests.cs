@@ -63,6 +63,22 @@ namespace FSCMS.Service.RequestModel
         public string? Notes { get; set; }
     }
 
+    public class UpdateTreatmentCycleStatusByOrderRequest
+    {
+        [Required]
+        public Guid TreatmentId { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "CycleNumber must be greater than 0")]
+        public int CycleNumber { get; set; }
+
+        [Required]
+        public TreatmentStatus Status { get; set; }
+
+        public string? Notes { get; set; }
+
+    }
+
     // Samples
     public class AddCycleSampleRequest
     {

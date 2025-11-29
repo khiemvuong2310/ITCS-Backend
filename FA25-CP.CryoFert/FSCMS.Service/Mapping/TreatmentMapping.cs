@@ -210,6 +210,7 @@ namespace FSCMS.Service.Mapping
                 UsedICSI = entity.UsedICSI,
                 Complications = entity.Complications,
                 Status = entity.Status,
+                CurrentStep = entity.CurrentStep,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt
             };
@@ -234,7 +235,8 @@ namespace FSCMS.Service.Mapping
                 Outcome = request.Outcome,
                 UsedICSI = request.UsedICSI,
                 Complications = request.Complications,
-                Status = request.Status ?? Core.Enum.IVFCycleStatus.Planned
+                Status = request.Status ?? Core.Enum.IVFCycleStatus.Planned,
+                CurrentStep = request.CurrentStep ?? 0
             };
         }
 
@@ -259,6 +261,10 @@ namespace FSCMS.Service.Mapping
             if (request.Status.HasValue)
             {
                 entity.Status = request.Status.Value;
+            }
+            if (request.CurrentStep.HasValue)
+            {
+                entity.CurrentStep = request.CurrentStep.Value;
             }
         }
 
@@ -332,6 +338,10 @@ namespace FSCMS.Service.Mapping
             {
                 entity.Status = request.Status.Value;
             }
+            if (request.CurrentStep.HasValue)
+            {
+                entity.CurrentStep = request.CurrentStep.Value;
+            }
         }
 
         public static TreatmentIUIResponseModel ToResponseModel(this TreatmentIUI entity)
@@ -349,6 +359,7 @@ namespace FSCMS.Service.Mapping
                 Outcome = entity.Outcome,
                 Notes = entity.Notes,
                 Status = entity.Status,
+                CurrentStep = entity.CurrentStep,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt
             };
@@ -366,7 +377,8 @@ namespace FSCMS.Service.Mapping
                 NumberOfAttempts = request.NumberOfAttempts,
                 Outcome = request.Outcome,
                 Notes = request.Notes,
-                Status = request.Status ?? Core.Enum.IUICycleStatus.Planned
+                Status = request.Status ?? Core.Enum.IUICycleStatus.Planned,
+                CurrentStep = request.CurrentStep ?? 0
             };
         }
 
@@ -384,6 +396,10 @@ namespace FSCMS.Service.Mapping
             if (request.Status.HasValue)
             {
                 entity.Status = request.Status.Value;
+            }
+            if (request.CurrentStep.HasValue)
+            {
+                entity.CurrentStep = request.CurrentStep.Value;
             }
         }
 
@@ -428,6 +444,10 @@ namespace FSCMS.Service.Mapping
             if (request.Status.HasValue)
             {
                 entity.Status = request.Status.Value;
+            }
+            if (request.CurrentStep.HasValue)
+            {
+                entity.CurrentStep = request.CurrentStep.Value;
             }
         }
     }

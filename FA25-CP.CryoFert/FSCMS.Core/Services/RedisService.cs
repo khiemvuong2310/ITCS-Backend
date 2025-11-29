@@ -15,7 +15,7 @@ namespace FSCMS.Core.Services
 {
     public class RedisService : IRedisService
     {
-        private readonly ConnectionMultiplexer _connectionMultiplexer;
+        private readonly IConnectionMultiplexer _connectionMultiplexer;
         private readonly StackExchange.Redis.IDatabase _database;
 
         private readonly IHostEnvironment _environment;
@@ -30,9 +30,9 @@ namespace FSCMS.Core.Services
         /// Initializes a new instance of the <see cref="RedisService"/> class.
         /// </summary>
         /// <param name="configuration">The Redis configuration string.</param>
-        public RedisService(IOptions<RedisOptions> options, IHostEnvironment environment)
+        public RedisService(IConnectionMultiplexer connectionMultiplexer, IHostEnvironment environment)
         {
-            _connectionMultiplexer = ConnectionMultiplexer.Connect(options.Value.ConnectionString);
+            _connectionMultiplexer = connectionMultiplexer;
             _database = _connectionMultiplexer.GetDatabase();
             _environment = environment;
         }
@@ -40,20 +40,20 @@ namespace FSCMS.Core.Services
         /// <inheritdoc/>
         public async Task<bool> KeyExistsAsync(string key)
         {
-            return await _database.KeyExistsAsync(key);
+            return await _database.KeyExistsAsync(GetEnvironmentKey(key));
         }
 
         /// <inheritdoc/>
-        public async Task DeleteKeyAsync(string key)
+        public async Task<bool> DeleteKeyAsync(string key)
         {
-            await _database.KeyDeleteAsync(key);
+            return await _database.KeyDeleteAsync(GetEnvironmentKey(key));
         }
 
         /// <inheritdoc/>
-        public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null)
+        public async Task<bool> SetAsync<T>(string key, T value, TimeSpan? expiry = null)
         {
             string jsonString = JsonSerializer.Serialize(value, _jsonOptions);
-            await SetStringAsync(key, jsonString, expiry);
+            return await _database.StringSetAsync(GetEnvironmentKey(key), jsonString, expiry);
         }
 
         /// <inheritdoc/>

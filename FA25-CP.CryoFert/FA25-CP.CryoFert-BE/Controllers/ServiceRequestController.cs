@@ -143,50 +143,30 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
-        /// Approve a service request
+        /// Approve a service request (automatically uses the current authenticated user)
         /// </summary>
         /// <param name="id">Service request ID</param>
-        /// <param name="approvedBy">User who approves the request</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/approve")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> Approve(Guid id, [FromBody] string approvedBy)
+        public async Task<IActionResult> Approve(Guid id)
         {
-            if (string.IsNullOrWhiteSpace(approvedBy))
-            {
-                return BadRequest(new BaseResponse<ServiceRequestResponseModel>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "ApprovedBy is required"
-                });
-            }
-
-            var result = await _serviceRequestService.ApproveAsync(id, approvedBy);
+            var result = await _serviceRequestService.ApproveAsync(id);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         /// <summary>
-        /// Reject a service request
+        /// Reject a service request (automatically uses the current authenticated user)
         /// </summary>
         /// <param name="id">Service request ID</param>
-        /// <param name="rejectedBy">User who rejects the request</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/reject")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> Reject(Guid id, [FromBody] string rejectedBy)
+        public async Task<IActionResult> Reject(Guid id)
         {
-            if (string.IsNullOrWhiteSpace(rejectedBy))
-            {
-                return BadRequest(new BaseResponse<ServiceRequestResponseModel>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "RejectedBy is required"
-                });
-            }
-
-            var result = await _serviceRequestService.RejectAsync(id, rejectedBy);
+            var result = await _serviceRequestService.RejectAsync(id);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
@@ -196,7 +176,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/complete")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Complete(Guid id)
         {
@@ -210,7 +190,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/cancel")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,Doctor")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Cancel(Guid id)
         {

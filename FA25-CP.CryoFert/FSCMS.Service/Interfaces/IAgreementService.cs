@@ -1,4 +1,5 @@
 using FSCMS.Service.ReponseModel;
+using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using System;
 using System.Threading.Tasks;
@@ -59,6 +60,11 @@ namespace FSCMS.Service.Interfaces
         /// Verify OTP and sign agreement
         /// </summary>
         Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode);
+
+        /// <summary>
+        /// Get agreement file(s) from Media table
+        /// </summary>
+        Task<BaseResponse<List<MediaResponse>>> GetAgreementFileAsync(Guid id);
     }
 }
 

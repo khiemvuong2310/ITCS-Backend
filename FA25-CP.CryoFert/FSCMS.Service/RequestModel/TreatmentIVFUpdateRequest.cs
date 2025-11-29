@@ -26,6 +26,7 @@ namespace FSCMS.Service.RequestModel
         public bool? UsedICSI { get; set; }
         public string? Complications { get; set; }
         public IVFCycleStatus? Status { get; set; }
+        public int? CurrentStep { get; set; }
     }
 }
 
