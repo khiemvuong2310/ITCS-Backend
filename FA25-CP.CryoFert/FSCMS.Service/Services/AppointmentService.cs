@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
@@ -24,13 +25,15 @@ namespace FSCMS.Service.Services
         private readonly IMapper _mapper;
         private readonly ILogger<AppointmentService> _logger;
         private readonly ITransactionService _transactionService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService)
+        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
 
         #region Appointment CRUD Operations
@@ -130,6 +133,25 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Appointment not found with ID: {AppointmentId}", methodName, appointmentId);
                     return BaseResponse<AppointmentDetailResponse>.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
+                }
+
+                // Authorization check: If user is Patient, verify they can only access their own appointments
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (!currentAccountId.HasValue)
+                    {
+                        _logger.LogWarning("{MethodName}: Unable to get current user account ID", methodName);
+                        return BaseResponse<AppointmentDetailResponse>.CreateError("Unable to identify current user", StatusCodes.Status401Unauthorized, "UNAUTHORIZED");
+                    }
+
+                    // Patient and Account share the same ID, so PatientId == AccountId
+                    if (appointment.PatientId != currentAccountId.Value)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {AccountId} attempted to access appointment {AppointmentId} belonging to patient {PatientId}", 
+                            methodName, currentAccountId.Value, appointmentId, appointment.PatientId);
+                        return BaseResponse<AppointmentDetailResponse>.CreateError("You do not have permission to access this appointment", StatusCodes.Status403Forbidden, "FORBIDDEN");
+                    }
                 }
 
                 // Load Patient separately if it's null but PatientId exists (e.g., if Patient is soft deleted)
@@ -1709,6 +1731,43 @@ namespace FSCMS.Service.Services
                 RelatedEntityType = transaction.RelatedEntityType,
                 RelatedEntityId = transaction.RelatedEntityId
             };
+        }
+
+        /// <summary>
+        /// Gets current account ID from JWT token
+        /// </summary>
+        private Guid? GetCurrentAccountId()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return null;
+                }
+                return accountId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting current account ID from token");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Checks if current user has the specified role
+        /// </summary>
+        private bool IsCurrentUserInRole(string roleName)
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext?.User?.IsInRole(roleName) ?? false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error checking user role: {RoleName}", roleName);
+                return false;
+            }
         }
 
         /// <summary>

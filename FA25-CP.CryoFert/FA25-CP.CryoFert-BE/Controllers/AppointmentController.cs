@@ -51,7 +51,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Detailed appointment information</returns>
         [HttpGet("{id:guid}/details")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(AppointmentDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentDetails(Guid id)
         {

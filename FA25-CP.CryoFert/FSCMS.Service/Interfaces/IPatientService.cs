@@ -147,6 +147,23 @@ namespace FSCMS.Service.Interfaces
         /// <returns>Updated relationship response</returns>
         Task<BaseResponse<RelationshipResponse>> RejectRelationshipAsync(RejectRelationshipRequest request);
 
+        /// <summary>
+        /// Approves a relationship request via email link with token verification
+        /// </summary>
+        /// <param name="relationshipId">Relationship ID</param>
+        /// <param name="token">Approval token from email</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> ApproveRelationshipByTokenAsync(Guid relationshipId, string token);
+
+        /// <summary>
+        /// Rejects a relationship request via email link with token verification
+        /// </summary>
+        /// <param name="relationshipId">Relationship ID</param>
+        /// <param name="token">Approval token from email</param>
+        /// <param name="rejectionReason">Optional rejection reason</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> RejectRelationshipByTokenAsync(Guid relationshipId, string token, string? rejectionReason = null);
+
         #endregion
 
         #region Search and Utility Operations
