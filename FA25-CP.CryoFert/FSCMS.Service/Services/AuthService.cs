@@ -33,6 +33,7 @@ namespace FSCMS.Service.Services
         private readonly IEmailTemplateService _emailTemplateService;
         private readonly IMemoryCache _cache;
         private readonly IRoleService _roleService;
+        private readonly IPatientService _patientService;
         private readonly string _emailSender;
         private readonly string _emailPassword;
         private readonly string _emailSenderName;
@@ -54,7 +55,8 @@ namespace FSCMS.Service.Services
             IHttpContextAccessor httpContextAccessor,
             IEmailTemplateService emailTemplateService,
             IMemoryCache cache,
-            IRoleService roleService
+            IRoleService roleService,
+            IPatientService patientService
             )
         {
             _configuration = configuration;
@@ -64,6 +66,7 @@ namespace FSCMS.Service.Services
             _emailTemplateService = emailTemplateService;
             _cache = cache;
             _roleService = roleService;
+            _patientService = patientService;
 
             // Load email configuration from appsettings.json or environment variables
             _emailSender = configuration["Email:Sender"]
@@ -133,6 +136,8 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                var patientInfo = await GetPatientInfoByAccountIdAsync(account.Id);
+
                 // Check if account is banned
                 if (account.IsActive == false)
                 {
@@ -145,7 +150,8 @@ namespace FSCMS.Service.Services
                         Data = new LoginResponseModel
                         {
                             User = bannedUserDetails,
-                            EmailVerified = true
+                            EmailVerified = true,
+                            Patient = patientInfo
                         },
                         IsBanned = true
                     };
@@ -176,7 +182,8 @@ namespace FSCMS.Service.Services
                         Data = new LoginResponseModel
                         {
                             User = unverifiedUserDetails,
-                            EmailVerified = false
+                            EmailVerified = false,
+                            Patient = patientInfo
                         },
                         IsBanned = false,
                         RequiresVerification = true
@@ -219,7 +226,8 @@ namespace FSCMS.Service.Services
                         Token = token,
                         RefreshToken = refreshToken,
                         User = userDetails ?? (await _userService.GetUserByIdAsync(account.Id)).Data,
-                        EmailVerified = true
+                        EmailVerified = true,
+                        Patient = patientInfo
                     },
                     IsBanned = false
                 };
@@ -1054,6 +1062,23 @@ namespace FSCMS.Service.Services
             var guidString = accountId.ToString("N");
             var nationalId = guidString.Length >= 12 ? guidString.Substring(0, 12) : guidString.PadRight(12, '0');
             return nationalId;
+        }
+
+        /// <summary>
+        /// Safely fetches patient information for a given account.
+        /// Returns null when the account is not linked to a patient or if lookup fails.
+        /// </summary>
+        private async Task<PatientResponse?> GetPatientInfoByAccountIdAsync(Guid accountId)
+        {
+            try
+            {
+                var patientResult = await _patientService.GetPatientByAccountIdAsync(accountId);
+                return patientResult.Success ? patientResult.Data : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
@@ -24,13 +25,15 @@ namespace FSCMS.Service.Services
         private readonly IMapper _mapper;
         private readonly ILogger<AppointmentService> _logger;
         private readonly ITransactionService _transactionService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService)
+        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
 
         #region Appointment CRUD Operations
@@ -130,6 +133,25 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Appointment not found with ID: {AppointmentId}", methodName, appointmentId);
                     return BaseResponse<AppointmentDetailResponse>.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
+                }
+
+                // Authorization check: If user is Patient, verify they can only access their own appointments
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (!currentAccountId.HasValue)
+                    {
+                        _logger.LogWarning("{MethodName}: Unable to get current user account ID", methodName);
+                        return BaseResponse<AppointmentDetailResponse>.CreateError("Unable to identify current user", StatusCodes.Status401Unauthorized, "UNAUTHORIZED");
+                    }
+
+                    // Patient and Account share the same ID, so PatientId == AccountId
+                    if (appointment.PatientId != currentAccountId.Value)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {AccountId} attempted to access appointment {AppointmentId} belonging to patient {PatientId}", 
+                            methodName, currentAccountId.Value, appointmentId, appointment.PatientId);
+                        return BaseResponse<AppointmentDetailResponse>.CreateError("You do not have permission to access this appointment", StatusCodes.Status403Forbidden, "FORBIDDEN");
+                    }
                 }
 
                 // Load Patient separately if it's null but PatientId exists (e.g., if Patient is soft deleted)
@@ -740,20 +762,10 @@ namespace FSCMS.Service.Services
 
                     // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
                     var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
-                    var workDate = appointmentDate;
                     if (primaryDoctorId.HasValue)
                     {
-                        var existingSchedule = await _unitOfWork.Repository<DoctorSchedule>()
-                            .AsQueryable()
-                            .FirstOrDefaultAsync(ds => ds.DoctorId == primaryDoctorId.Value && ds.SlotId == slot.Id && ds.WorkDate == workDate && !ds.IsDeleted);
-
-                        if (existingSchedule == null)
-                        {
-                            // Create an available schedule for this doctor, date, and slot
-                            var newSchedule = new DoctorSchedule(Guid.NewGuid(), primaryDoctorId.Value, slot.Id, workDate, true);
-                            await _unitOfWork.Repository<DoctorSchedule>().InsertAsync(newSchedule);
-                        }
-                        else if (!existingSchedule.IsAvailable)
+                        var doctorAvailable = await IsDoctorAvailableForSlotAsync(primaryDoctorId.Value, slot.Id, appointmentDate);
+                        if (!doctorAvailable)
                         {
                             _logger.LogWarning("{MethodName}: Doctor not available for selected slot/date", methodName);
                             return BaseResponse<AppointmentResponse>.CreateError("Doctor is not available for the selected slot/date", StatusCodes.Status400BadRequest, "DOCTOR_NOT_AVAILABLE");
@@ -1448,6 +1460,39 @@ namespace FSCMS.Service.Services
         #region Private Helper Methods
 
         /// <summary>
+        /// Determine if a doctor is free for the specified slot and appointment date.
+        /// Absence of schedule data is treated as available.
+        /// </summary>
+        private async Task<bool> IsDoctorAvailableForSlotAsync(Guid doctorId, Guid slotId, DateOnly appointmentDate)
+        {
+            var hasUnavailableSchedule = await _unitOfWork.Repository<DoctorSchedule>()
+                .AsQueryable()
+                .AnyAsync(ds =>
+                    !ds.IsDeleted &&
+                    ds.DoctorId == doctorId &&
+                    ds.SlotId == slotId &&
+                    ds.WorkDate == appointmentDate &&
+                    !ds.IsAvailable);
+
+            if (hasUnavailableSchedule)
+            {
+                return false;
+            }
+
+            var hasConflictingAppointment = await _unitOfWork.Repository<Appointment>()
+                .AsQueryable()
+                .AnyAsync(a =>
+                    !a.IsDeleted &&
+                    a.SlotId == slotId &&
+                    a.AppointmentDate == appointmentDate &&
+                    a.AppointmentDoctors.Any(ad => ad.DoctorId == doctorId && !ad.IsDeleted) &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    a.Status != AppointmentStatus.Rescheduled);
+
+            return !hasConflictingAppointment;
+        }
+
+        /// <summary>
         /// Map Appointment entity to AppointmentResponse
         /// </summary>
         private AppointmentResponse MapToAppointmentResponse(Appointment appointment)
@@ -1686,6 +1731,43 @@ namespace FSCMS.Service.Services
                 RelatedEntityType = transaction.RelatedEntityType,
                 RelatedEntityId = transaction.RelatedEntityId
             };
+        }
+
+        /// <summary>
+        /// Gets current account ID from JWT token
+        /// </summary>
+        private Guid? GetCurrentAccountId()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return null;
+                }
+                return accountId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting current account ID from token");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Checks if current user has the specified role
+        /// </summary>
+        private bool IsCurrentUserInRole(string roleName)
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext?.User?.IsInRole(roleName) ?? false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error checking user role: {RoleName}", roleName);
+                return false;
+            }
         }
 
         /// <summary>

@@ -339,6 +339,23 @@ namespace FSCMS.Service.Services
                     return BaseResponse<TreatmentResponseModel>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
                 }
 
+                var today = DateTime.UtcNow.Date;
+                if (request.StartDate.Date < today)
+                {
+                    return BaseResponse<TreatmentResponseModel>.CreateError(
+                        "StartDate cannot be earlier than today",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_START_DATE");
+                }
+
+                if (request.PreferredStartDate.HasValue && request.PreferredStartDate.Value.Date < today)
+                {
+                    return BaseResponse<TreatmentResponseModel>.CreateError(
+                        "PreferredStartDate cannot be earlier than today",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_PREFERRED_START_DATE");
+                }
+
                 // Validate foreign keys
                 var patientExists = await _unitOfWork.Repository<Patient>().GetQueryable().AnyAsync(p => p.Id == request.PatientId && !p.IsDeleted);
                 if (!patientExists)
@@ -388,6 +405,8 @@ namespace FSCMS.Service.Services
 
                     // Ensure TreatmentId matches the created Treatment
                     iuiRequest.TreatmentId = entity.Id;
+                    // Start CurrentStep at 0 (no steps completed yet)
+                    iuiRequest.CurrentStep = iuiRequest.CurrentStep ?? 0;
 
                     var iuiResult = await _treatmentIUIService.CreateAsync(iuiRequest);
                     if (!iuiResult.Success)
@@ -420,6 +439,8 @@ namespace FSCMS.Service.Services
 
                     // Ensure TreatmentId matches the created Treatment
                     ivfRequest.TreatmentId = entity.Id;
+                    // Start CurrentStep at 0 (no steps completed yet)
+                    ivfRequest.CurrentStep = ivfRequest.CurrentStep ?? 0;
 
                     var ivfResult = await _treatmentIVFService.CreateAsync(ivfRequest);
                     if (!ivfResult.Success)
@@ -445,9 +466,9 @@ namespace FSCMS.Service.Services
                         var baselineDate = request.PreferredStartDate ?? entity.StartDate;
                         var procedureTriggerDate = baselineDate.AddDays(10);
                         var iuiProcedureDate = procedureTriggerDate.AddHours(36);
-                        var stepPlan = new List<(int OrderIndex, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
+                        var stepPlan = new List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
                         {
-                            (1, "Pre-Cycle Preparation", baselineDate.AddDays(-14), TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase ~2 weeks before baseline."),
+                            (1, "Pre-Cycle Preparation", baselineDate, TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase begins at baseline."),
                             (2, "Day 2-3 Assessment", baselineDate, TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
                             (3, "Day 7-10 Follicle Monitoring", baselineDate.AddDays(7), TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 1, "Mid-cycle follicle monitoring."),
                             (4, "Day 10-12 Trigger", procedureTriggerDate, TreatmentStepType.IUI_Day10_12_Trigger, 1, "Ovulation trigger planning."),
@@ -473,10 +494,9 @@ namespace FSCMS.Service.Services
                                 Guid.NewGuid(),
                                 entity.Id,
                                 $"{entity.TreatmentName} - {step.CycleName}",
-                                step.OrderIndex,
+                                step.CycleNumber,
                                 step.ScheduledDate,
                                 step.StepType,
-                                step.OrderIndex,
                                 step.ExpectedDurationDays)
                             {
                                 Status = status,
@@ -487,8 +507,8 @@ namespace FSCMS.Service.Services
                             await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
                             createdCycles.Add(cycle);
 
-                            _logger.LogInformation("{MethodName}: Created IUI step {OrderIndex} ({StepType}) for Treatment {TreatmentId}",
-                                methodName, step.OrderIndex, step.StepType, entity.Id);
+                            _logger.LogInformation("{MethodName}: Created IUI step {CycleNumber} ({StepType}) for Treatment {TreatmentId}",
+                                methodName, step.CycleNumber, step.StepType, entity.Id);
                         }
                     }
                     else if (request.TreatmentType == TreatmentType.IVF)
@@ -501,9 +521,9 @@ namespace FSCMS.Service.Services
                         var embryoTransferDate = opuDate.AddDays(5);
                         var betaTestDate = embryoTransferDate.AddDays(14);
 
-                        var ivfPlan = new List<(int OrderIndex, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
+                        var ivfPlan = new List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
                         {
-                            (1, "Pre-Cycle Preparation", baselineDate.AddDays(-14), TreatmentStepType.IVF_PreCyclePreparation, 14, "Patient prep and protocol confirmation (~2 weeks)."),
+                            (1, "Pre-Cycle Preparation", baselineDate, TreatmentStepType.IVF_PreCyclePreparation, 14, "Patient prep and protocol confirmation starts at baseline."),
                             (2, "Controlled Ovarian Stimulation", baselineDate, TreatmentStepType.IVF_StimulationStart, 10, "Stimulation start (COS day 1)."),
                             (3, "Mid-Stimulation Monitoring", baselineDate.AddDays(4), TreatmentStepType.IVF_Monitoring, 1, "Ultrasound/bloodwork mid stimulation."),
                             (4, "Ovulation Trigger", triggerDate, TreatmentStepType.IVF_Trigger, 0, "Trigger shot ~day 10."),
@@ -530,10 +550,9 @@ namespace FSCMS.Service.Services
                                 Guid.NewGuid(),
                                 entity.Id,
                                 $"{entity.TreatmentName} - {step.CycleName}",
-                                step.OrderIndex,
+                                step.CycleNumber,
                                 step.ScheduledDate,
                                 step.StepType,
-                                step.OrderIndex,
                                 step.ExpectedDurationDays)
                             {
                                 Status = status,
@@ -544,8 +563,8 @@ namespace FSCMS.Service.Services
                             await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
                             createdCycles.Add(cycle);
 
-                            _logger.LogInformation("{MethodName}: Created IVF step {OrderIndex} ({StepType}) with status {Status} for Treatment {TreatmentId}",
-                                methodName, step.OrderIndex, step.StepType, status, entity.Id);
+                            _logger.LogInformation("{MethodName}: Created IVF step {CycleNumber} ({StepType}) with status {Status} for Treatment {TreatmentId}",
+                                methodName, step.CycleNumber, step.StepType, status, entity.Id);
                         }
                     }
                 }

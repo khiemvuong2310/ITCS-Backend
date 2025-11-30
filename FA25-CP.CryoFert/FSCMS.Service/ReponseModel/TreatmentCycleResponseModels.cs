@@ -8,7 +8,6 @@ namespace FSCMS.Service.ReponseModel
         public Guid TreatmentId { get; set; }
         public string CycleName { get; set; } = string.Empty;
         public int CycleNumber { get; set; }
-        public int OrderIndex { get; set; }
         public TreatmentStepType StepType { get; set; }
         public int ExpectedDurationDays { get; set; }
         public DateTime? StartDate { get; set; }

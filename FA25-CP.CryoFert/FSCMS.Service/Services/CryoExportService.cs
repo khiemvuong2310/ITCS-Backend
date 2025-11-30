@@ -204,6 +204,8 @@ namespace FSCMS.Service.Services
                 //locationExists.LabSamples = null;
                 labSampleExists.Status = SpecimenStatus.Thawed;
                 await DecrementSampleCountAsync(locationExists.Id);
+                labSampleExists.CryoLocationId = null;
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(labSampleExists, labSampleExists.Id);
 
                 await _unitOfWork.Repository<CryoExport>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();

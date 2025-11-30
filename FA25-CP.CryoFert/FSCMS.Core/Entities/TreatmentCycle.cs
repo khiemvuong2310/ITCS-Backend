@@ -19,7 +19,6 @@ namespace FSCMS.Core.Entities
             int cycleNumber,
             DateTime startDate,
             TreatmentStepType stepType = TreatmentStepType.IUI_PreCyclePreparation,
-            int orderIndex = 1,
             int expectedDurationDays = 0)
         {
             Id = id;
@@ -28,16 +27,13 @@ namespace FSCMS.Core.Entities
             CycleNumber = cycleNumber;
             StartDate = startDate;
             StepType = stepType;
-            OrderIndex = orderIndex;
             ExpectedDurationDays = expectedDurationDays;
             Status = TreatmentStatus.Planned;
         }
         public Guid TreatmentId { get; set; }
 
         public string CycleName { get; set; } = string.Empty; //text hiển thị cho người dùng
-
         public int CycleNumber { get; set; }
-        public int OrderIndex { get; set; }
         public int ExpectedDurationDays { get; set; }  //Cho phép ước tính thời gian từng step.
         public TreatmentStepType StepType { get; set; } = TreatmentStepType.IUI_PreCyclePreparation; //logic nghiệp vụ
 
