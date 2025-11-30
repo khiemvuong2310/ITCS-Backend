@@ -60,6 +60,7 @@ namespace FSCMS.Core
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Media> Medias { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -371,6 +372,19 @@ namespace FSCMS.Core
                 .HasOne(al => al.User)
                 .WithMany()
                 .HasForeignKey(al => al.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Notification Relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Patient)
+                .WithMany()
+                .HasForeignKey(n => n.PatientId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // ========================================

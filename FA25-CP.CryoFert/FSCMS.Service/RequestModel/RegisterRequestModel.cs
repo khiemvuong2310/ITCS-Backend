@@ -41,6 +41,12 @@ namespace FSCMS.Service.RequestModel
         [Required(ErrorMessage = "Password is required.")]
         [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters.")]
         public string Password { get; set; }
+
+        [Required(ErrorMessage = "Birth date is required.")]
+        public DateTime BirthDate { get; set; }
+
+        [Required(ErrorMessage = "Gender is required.")]
+        public bool Gender { get; set; } // true = Male (Nam), false = Female (Nữ)
         //public bool? Status { get; set; }
 
     }
