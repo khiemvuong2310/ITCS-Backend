@@ -1,6 +1,7 @@
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
+using FSCMS.Core.Interfaces;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
@@ -21,12 +22,18 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<UserService> _logger;
+        private readonly IRedisService _redisService;
+        private const int CACHE_EXPIRY_MINUTES = 15;
+        private const string CACHE_KEY_PREFIX = "user";
+        private const string CACHE_KEY_EMAIL_PREFIX = "user:email";
+        private const string CACHE_KEY_DETAIL_PREFIX = "user:detail";
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger, IRedisService redisService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         /// <summary>
@@ -54,6 +61,15 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                // Try to get from cache
+                var cacheKey = $"{CACHE_KEY_PREFIX}:{userId}";
+                var cachedUser = await _redisService.GetAsync<BaseResponse<UserResponse>>(cacheKey);
+                if (cachedUser != null && cachedUser.Data != null)
+                {
+                    _logger.LogInformation("{MethodName}: User {UserId} retrieved from cache", methodName, userId);
+                    return cachedUser;
+                }
+
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .AsNoTracking()
@@ -74,15 +90,19 @@ namespace FSCMS.Service.Services
                 }
 
                 var userResponse = _mapper.Map<UserResponse>(account);
-                _logger.LogInformation("{MethodName}: Successfully retrieved user {UserId}", methodName, userId);
-
-                return new BaseResponse<UserResponse>
+                var response = new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     SystemCode = "SUCCESS",
                     Message = "User retrieved successfully",
                     Data = userResponse
                 };
+
+                // Cache the response
+                await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
+                _logger.LogInformation("{MethodName}: Successfully retrieved user {UserId} and cached", methodName, userId);
+
+                return response;
             }
             catch (Exception ex)
             {
@@ -124,6 +144,15 @@ namespace FSCMS.Service.Services
 
                 var normalizedEmail = email.Trim().ToLowerInvariant();
 
+                // Try to get from cache
+                var cacheKey = $"{CACHE_KEY_EMAIL_PREFIX}:{normalizedEmail}";
+                var cachedUser = await _redisService.GetAsync<BaseResponse<UserResponse>>(cacheKey);
+                if (cachedUser != null && cachedUser.Data != null)
+                {
+                    _logger.LogInformation("{MethodName}: User with email {Email} retrieved from cache", methodName, email);
+                    return cachedUser;
+                }
+
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .AsNoTracking()
@@ -144,15 +173,20 @@ namespace FSCMS.Service.Services
                 }
 
                 var userResponse = _mapper.Map<UserResponse>(account);
-                _logger.LogInformation("{MethodName}: Successfully retrieved user by email", methodName);
-
-                return new BaseResponse<UserResponse>
+                var response = new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     SystemCode = "SUCCESS",
                     Message = "User retrieved successfully",
                     Data = userResponse
                 };
+
+                // Cache the response (also cache by user ID for consistency)
+                await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
+                await _redisService.SetAsync($"{CACHE_KEY_PREFIX}:{account.Id}", response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
+                _logger.LogInformation("{MethodName}: Successfully retrieved user by email and cached", methodName);
+
+                return response;
             }
             catch (Exception ex)
             {
@@ -224,9 +258,12 @@ namespace FSCMS.Service.Services
         /// </summary>
         public async Task<BaseResponse<UserDetailResponse>> GetUserDetailByIdAsync(Guid userId)
         {
+            const string methodName = nameof(GetUserDetailByIdAsync);
+            _logger.LogInformation("{MethodName} called with userId: {UserId}", methodName, userId);
+
             try
             {
-                if (userId == null)
+                if (userId == Guid.Empty)
                 {
                     return new BaseResponse<UserDetailResponse>
                     {
@@ -236,8 +273,18 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                // Try to get from cache
+                var cacheKey = $"{CACHE_KEY_DETAIL_PREFIX}:{userId}";
+                var cachedUserDetail = await _redisService.GetAsync<BaseResponse<UserDetailResponse>>(cacheKey);
+                if (cachedUserDetail != null && cachedUserDetail.Data != null)
+                {
+                    _logger.LogInformation("{MethodName}: User detail {UserId} retrieved from cache", methodName, userId);
+                    return cachedUserDetail;
+                }
+
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
+                    .AsNoTracking()
                     .Include(u => u.Role)
                     .Include(u => u.Patient)
                     .Include(u => u.Doctor)
@@ -254,15 +301,22 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                return new BaseResponse<UserDetailResponse>
+                var response = new BaseResponse<UserDetailResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "User details retrieved successfully",
                     Data = _mapper.Map<UserDetailResponse>(account)
                 };
+
+                // Cache the response
+                await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
+                _logger.LogInformation("{MethodName}: Successfully retrieved user detail {UserId} and cached", methodName, userId);
+
+                return response;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "{MethodName}: Error retrieving user detail {UserId}", methodName, userId);
                 return new BaseResponse<UserDetailResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -402,6 +456,34 @@ namespace FSCMS.Service.Services
                 // Hash password
                 newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
+                // Ensure required non-nullable fields are not null
+                // Phone is required in database but optional in request
+                if (string.IsNullOrEmpty(newAccount.Phone))
+                {
+                    newAccount.Phone = string.Empty;
+                }
+
+                // Username is required in database but optional in request
+                if (string.IsNullOrEmpty(newAccount.Username))
+                {
+                    newAccount.Username = string.Empty;
+                }
+
+                // FirstName is required in database but may not be in request
+                if (string.IsNullOrEmpty(newAccount.FirstName))
+                {
+                    // Try to use UserName from request, or set to empty string
+                    newAccount.FirstName = !string.IsNullOrEmpty(request.UserName) 
+                        ? request.UserName 
+                        : string.Empty;
+                }
+
+                // LastName is required in database but may not be in request
+                if (string.IsNullOrEmpty(newAccount.LastName))
+                {
+                    newAccount.LastName = string.Empty;
+                }
+
                 // Save to database
                 await _unitOfWork.Repository<Account>().InsertAsync(newAccount);
                 await _unitOfWork.CommitAsync();
@@ -411,6 +493,13 @@ namespace FSCMS.Service.Services
                     .AsQueryable()
                     .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.Id == newAccount.Id);
+
+                if (createdAccount != null)
+                {
+                    // Invalidate cache for email (if exists)
+                    var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                    await InvalidateUserCacheAsync(createdAccount.Id, normalizedEmail);
+                }
 
                 return new BaseResponse<UserResponse>
                 {
@@ -437,7 +526,7 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                if (userId == null)
+                if (userId == Guid.Empty)
                 {
                     return new BaseResponse<UserResponse>
                     {
@@ -462,6 +551,9 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                // Store original RoleId to preserve it if not being updated
+                var originalRoleId = account.RoleId;
+
                 // Check if new role exists (if role is being updated)
                 if (request.RoleId.HasValue)
                 {
@@ -483,9 +575,25 @@ namespace FSCMS.Service.Services
                 // Update account
                 _mapper.Map(request, account);
 
+                // Preserve original RoleId if not provided in request
+                // This prevents foreign key constraint violation when RoleId is null in request
+                if (!request.RoleId.HasValue)
+                {
+                    account.RoleId = originalRoleId;
+                }
+                // If RoleId was provided but somehow became empty after mapping, preserve original
+                else if (account.RoleId == Guid.Empty)
+                {
+                    account.RoleId = originalRoleId;
+                }
+
                 // Save changes
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
+
+                // Invalidate cache
+                var normalizedEmail = account.Email.Trim().ToLowerInvariant();
+                await InvalidateUserCacheAsync(userId, normalizedEmail);
 
                 // Reload with role information
                 var updatedAccount = await _unitOfWork.Repository<Account>()
@@ -518,7 +626,7 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                if (userId == null)
+                if (userId == Guid.Empty)
                 {
                     return new BaseResponse
                     {
@@ -547,6 +655,10 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
+
+                // Invalidate cache
+                var normalizedEmail = account.Email.Trim().ToLowerInvariant();
+                await InvalidateUserCacheAsync(userId, normalizedEmail);
 
                 return new BaseResponse
                 {
@@ -591,7 +703,7 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                if (userId == null)
+                if (userId == Guid.Empty)
                 {
                     return new BaseResponse
                     {
@@ -629,6 +741,10 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
+                // Invalidate cache
+                var normalizedEmail = account.Email.Trim().ToLowerInvariant();
+                await InvalidateUserCacheAsync(userId, normalizedEmail);
+
                 return new BaseResponse
                 {
                     Code = StatusCodes.Status200OK,
@@ -652,7 +768,7 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                if (userId == null)
+                if (userId == Guid.Empty)
                 {
                     return new BaseResponse
                     {
@@ -681,6 +797,10 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
                 await _unitOfWork.CommitAsync();
 
+                // Invalidate cache
+                var normalizedEmail = account.Email.Trim().ToLowerInvariant();
+                await InvalidateUserCacheAsync(userId, normalizedEmail);
+
                 return new BaseResponse
                 {
                     Code = StatusCodes.Status200OK,
@@ -696,5 +816,33 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        #region Private Helper Methods
+
+        /// <summary>
+        /// Invalidates all cache entries for a user
+        /// </summary>
+        private async Task InvalidateUserCacheAsync(Guid userId, string normalizedEmail)
+        {
+            try
+            {
+                var tasks = new List<Task>
+                {
+                    _redisService.DeleteKeyAsync($"{CACHE_KEY_PREFIX}:{userId}"),
+                    _redisService.DeleteKeyAsync($"{CACHE_KEY_EMAIL_PREFIX}:{normalizedEmail}"),
+                    _redisService.DeleteKeyAsync($"{CACHE_KEY_DETAIL_PREFIX}:{userId}")
+                };
+
+                await Task.WhenAll(tasks);
+                _logger.LogInformation("Cache invalidated for user {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to invalidate cache for user {UserId}", userId);
+                // Don't throw - cache invalidation failure shouldn't break the operation
+            }
+        }
+
+        #endregion
     }
 }
