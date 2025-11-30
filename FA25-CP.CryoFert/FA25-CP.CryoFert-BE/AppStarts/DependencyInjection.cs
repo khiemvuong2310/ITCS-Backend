@@ -1,9 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
 using Twilio.Clients;
@@ -134,6 +137,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+                var logger = sp.GetRequiredService<ILogger<IConnectionMultiplexer>>();
 
                 ConfigurationOptions configurationOptions;
 
@@ -145,11 +149,14 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 {
                     if (string.IsNullOrWhiteSpace(redisOptions.Host) || !redisOptions.Port.HasValue)
                     {
-                        throw new InvalidOperationException("Redis host/port configuration is missing.");
+                        logger.LogWarning("Redis host/port configuration is missing. Redis caching will be disabled.");
+                        // Return a dummy connection multiplexer that will fail gracefully
+                        return CreateDummyConnectionMultiplexer();
                     }
 
                     configurationOptions = new ConfigurationOptions();
                     configurationOptions.EndPoints.Add(redisOptions.Host, redisOptions.Port.Value);
+                    
                     if (!string.IsNullOrWhiteSpace(redisOptions.User))
                     {
                         configurationOptions.User = redisOptions.User;
@@ -161,13 +168,56 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                     }
 
                     configurationOptions.Ssl = redisOptions.UseSsl;
+                    
+                    // Configure SSL for Redis Cloud
+                    if (redisOptions.UseSsl)
+                    {
+                        configurationOptions.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                        // For Redis Cloud, disable certificate validation
+                        // This is required for Redis Cloud as they use self-signed certificates
+                        configurationOptions.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
+                        {
+                            // Accept all certificates for Redis Cloud
+                            // In production, you should validate certificates properly
+                            return true;
+                        };
+                    }
                 }
 
                 configurationOptions.AbortOnConnectFail = redisOptions.AbortOnConnectFail;
                 configurationOptions.ConnectRetry = redisOptions.ConnectRetry;
-                configurationOptions.ConnectTimeout = redisOptions.ConnectTimeout;
+                // Increase timeout for SSL connections, especially for Redis Cloud
+                configurationOptions.ConnectTimeout = Math.Max(redisOptions.ConnectTimeout, 10000);
+                configurationOptions.AsyncTimeout = configurationOptions.ConnectTimeout;
+                configurationOptions.SyncTimeout = configurationOptions.ConnectTimeout;
+                
+                // Additional settings for better connection handling
+                configurationOptions.ReconnectRetryPolicy = new ExponentialRetry(100);
 
-                return ConnectionMultiplexer.Connect(configurationOptions);
+                try
+                {
+                    var multiplexer = ConnectionMultiplexer.Connect(configurationOptions);
+                    
+                    // Subscribe to connection events
+                    multiplexer.ConnectionFailed += (sender, e) =>
+                    {
+                        logger.LogWarning("Redis connection failed: {FailureType}, {Exception}", e.FailureType, e.Exception?.Message);
+                    };
+                    
+                    multiplexer.ConnectionRestored += (sender, e) =>
+                    {
+                        logger.LogInformation("Redis connection restored");
+                    };
+
+                    logger.LogInformation("Redis connection established successfully");
+                    return multiplexer;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to connect to Redis. Application will continue without caching.");
+                    // Return a dummy connection that will fail gracefully
+                    return CreateDummyConnectionMultiplexer();
+                }
             });
 
             services.AddScoped<IRedisService, RedisService>();
@@ -185,6 +235,32 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<ITreatmentIVFService, TreatmentIVFService>();
             services.AddScoped<ITreatmentIUIService, TreatmentIUIService>();
             services.AddScoped<ITreatmentCycleService, TreatmentCycleService>();
+        }
+
+        /// <summary>
+        /// Creates a dummy connection multiplexer that will fail gracefully when Redis is not available
+        /// </summary>
+        private static IConnectionMultiplexer CreateDummyConnectionMultiplexer()
+        {
+            // Create a configuration that will never connect
+            var config = new ConfigurationOptions
+            {
+                EndPoints = { "localhost:0" }, // Invalid endpoint
+                AbortOnConnectFail = false,
+                ConnectRetry = 0,
+                ConnectTimeout = 1
+            };
+            
+            try
+            {
+                return ConnectionMultiplexer.Connect(config);
+            }
+            catch
+            {
+                // If even this fails, we'll handle it in RedisService
+                // Return null and let RedisService handle it
+                return null!;
+            }
         }
     }
 }

@@ -28,8 +28,8 @@ namespace FSCMS.Service.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AgreementService(
-            IUnitOfWork unitOfWork, 
-            IMapper mapper, 
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
             ILogger<AgreementService> logger,
             IOTPService otpService,
             IHttpContextAccessor httpContextAccessor)
@@ -94,10 +94,10 @@ namespace FSCMS.Service.Services
                 if (!string.IsNullOrWhiteSpace(request.SearchTerm))
                 {
                     var searchTerm = request.SearchTerm.ToLower();
-                    query = query.Where(a => 
+                    query = query.Where(a =>
                         a.AgreementCode.ToLower().Contains(searchTerm) ||
                         (a.Treatment != null && !string.IsNullOrEmpty(a.Treatment.TreatmentName) && a.Treatment.TreatmentName.ToLower().Contains(searchTerm)) ||
-                        (a.Patient != null && a.Patient.Account != null && 
+                        (a.Patient != null && a.Patient.Account != null &&
                          (!string.IsNullOrEmpty(a.Patient.Account.FirstName) || !string.IsNullOrEmpty(a.Patient.Account.LastName)) &&
                          ($"{a.Patient.Account.FirstName} {a.Patient.Account.LastName}".Trim().ToLower().Contains(searchTerm) ||
                           (!string.IsNullOrEmpty(a.Patient.Account.Email) && a.Patient.Account.Email.ToLower().Contains(searchTerm)))));
@@ -559,6 +559,9 @@ namespace FSCMS.Service.Services
 
                 var entity = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
+                    .Include(a => a.Treatment)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p!.Account)
                     .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
 
                 if (entity == null)
@@ -658,6 +661,9 @@ namespace FSCMS.Service.Services
 
                 var entity = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
+                    .Include(a => a.Treatment)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p!.Account)
                     .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
 
                 if (entity == null)
@@ -1014,7 +1020,7 @@ namespace FSCMS.Service.Services
                 }
 
                 // Get IP address from HTTP context
-                var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() 
+                var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString()
                     ?? _httpContextAccessor.HttpContext?.Request?.Headers["X-Forwarded-For"].FirstOrDefault()
                     ?? "Unknown";
 
@@ -1147,7 +1153,7 @@ namespace FSCMS.Service.Services
             while (!isUnique && attempts < maxAttempts)
             {
                 code = $"AGR-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}-{new Random().Next(1000, 9999)}";
-                
+
                 var exists = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
                     .AnyAsync(a => a.AgreementCode == code && !a.IsDeleted);
