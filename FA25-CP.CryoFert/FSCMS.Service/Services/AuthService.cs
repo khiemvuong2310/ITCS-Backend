@@ -302,6 +302,51 @@ namespace FSCMS.Service.Services
         {
             try
             {
+                // Validate BirthDate and Gender
+                var today = DateTime.Today;
+                
+                // Check if birth date is in the future
+                if (registerModel.BirthDate > today)
+                {
+                    return new BaseResponse<TokenModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Birth date cannot be in the future"
+                    };
+                }
+
+                // Calculate age
+                var age = today.Year - registerModel.BirthDate.Year;
+                if (registerModel.BirthDate.Date > today.AddYears(-age))
+                {
+                    age--;
+                }
+
+                // Validate age based on gender
+                // Gender: true = Male (Nam), false = Female (Nữ)
+                if (registerModel.Gender == true) // Male (Nam)
+                {
+                    if (age < 20)
+                    {
+                        return new BaseResponse<TokenModel>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "Male users must be at least 20 years old"
+                        };
+                    }
+                }
+                else // Female (Nữ)
+                {
+                    if (age < 18)
+                    {
+                        return new BaseResponse<TokenModel>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "Female users must be at least 18 years old"
+                        };
+                    }
+                }
+
                 // Check if email already exists
                 var existingAccount = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
@@ -337,6 +382,8 @@ namespace FSCMS.Service.Services
                 {
                     Email = registerModel.Email,
                     PasswordHash = PasswordTools.HashPassword(registerModel.Password),
+                    BirthDate = registerModel.BirthDate,
+                    Gender = registerModel.Gender,
                     IsActive = true,
                     IsVerified = false, // Email verification required
                     RoleId = role.Id, // Default to Patient role
