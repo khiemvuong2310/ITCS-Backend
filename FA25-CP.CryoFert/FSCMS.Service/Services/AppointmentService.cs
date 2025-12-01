@@ -760,15 +760,50 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
                     }
 
-                    // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
-                    var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
-                    if (primaryDoctorId.HasValue)
+                    // Validate all doctors if provided
+                    if (request.DoctorIds != null && request.DoctorIds.Any())
                     {
-                        var doctorAvailable = await IsDoctorAvailableForSlotAsync(primaryDoctorId.Value, slot.Id, appointmentDate);
-                        if (!doctorAvailable)
+                        foreach (var doctorId in request.DoctorIds)
                         {
-                            _logger.LogWarning("{MethodName}: Doctor not available for selected slot/date", methodName);
-                            return BaseResponse<AppointmentResponse>.CreateError("Doctor is not available for the selected slot/date", StatusCodes.Status400BadRequest, "DOCTOR_NOT_AVAILABLE");
+                            // Check if doctor has schedule (if exists, doctor is busy)
+                            var hasSchedule = await _unitOfWork.Repository<DoctorSchedule>()
+                                .AsQueryable()
+                                .AnyAsync(ds =>
+                                    !ds.IsDeleted &&
+                                    ds.DoctorId == doctorId &&
+                                    ds.SlotId == request.SlotId.Value &&
+                                    ds.WorkDate == appointmentDate);
+
+                            if (hasSchedule)
+                            {
+                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} has schedule and is busy for slot {SlotId} on date {AppointmentDate}", 
+                                    methodName, doctorId, request.SlotId.Value, appointmentDate);
+                                return BaseResponse<AppointmentResponse>.CreateError(
+                                    $"Doctor is busy (has schedule) for the selected slot/date", 
+                                    StatusCodes.Status400BadRequest, 
+                                    "DOCTOR_NOT_AVAILABLE");
+                            }
+
+                            // Check if doctor already has appointment for same slot, same date
+                            var hasConflictingAppointment = await _unitOfWork.Repository<Appointment>()
+                                .AsQueryable()
+                                .AnyAsync(a =>
+                                    !a.IsDeleted &&
+                                    a.SlotId == request.SlotId.Value &&
+                                    a.AppointmentDate == appointmentDate &&
+                                    a.AppointmentDoctors.Any(ad => ad.DoctorId == doctorId && !ad.IsDeleted) &&
+                                    a.Status != AppointmentStatus.Cancelled &&
+                                    a.Status != AppointmentStatus.Rescheduled);
+
+                            if (hasConflictingAppointment)
+                            {
+                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} already has appointment for slot {SlotId} on date {AppointmentDate}", 
+                                    methodName, doctorId, request.SlotId.Value, appointmentDate);
+                                return BaseResponse<AppointmentResponse>.CreateError(
+                                    $"Doctor already has an appointment for the same slot and date", 
+                                    StatusCodes.Status400BadRequest, 
+                                    "DOCTOR_ALREADY_BOOKED");
+                            }
                         }
                     }
                 }
@@ -1461,24 +1496,26 @@ namespace FSCMS.Service.Services
 
         /// <summary>
         /// Determine if a doctor is free for the specified slot and appointment date.
-        /// Absence of schedule data is treated as available.
+        /// If DoctorSchedule exists, doctor is busy (not available).
+        /// If DoctorSchedule is empty (no record), doctor is available.
         /// </summary>
         private async Task<bool> IsDoctorAvailableForSlotAsync(Guid doctorId, Guid slotId, DateOnly appointmentDate)
         {
-            var hasUnavailableSchedule = await _unitOfWork.Repository<DoctorSchedule>()
+            // Check if doctor has schedule (if exists, doctor is busy)
+            var hasSchedule = await _unitOfWork.Repository<DoctorSchedule>()
                 .AsQueryable()
                 .AnyAsync(ds =>
                     !ds.IsDeleted &&
                     ds.DoctorId == doctorId &&
                     ds.SlotId == slotId &&
-                    ds.WorkDate == appointmentDate &&
-                    !ds.IsAvailable);
+                    ds.WorkDate == appointmentDate);
 
-            if (hasUnavailableSchedule)
+            if (hasSchedule)
             {
-                return false;
+                return false; // Doctor is busy (has schedule)
             }
 
+            // Check if doctor already has appointment for same slot, same date
             var hasConflictingAppointment = await _unitOfWork.Repository<Appointment>()
                 .AsQueryable()
                 .AnyAsync(a =>

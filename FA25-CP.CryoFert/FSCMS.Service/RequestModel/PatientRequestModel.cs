@@ -273,6 +273,20 @@ namespace FSCMS.Service.RequestModel
     }
 
     /// <summary>
+    /// Request model for cancelling a relationship request
+    /// </summary>
+    public class CancelRelationshipRequest
+    {
+        [JsonPropertyName("relationshipId")]
+        [Required(ErrorMessage = "Relationship ID is required.")]
+        public Guid RelationshipId { get; set; }
+
+        [JsonPropertyName("cancellationReason")]
+        [StringLength(500, ErrorMessage = "Cancellation reason cannot exceed 500 characters.")]
+        public string? CancellationReason { get; set; }
+    }
+
+    /// <summary>
     /// Request model for updating patient status
     /// </summary>
     public class UpdatePatientStatusRequest

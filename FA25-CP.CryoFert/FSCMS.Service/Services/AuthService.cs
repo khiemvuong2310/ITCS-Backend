@@ -303,10 +303,11 @@ namespace FSCMS.Service.Services
             try
             {
                 // Validate BirthDate and Gender
-                var today = DateTime.Today;
-                
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                var birthDate = DateOnly.FromDateTime(registerModel.BirthDate);
+
                 // Check if birth date is in the future
-                if (registerModel.BirthDate > today)
+                if (birthDate > today)
                 {
                     return new BaseResponse<TokenModel>
                     {
@@ -316,8 +317,8 @@ namespace FSCMS.Service.Services
                 }
 
                 // Calculate age
-                var age = today.Year - registerModel.BirthDate.Year;
-                if (registerModel.BirthDate.Date > today.AddYears(-age))
+                var age = today.Year - birthDate.Year;
+                if (today < birthDate.AddYears(age))
                 {
                     age--;
                 }
@@ -382,7 +383,7 @@ namespace FSCMS.Service.Services
                 {
                     Email = registerModel.Email,
                     PasswordHash = PasswordTools.HashPassword(registerModel.Password),
-                    BirthDate = registerModel.BirthDate,
+                    BirthDate = birthDate,
                     Gender = registerModel.Gender,
                     IsActive = true,
                     IsVerified = false, // Email verification required

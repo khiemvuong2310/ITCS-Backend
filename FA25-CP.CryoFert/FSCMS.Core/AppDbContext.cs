@@ -431,18 +431,18 @@ namespace FSCMS.Core
                 new Account(labAccountId, "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "+84900000002", null, null, true, true, null, null) { RoleId = roleLabId },
                 new Account(receptionistAccountId, "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "+84900000003", null, null, true, true, null, null) { RoleId = roleReceptionistId },
                 // Doctor accounts
-                new Account(doctor1AccountId, "Nguyen", "Van A", new DateTime(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor2AccountId, "Tran", "Thi B", new DateTime(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor3AccountId, "Le", "Minh C", new DateTime(1978, 2, 14), "doctor3@cryo.com", "doctor3", defaultPwdHash, "+84900000012", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor4AccountId, "Pham", "Thi D", new DateTime(1982, 11, 30), "doctor4@cryo.com", "doctor4", defaultPwdHash, "+84900000013", null, false, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor5AccountId, "Vo", "Hoang E", new DateTime(1975, 6, 8), "doctor5@cryo.com", "doctor5", defaultPwdHash, "+84900000014", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor6AccountId, "Dang", "Thi F", new DateTime(1988, 9, 22), "doctor6@cryo.com", "doctor6", defaultPwdHash, "+84900000015", null, false, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor7AccountId, "Bui", "Quoc G", new DateTime(1983, 4, 5), "doctor7@cryo.com", "doctor7", defaultPwdHash, "+84900000016", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor8AccountId, "Ho", "Thi H", new DateTime(1979, 12, 18), "doctor8@cryo.com", "doctor8", defaultPwdHash, "+84900000017", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor1AccountId, "Nguyen", "Van A", new DateOnly(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor2AccountId, "Tran", "Thi B", new DateOnly(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor3AccountId, "Le", "Minh C", new DateOnly(1978, 2, 14), "doctor3@cryo.com", "doctor3", defaultPwdHash, "+84900000012", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor4AccountId, "Pham", "Thi D", new DateOnly(1982, 11, 30), "doctor4@cryo.com", "doctor4", defaultPwdHash, "+84900000013", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor5AccountId, "Vo", "Hoang E", new DateOnly(1975, 6, 8), "doctor5@cryo.com", "doctor5", defaultPwdHash, "+84900000014", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor6AccountId, "Dang", "Thi F", new DateOnly(1988, 9, 22), "doctor6@cryo.com", "doctor6", defaultPwdHash, "+84900000015", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor7AccountId, "Bui", "Quoc G", new DateOnly(1983, 4, 5), "doctor7@cryo.com", "doctor7", defaultPwdHash, "+84900000016", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor8AccountId, "Ho", "Thi H", new DateOnly(1979, 12, 18), "doctor8@cryo.com", "doctor8", defaultPwdHash, "+84900000017", null, false, true, true, null, null) { RoleId = roleDoctorId },
                 // Patient accounts
-                new Account(patient1AccountId, "Le", "Van C", new DateTime(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", null, true, true, true, null, null) { RoleId = rolePatientId },
-                new Account(patient2AccountId, "Pham", "Thi D", new DateTime(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", null, false, true, true, null, null) { RoleId = rolePatientId },
-                new Account(patient3AccountId, "Hoang", "Van E", new DateTime(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", null, true, true, true, null, null) { RoleId = rolePatientId }
+                new Account(patient1AccountId, "Le", "Van C", new DateOnly(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", null, true, true, true, null, null) { RoleId = rolePatientId },
+                new Account(patient2AccountId, "Pham", "Thi D", new DateOnly(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", null, false, true, true, null, null) { RoleId = rolePatientId },
+                new Account(patient3AccountId, "Hoang", "Van E", new DateOnly(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", null, true, true, true, null, null) { RoleId = rolePatientId }
             );
 
             // Seed Doctors

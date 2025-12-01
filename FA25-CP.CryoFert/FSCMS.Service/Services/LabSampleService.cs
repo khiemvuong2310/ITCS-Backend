@@ -73,8 +73,8 @@ namespace FSCMS.Service.Services
 
                 var response = _mapper.Map<LabSampleDetailResponse>(sample);
                 response.Patient.FullName = patient.Account.FirstName + " " + patient.Account.LastName;
-                response.Patient.DOB = patient.Account.BirthDate;
-                if(patient.Account.Gender != null)
+                response.Patient.DOB = patient.Account.BirthDate?.ToDateTime(TimeOnly.MinValue);
+                if (patient.Account.Gender != null)
                     response.Patient.Gender = (bool)patient.Account.Gender ? "Man" : "Female";
 
                 return new BaseResponse<LabSampleDetailResponse>

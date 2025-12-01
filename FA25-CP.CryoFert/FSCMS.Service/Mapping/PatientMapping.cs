@@ -48,7 +48,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.FirstName))
                 .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName))
-                .ForMember(dest => dest.BirthDate, opt => opt.MapFrom(src => src.BirthDate))
+                .ForMember(dest => dest.BirthDate, opt => opt.MapFrom(src => ConvertToDateTime(src.BirthDate)))
                 .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender))
                 .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
@@ -132,5 +132,8 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Patient2, opt => opt.Ignore())
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }
+
+        private static DateTime? ConvertToDateTime(DateOnly? birthDate)
+            => birthDate?.ToDateTime(TimeOnly.MinValue);
     }
 }

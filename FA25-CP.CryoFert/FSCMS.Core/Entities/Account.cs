@@ -17,7 +17,7 @@ public class Account : BaseEntity<Guid>
         Guid id,
         string firstName,
         string lastName,
-        DateTime? birthDate,
+        DateOnly? birthDate,
         string email,
         string username,
         string passwordHash,
@@ -47,7 +47,7 @@ public class Account : BaseEntity<Guid>
     }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public DateTime? BirthDate { get; set; }
+    public DateOnly? BirthDate { get; set; }
     public bool? Gender { get; set; } // true man / false female
     public string Phone { get; set; } = string.Empty;    
     public string? Address { get; set; }

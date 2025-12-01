@@ -148,6 +148,13 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<RelationshipResponse>> RejectRelationshipAsync(RejectRelationshipRequest request);
 
         /// <summary>
+        /// Cancels a pending relationship request initiated by the current patient
+        /// </summary>
+        /// <param name="request">Cancel relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> CancelRelationshipAsync(CancelRelationshipRequest request);
+
+        /// <summary>
         /// Approves a relationship request via email link with token verification
         /// </summary>
         /// <param name="relationshipId">Relationship ID</param>

@@ -493,7 +493,7 @@ namespace FSCMS.Service.Services
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
                                 entity.Id,
-                                $"{entity.TreatmentName} - {step.CycleName}",
+                                $"{step.CycleName}",
                                 step.CycleNumber,
                                 step.ScheduledDate,
                                 step.StepType,
@@ -549,7 +549,7 @@ namespace FSCMS.Service.Services
                             var cycle = new TreatmentCycle(
                                 Guid.NewGuid(),
                                 entity.Id,
-                                $"{entity.TreatmentName} - {step.CycleName}",
+                                $"{step.CycleName}",
                                 step.CycleNumber,
                                 step.ScheduledDate,
                                 step.StepType,
