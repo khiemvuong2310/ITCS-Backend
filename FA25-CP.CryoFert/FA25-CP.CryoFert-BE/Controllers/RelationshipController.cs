@@ -58,7 +58,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Relationship ID</param>
         /// <returns>Relationship response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetRelationshipById(Guid id)
         {
@@ -87,7 +87,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination request</param>
         /// <returns>Paginated relationship responses</returns>
         [HttpGet("patient/{patientId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetPatientRelationships(Guid patientId, [FromQuery] GetRelationshipsRequest request)
         {
@@ -185,6 +185,30 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        /// <summary>
+        /// Cancels a pending relationship request initiated by the current patient
+        /// </summary>
+        /// <param name="request">Cancel relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        [HttpPost("cancel")]
+        [Authorize(Roles = "Patient")]
+        [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> CancelRelationship([FromBody] CancelRelationshipRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<RelationshipResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid request data",
+                    SystemCode = "INVALID_REQUEST"
+                });
+            }
+
+            var result = await _patientService.CancelRelationshipAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         #endregion
 
         #region Email-Based Relationship Operations (Token-based, No Auth Required)
@@ -212,20 +236,20 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var result = await _patientService.ApproveRelationshipByTokenAsync(id, token);
-            
+
             // Return HTML response for better user experience when clicking from email
             if (result.Success)
             {
                 return Content(GenerateHtmlResponse(
-                    "Relationship Approved", 
-                    "The relationship request has been approved successfully!", 
+                    "Relationship Approved",
+                    "The relationship request has been approved successfully!",
                     true), "text/html");
             }
             else
             {
                 return Content(GenerateHtmlResponse(
-                    "Approval Failed", 
-                    result.Message ?? "Failed to approve the relationship request.", 
+                    "Approval Failed",
+                    result.Message ?? "Failed to approve the relationship request.",
                     false), "text/html");
             }
         }
@@ -254,20 +278,20 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var result = await _patientService.RejectRelationshipByTokenAsync(id, token, reason);
-            
+
             // Return HTML response for better user experience when clicking from email
             if (result.Success)
             {
                 return Content(GenerateHtmlResponse(
-                    "Relationship Rejected", 
-                    "The relationship request has been rejected.", 
+                    "Relationship Rejected",
+                    "The relationship request has been rejected.",
                     true), "text/html");
             }
             else
             {
                 return Content(GenerateHtmlResponse(
-                    "Rejection Failed", 
-                    result.Message ?? "Failed to reject the relationship request.", 
+                    "Rejection Failed",
+                    result.Message ?? "Failed to reject the relationship request.",
                     false), "text/html");
             }
         }

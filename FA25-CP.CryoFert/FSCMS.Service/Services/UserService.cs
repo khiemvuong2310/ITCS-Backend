@@ -90,6 +90,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var userResponse = _mapper.Map<UserResponse>(account);
+                HydrateUserDemographics(account, userResponse);
                 var response = new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
@@ -173,6 +174,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var userResponse = _mapper.Map<UserResponse>(account);
+                HydrateUserDemographics(account, userResponse);
                 var response = new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
@@ -235,11 +237,14 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                var userResponses = _mapper.Map<List<UserResponse>>(accounts);
+                HydrateUserDemographics(accounts, userResponses);
+
                 return new BaseResponse<List<UserResponse>>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = $"Found {accounts.Count} user(s)",
-                    Data = _mapper.Map<List<UserResponse>>(accounts)
+                    Data = userResponses
                 };
             }
             catch (Exception ex)
@@ -301,11 +306,14 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                var userDetail = _mapper.Map<UserDetailResponse>(account);
+                HydrateUserDemographics(account, userDetail);
+
                 var response = new BaseResponse<UserDetailResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "User details retrieved successfully",
-                    Data = _mapper.Map<UserDetailResponse>(account)
+                    Data = userDetail
                 };
 
                 // Cache the response
@@ -387,6 +395,9 @@ namespace FSCMS.Service.Services
                     .Take(request.Size)
                     .ToListAsync();
 
+                var users = _mapper.Map<List<UserResponse>>(accounts);
+                HydrateUserDemographics(accounts, users);
+
                 return new DynamicResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
@@ -397,7 +408,7 @@ namespace FSCMS.Service.Services
                         Size = request.Size,
                         Total = totalCount
                     },
-                    Data = _mapper.Map<List<UserResponse>>(accounts)
+                    Data = users
                 };
             }
             catch (Exception ex)
@@ -501,11 +512,17 @@ namespace FSCMS.Service.Services
                     await InvalidateUserCacheAsync(createdAccount.Id, normalizedEmail);
                 }
 
+                var createdUser = createdAccount != null ? _mapper.Map<UserResponse>(createdAccount) : null;
+                if (createdAccount != null)
+                {
+                    HydrateUserDemographics(createdAccount, createdUser);
+                }
+
                 return new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status201Created,
                     Message = "User created successfully",
-                    Data = _mapper.Map<UserResponse>(createdAccount)
+                    Data = createdUser
                 };
             }
             catch (Exception ex)
@@ -601,11 +618,17 @@ namespace FSCMS.Service.Services
                     .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.Id == userId);
 
+                var updatedUser = updatedAccount != null ? _mapper.Map<UserResponse>(updatedAccount) : null;
+                if (updatedAccount != null)
+                {
+                    HydrateUserDemographics(updatedAccount, updatedUser);
+                }
+
                 return new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "User updated successfully",
-                    Data = _mapper.Map<UserResponse>(updatedAccount)
+                    Data = updatedUser
                 };
             }
             catch (Exception ex)
@@ -818,6 +841,60 @@ namespace FSCMS.Service.Services
         }
 
         #region Private Helper Methods
+
+        private static void HydrateUserDemographics(Account account, UserResponse? target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            target.DOB = ConvertToDateTime(account.BirthDate);
+            target.Age = CalculateAge(account.BirthDate);
+        }
+
+        private static void HydrateUserDemographics(Account account, UserDetailResponse? target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            HydrateUserDemographics(account, (UserResponse?)target);
+        }
+
+        private static void HydrateUserDemographics(IReadOnlyList<Account> accounts, IList<UserResponse> targets)
+        {
+            if (accounts.Count != targets.Count)
+            {
+                return;
+            }
+
+            for (var i = 0; i < accounts.Count; i++)
+            {
+                HydrateUserDemographics(accounts[i], targets[i]);
+            }
+        }
+
+        private static DateTime? ConvertToDateTime(DateOnly? birthDate)
+            => birthDate?.ToDateTime(TimeOnly.MinValue);
+
+        private static int? CalculateAge(DateOnly? birthDate)
+        {
+            if (!birthDate.HasValue)
+            {
+                return null;
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var age = today.Year - birthDate.Value.Year;
+            if (today < birthDate.Value.AddYears(age))
+            {
+                age--;
+            }
+
+            return age;
+        }
 
         /// <summary>
         /// Invalidates all cache entries for a user

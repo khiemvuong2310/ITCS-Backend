@@ -849,6 +849,32 @@ namespace FSCMS.Service.Services
                     return BaseResponse<RelationshipResponse>.CreateError("Relationship not found", StatusCodes.Status404NotFound, "RELATIONSHIP_006");
                 }
 
+                // Authorization check - If user is Patient, they can only view their own relationships
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You must be logged in", StatusCodes.Status401Unauthorized, "RELATIONSHIP_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: Only patients can access this resource", StatusCodes.Status403Forbidden, "RELATIONSHIP_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    // Check if the relationship belongs to the current patient
+                    if (relationship.Patient1Id != currentPatientId && relationship.Patient2Id != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to access relationship {RelationshipId} that does not belong to them", methodName, currentPatientId, relationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You can only view your own relationships", StatusCodes.Status403Forbidden, "RELATIONSHIP_403_FORBIDDEN");
+                    }
+                }
+
                 var response = _mapper.Map<RelationshipResponse>(relationship);
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship retrieved successfully");
             }
@@ -1004,6 +1030,47 @@ namespace FSCMS.Service.Services
                         Message = "Patient ID cannot be empty",
                         SystemCode = "RELATIONSHIP_007"
                     };
+                }
+
+                // Authorization check - If user is Patient, they can only view their own relationships
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return new DynamicResponse<RelationshipResponse>
+                        {
+                            Code = StatusCodes.Status401Unauthorized,
+                            Message = "Unauthorized: You must be logged in",
+                            SystemCode = "RELATIONSHIP_401"
+                        };
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return new DynamicResponse<RelationshipResponse>
+                        {
+                            Code = StatusCodes.Status403Forbidden,
+                            Message = "Unauthorized: Only patients can access this resource",
+                            SystemCode = "RELATIONSHIP_403"
+                        };
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    // Check if the requested patientId matches the current patient
+                    if (patientId != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to access relationships for another patient {PatientId}", methodName, currentPatientId, patientId);
+                        return new DynamicResponse<RelationshipResponse>
+                        {
+                            Code = StatusCodes.Status403Forbidden,
+                            Message = "Unauthorized: You can only view your own relationships",
+                            SystemCode = "RELATIONSHIP_403_FORBIDDEN"
+                        };
+                    }
                 }
 
                 request.PatientId = patientId;
@@ -1697,6 +1764,11 @@ namespace FSCMS.Service.Services
                         _logger.LogWarning("{MethodName}: Relationship request expired - {RelationshipId}", methodName, request.RelationshipId);
                         return BaseResponse<RelationshipResponse>.CreateError("Relationship request has expired", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_003_EXPIRED");
                     }
+                    else if (relationship.Status == RelationshipStatus.Cancelled)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship request cancelled - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship request was cancelled by the requester", StatusCodes.Status400BadRequest, "RELATIONSHIP_APPROVE_003_CANCELLED");
+                    }
                 }
 
                 // Check expiration
@@ -1824,6 +1896,11 @@ namespace FSCMS.Service.Services
                         _logger.LogWarning("{MethodName}: Relationship request expired - {RelationshipId}", methodName, request.RelationshipId);
                         return BaseResponse<RelationshipResponse>.CreateError("Relationship request has expired", StatusCodes.Status400BadRequest, "RELATIONSHIP_REJECT_003_EXPIRED");
                     }
+                    else if (relationship.Status == RelationshipStatus.Cancelled)
+                    {
+                        _logger.LogWarning("{MethodName}: Relationship request cancelled - {RelationshipId}", methodName, request.RelationshipId);
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship request was cancelled by the requester", StatusCodes.Status400BadRequest, "RELATIONSHIP_REJECT_003_CANCELLED");
+                    }
                 }
 
                 // Update relationship status
@@ -1866,6 +1943,102 @@ namespace FSCMS.Service.Services
             }
         }
 
+        /// <summary>
+        /// Cancels a pending relationship request initiated by the current patient
+        /// </summary>
+        public async Task<BaseResponse<RelationshipResponse>> CancelRelationshipAsync(CancelRelationshipRequest request)
+        {
+            const string methodName = nameof(CancelRelationshipAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            try
+            {
+                if (request == null || request.RelationshipId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Invalid request or relationship ID", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Invalid request or relationship ID", StatusCodes.Status400BadRequest, "RELATIONSHIP_CANCEL_001");
+                }
+
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                    .AsQueryable()
+                    .Include(r => r.Patient1)
+                        .ThenInclude(p => p.Account)
+                    .Include(r => r.Patient2)
+                        .ThenInclude(p => p.Account)
+                    .Where(r => r.Id == request.RelationshipId && !r.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (relationship == null)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship not found - {RelationshipId}", methodName, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship not found", StatusCodes.Status404NotFound, "RELATIONSHIP_CANCEL_002");
+                }
+
+                var currentAccountId = GetCurrentAccountId();
+                if (currentAccountId == null)
+                {
+                    _logger.LogWarning("{MethodName}: Unauthorized - No account ID found", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You must be logged in", StatusCodes.Status401Unauthorized, "RELATIONSHIP_CANCEL_401");
+                }
+
+                var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                {
+                    _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: Only patients can cancel relationship requests", StatusCodes.Status403Forbidden, "RELATIONSHIP_CANCEL_403");
+                }
+
+                var currentPatientId = currentPatientResult.Data.Id;
+                var requesterId = relationship.RequestedBy ?? relationship.Patient1Id;
+
+                if (requesterId == Guid.Empty)
+                {
+                    requesterId = relationship.Patient1Id;
+                }
+
+                if (currentPatientId != requesterId)
+                {
+                    _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to cancel relationship {RelationshipId} not initiated by them", methodName, currentPatientId, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You can only cancel relationship requests you initiated", StatusCodes.Status403Forbidden, "RELATIONSHIP_CANCEL_403_FORBIDDEN");
+                }
+
+                if (relationship.Status == RelationshipStatus.Cancelled)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship already cancelled - {RelationshipId}", methodName, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship request is already cancelled", StatusCodes.Status400BadRequest, "RELATIONSHIP_CANCEL_003_ALREADY");
+                }
+
+                if (relationship.Status != RelationshipStatus.Pending)
+                {
+                    _logger.LogWarning("{MethodName}: Only pending relationships can be cancelled - {RelationshipId}", methodName, request.RelationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Only pending relationship requests can be cancelled", StatusCodes.Status400BadRequest, "RELATIONSHIP_CANCEL_003_STATUS");
+                }
+
+                relationship.Status = RelationshipStatus.Cancelled;
+                relationship.IsActive = false;
+                relationship.RespondedBy = currentPatientId;
+                relationship.RespondedAt = DateTime.UtcNow;
+                relationship.RejectionReason = request.CancellationReason;
+                relationship.ApprovalToken = null;
+                relationship.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<Relationship>().UpdateGuid(relationship, relationship.Id);
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("{MethodName}: Relationship cancelled successfully - {RelationshipId}", methodName, request.RelationshipId);
+
+                var updatedRelationship = await GetRelationshipWithPatientsAsync(relationship.Id) ?? relationship;
+                var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+
+                return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship request cancelled successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error cancelling relationship: {ErrorMessage}", methodName, ex.Message);
+                return BaseResponse<RelationshipResponse>.CreateError($"An error occurred while cancelling relationship: {ex.Message}", StatusCodes.Status500InternalServerError, "RELATIONSHIP_CANCEL_500");
+            }
+        }
+
         #endregion
 
         #region Private Helper Methods
@@ -1892,11 +2065,65 @@ namespace FSCMS.Service.Services
         }
 
         /// <summary>
+        /// Checks if the current user is in the specified role
+        /// </summary>
+        private bool IsCurrentUserInRole(string roleName)
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext?.User?.IsInRole(roleName) ?? false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error checking user role: {RoleName}", roleName);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Validates business rules for relationship creation
         /// </summary>
         private async Task<(bool IsValid, string ErrorMessage, string ErrorCode)> ValidateRelationshipBusinessRulesAsync(
             Patient patient1, Patient patient2, RelationshipType relationshipType)
         {
+            // Gender validation - Check that both patients have gender information
+            if (patient1.Account == null || patient1.Account.Gender == null)
+            {
+                return (false, "Patient1 does not have gender information. Gender is required for relationship creation.", "RELATIONSHIP_VALIDATION_GENDER_001");
+            }
+
+            if (patient2.Account == null || patient2.Account.Gender == null)
+            {
+                return (false, "Patient2 does not have gender information. Gender is required for relationship creation.", "RELATIONSHIP_VALIDATION_GENDER_002");
+            }
+
+            var patient1Gender = patient1.Account.Gender.Value; // true = male, false = female
+            var patient2Gender = patient2.Account.Gender.Value;
+
+            // Check that genders are different
+            if (patient1Gender == patient2Gender)
+            {
+                return (false, "Both patients must have different genders to create a relationship.", "RELATIONSHIP_VALIDATION_GENDER_003");
+            }
+
+            // Validate gender compatibility with RelationshipType
+            if (relationshipType == RelationshipType.Wife)
+            {
+                // Wife relationship: Patient1 should be female (false), Patient2 should be male (true)
+                if (patient1Gender != false || patient2Gender != true)
+                {
+                    return (false, "Invalid gender combination for Wife relationship. Patient1 must be female and Patient2 must be male.", "RELATIONSHIP_VALIDATION_GENDER_004");
+                }
+            }
+            else if (relationshipType == RelationshipType.Husband)
+            {
+                // Husband relationship: Patient1 should be male (true), Patient2 should be female (false)
+                if (patient1Gender != true || patient2Gender != false)
+                {
+                    return (false, "Invalid gender combination for Husband relationship. Patient1 must be male and Patient2 must be female.", "RELATIONSHIP_VALIDATION_GENDER_005");
+                }
+            }
+
             // Spouse relationship validation (1-1 rule)
             if (relationshipType == RelationshipType.Wife || relationshipType == RelationshipType.Husband)
             {
@@ -2107,6 +2334,12 @@ namespace FSCMS.Service.Services
                     return BaseResponse<RelationshipResponse>.CreateError("Relationship has been rejected and cannot be approved", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_REJECTED");
                 }
 
+                if (relationship.Status == RelationshipStatus.Cancelled)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship already cancelled - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship request was cancelled by the requester", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_CANCELLED");
+                }
+
                 // 4. Check expiration
                 if (relationship.ExpiresAt.HasValue && relationship.ExpiresAt.Value < DateTime.UtcNow)
                 {
@@ -2192,6 +2425,12 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Relationship already rejected - {RelationshipId}", methodName, relationshipId);
                     return BaseResponse<RelationshipResponse>.CreateError("Relationship has already been rejected", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_REJECTED");
+                }
+
+                if (relationship.Status == RelationshipStatus.Cancelled)
+                {
+                    _logger.LogWarning("{MethodName}: Relationship already cancelled - {RelationshipId}", methodName, relationshipId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Relationship request was cancelled and cannot be rejected", StatusCodes.Status400BadRequest, "RELATIONSHIP_EMAIL_003_CANCELLED");
                 }
 
                 // 4. Check expiration (allow rejection even after expiration for user experience)

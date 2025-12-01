@@ -23,11 +23,8 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
                 .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender))
-                .ForMember(dest => dest.DOB, opt => opt.MapFrom(src => src.BirthDate))
-                .ForMember(dest => dest.Age, opt => opt.MapFrom(src => 
-                    src.BirthDate.HasValue 
-                        ? (int?)(DateTime.UtcNow.Year - src.BirthDate.Value.Year - (DateTime.UtcNow.DayOfYear < src.BirthDate.Value.DayOfYear ? 1 : 0))
-                        : null))
+                .ForMember(dest => dest.DOB, opt => opt.MapFrom(src => ConvertToDateTime(src.BirthDate)))
+                .ForMember(dest => dest.Age, opt => opt.MapFrom(src => CalculateAge(src.BirthDate)))
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Address))
                 .ForMember(dest => dest.AvatarId, opt => opt.MapFrom(src => src.AvatarId))
                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.AvatarId))
@@ -80,6 +77,26 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Doctor, opt => opt.Ignore())
                 .ForMember(dest => dest.LastLogin, opt => opt.Ignore())
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+        }
+
+        private static DateTime? ConvertToDateTime(DateOnly? birthDate)
+            => birthDate?.ToDateTime(TimeOnly.MinValue);
+
+        private static int? CalculateAge(DateOnly? birthDate)
+        {
+            if (!birthDate.HasValue)
+            {
+                return null;
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var age = today.Year - birthDate.Value.Year;
+            if (today < birthDate.Value.AddYears(age))
+            {
+                age--;
+            }
+
+            return age;
         }
     }
 }
