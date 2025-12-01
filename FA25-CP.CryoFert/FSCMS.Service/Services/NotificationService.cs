@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
@@ -5,13 +9,11 @@ using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
+using FSCMS.Service.SignalR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
 {
@@ -20,12 +22,13 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<NotificationService> _logger;
-
-        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<NotificationService> logger)
+        private readonly IHubContext<NotificationHub> _hubContext;
+        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<NotificationService> logger, IHubContext<NotificationHub> hubContext)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _hubContext = hubContext;
         }
 
         /// <summary>
@@ -141,9 +144,21 @@ namespace FSCMS.Service.Services
         {
             var notification = _mapper.Map<Notification>(request);
             notification.Status = NotificationStatus.Scheduled;
+            notification.SentTime = DateTime.UtcNow;
 
             await _unitOfWork.Repository<Notification>().InsertAsync(notification);
             await _unitOfWork.CommitAsync();
+            // Notify AFTER commit
+            await _hubContext.Clients.User(notification.PatientId.ToString())
+                .SendAsync("NotificationCreated", new
+                {
+                    Id = notification.Id,
+                    Title = notification.Title,
+                    Content = notification.Content,
+                    Type = notification.Type,
+                    CreatedAt = notification.CreatedAt
+                });
+
 
             var response = _mapper.Map<NotificationResponse>(notification);
 

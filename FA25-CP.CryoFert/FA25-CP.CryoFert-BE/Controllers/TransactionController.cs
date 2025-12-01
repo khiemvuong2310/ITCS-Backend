@@ -110,5 +110,127 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var result = await _transactionService.CreateUrlPaymentAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
+
+        [HttpGet("payment/result")]
+        [AllowAnonymous]
+        public IActionResult PaymentResult()
+        {
+            var query = HttpContext.Request.Query;
+            bool isSuccess = query["vnp_ResponseCode"] == "00";
+
+            string title = isSuccess ? "Payment Successful" : "Payment Failed";
+            string message = $"Amount: {query["vnp_Amount"]}, Order: {query["vnp_OrderInfo"]}";
+
+            // Redirect tới app mobile hoặc FE sau 5 giây
+            string redirectUrl = "cryofertmobile://payment/result?status=" + query["vnp_ResponseCode"];
+
+            string html = GenerateHtmlResponse(title, message, isSuccess);
+
+            return Content(html, "text/html");
+        }
+
+        private static string GenerateHtmlResponse(
+    string title,
+    string message,
+    bool isSuccess)
+        {
+            var backgroundColor = isSuccess ? "#d4edda" : "#f8d7da";
+            var textColor = isSuccess ? "#155724" : "#721c24";
+            var borderColor = isSuccess ? "#c3e6cb" : "#f5c6cb";
+            var icon = isSuccess ? "✓" : "✕";
+            return $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>{title} - CryoFert</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }}
+        .container {{
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }}
+        .icon {{
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: {backgroundColor};
+            border: 3px solid {borderColor};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 40px;
+            color: {textColor};
+        }}
+        h1 {{
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 24px;
+        }}
+        p {{
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }}
+        .alert {{
+            background: {backgroundColor};
+            border: 1px solid {borderColor};
+            color: {textColor};
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }}
+        .logo {{
+            color: #667eea;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 24px;
+        }}
+        .btn-home {{
+            display: inline-block;
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+        }}
+        .footer {{
+            color: #999;
+            font-size: 14px;
+            margin-top: 24px;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='logo'>🧬 CryoFert</div>
+        <div class='icon'>{icon}</div>
+        <h1>{title}</h1>
+        <div class='alert'>
+            <p style='margin: 0;'>{message}</p>
+        </div>
+        <p class='footer'>Healthcare/Fertility Management System</p>
+    </div>
+</body>
+</html>";
+        }
+
     }
 }
