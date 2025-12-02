@@ -192,13 +192,21 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status400BadRequest,
                         Message = "Invalid sperm request."
                     };
-
-                var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(p => p.Account)
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
                 if (patient == null)
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Patient not found."
+                    };
+                if (patient.Account.Gender == null || patient.Account.Gender == false)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Gender patient invalid for sperm sample."
                     };
 
                 // 1️⃣ Tạo LabSample cha
@@ -273,12 +281,21 @@ namespace FSCMS.Service.Services
                         Message = "Invalid oocyte request."
                     };
 
-                var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(p => p.Account)
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
                 if (patient == null)
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Patient not found."
+                    };
+                if (patient.Account.Gender == null || patient.Account.Gender == true)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Gender patient invalid for occyte sample."
                     };
                 // 1️⃣ Tạo LabSample cha
                 var labSample = _mapper.Map<LabSample>(request);
@@ -374,6 +391,13 @@ namespace FSCMS.Service.Services
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Oocyte not found or already used."
+                    };
+                
+                if (sperm.PatientId != patient.Id || oocyte.PatientId != patient.Id)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Sperm or Oocyte does not belong to the specified patient."
                     };
 
                 // 1️⃣ Tạo LabSample cha
