@@ -479,7 +479,10 @@ namespace FSCMS.Service.Services
 
             return entityType switch
             {
-                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == AppointmentStatus.InProgress),
+                // Appointment considered valid for transactions when it's not deleted and not cancelled
+                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>()
+                    .AsQueryable()
+                    .AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status != AppointmentStatus.Cancelled),
                 EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ContractStatus.Pending),
                 EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ServiceRequestStatus.Pending),
                 //EntityTypeTransaction.Patient => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
