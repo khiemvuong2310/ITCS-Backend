@@ -70,10 +70,11 @@ namespace FSCMS.Service.Services
                     return cachedUser;
                 }
 
-                var account = await _unitOfWork.Repository<Account>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(u => u.Role)
+                var accountQuery = IncludeFullUserGraph(
+                    _unitOfWork.Repository<Account>()
+                        .AsQueryable());
+
+                var account = await accountQuery
                     .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -154,10 +155,11 @@ namespace FSCMS.Service.Services
                     return cachedUser;
                 }
 
-                var account = await _unitOfWork.Repository<Account>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(u => u.Role)
+                var accountQuery = IncludeFullUserGraph(
+                    _unitOfWork.Repository<Account>()
+                        .AsQueryable());
+
+                var account = await accountQuery
                     .Where(u => !u.IsDeleted && u.Email.ToLower() == normalizedEmail)
                     .FirstOrDefaultAsync();
 
@@ -221,9 +223,9 @@ namespace FSCMS.Service.Services
                 }
 
                 // Search by email instead since Account doesn't have UserName
-                var accounts = await _unitOfWork.Repository<Account>()
-                    .AsQueryable()
-                    .Include(u => u.Role)
+                var accounts = await IncludeFullUserGraph(
+                        _unitOfWork.Repository<Account>()
+                            .AsQueryable())
                     .Where(u => u.Email.Contains(userName) && !u.IsDeleted)
                     .ToListAsync();
 
@@ -287,12 +289,9 @@ namespace FSCMS.Service.Services
                     return cachedUserDetail;
                 }
 
-                var account = await _unitOfWork.Repository<Account>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(u => u.Role)
-                    .Include(u => u.Patient)
-                    .Include(u => u.Doctor)
+                var account = await IncludeFullUserGraph(
+                        _unitOfWork.Repository<Account>()
+                            .AsQueryable())
                     .Where(u => u.Id == userId && !u.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -341,9 +340,9 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                var query = _unitOfWork.Repository<Account>()
-                    .AsQueryable()
-                    .Include(u => u.Role)
+                var query = IncludeFullUserGraph(
+                        _unitOfWork.Repository<Account>()
+                            .AsQueryable())
                     .Where(u => !u.IsDeleted);
 
                 // Apply filters
@@ -841,6 +840,22 @@ namespace FSCMS.Service.Services
         }
 
         #region Private Helper Methods
+
+        private static IQueryable<Account> IncludeFullUserGraph(IQueryable<Account> query)
+        {
+            return query
+                .AsNoTrackingWithIdentityResolution()
+                .Include(u => u.Role)
+                .Include(u => u.Doctor)
+                .Include(u => u.Patient)
+                    .ThenInclude(p => p!.Treatments)
+                .Include(u => u.Patient)
+                    .ThenInclude(p => p!.LabSamples)
+                .Include(u => u.Patient)
+                    .ThenInclude(p => p!.RelationshipsAsPatient1)
+                .Include(u => u.Patient)
+                    .ThenInclude(p => p!.RelationshipsAsPatient2);
+        }
 
         private static void HydrateUserDemographics(Account account, UserResponse? target)
         {
