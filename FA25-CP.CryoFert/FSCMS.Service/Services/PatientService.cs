@@ -135,6 +135,40 @@ namespace FSCMS.Service.Services
 
             try
             {
+                // Authorization: Patients can only view their own information
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: Only patients can access this resource",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    if (patientId != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to access patient {PatientId}", methodName, currentPatientId, patientId);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You can only view your own patient information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
+                }
+
                 if (patientId == Guid.Empty)
                 {
                     return BaseResponse<PatientResponse>.CreateError("Patient ID cannot be empty", StatusCodes.Status400BadRequest, "PATIENT_006");
@@ -166,6 +200,40 @@ namespace FSCMS.Service.Services
 
             try
             {
+                // Authorization: Patients can only view their own detailed information
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<PatientDetailResponse>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<PatientDetailResponse>.CreateError(
+                            "Unauthorized: Only patients can access this resource",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    if (patientId != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to access details of patient {PatientId}", methodName, currentPatientId, patientId);
+                        return BaseResponse<PatientDetailResponse>.CreateError(
+                            "Unauthorized: You can only view your own patient information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
+                }
+
                 if (patientId == Guid.Empty)
                 {
                     return BaseResponse<PatientDetailResponse>.CreateError("Patient ID cannot be empty", StatusCodes.Status400BadRequest, "PATIENT_006");
@@ -228,6 +296,40 @@ namespace FSCMS.Service.Services
                     return BaseResponse<PatientResponse>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_007");
                 }
 
+                // Authorization: Patients can only retrieve their own record by code
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: Only patients can access this resource",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    if (patient.Id != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to access patient by code for patient {PatientId}", methodName, currentPatientId, patient.Id);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You can only view your own patient information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
+                }
+
                 var response = _mapper.Map<PatientResponse>(patient);
                 return BaseResponse<PatientResponse>.CreateSuccess(response, "Patient retrieved successfully");
             }
@@ -265,6 +367,40 @@ namespace FSCMS.Service.Services
                     return BaseResponse<PatientResponse>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_007");
                 }
 
+                // Authorization: Patients can only retrieve their own record by national ID
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: Only patients can access this resource",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    if (patient.Id != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to access patient by national ID for patient {PatientId}", methodName, currentPatientId, patient.Id);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You can only view your own patient information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
+                }
+
                 var response = _mapper.Map<PatientResponse>(patient);
                 return BaseResponse<PatientResponse>.CreateSuccess(response, "Patient retrieved successfully");
             }
@@ -288,6 +424,29 @@ namespace FSCMS.Service.Services
                 if (accountId == Guid.Empty)
                 {
                     return BaseResponse<PatientResponse>.CreateError("Account ID cannot be empty", StatusCodes.Status400BadRequest, "PATIENT_010");
+                }
+
+                // Authorization: Patients can only retrieve their own record by account ID
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    if (accountId != currentAccountId.Value)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient with account {CurrentAccountId} attempted to access patient by account {AccountId}", methodName, currentAccountId, accountId);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You can only view your own patient information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
                 }
 
                 var patient = await _unitOfWork.Repository<Patient>()
@@ -490,6 +649,40 @@ namespace FSCMS.Service.Services
 
             try
             {
+                // Authorization: Patients can only update their own information
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: Only patients can access this resource",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    if (patientId != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to update patient {PatientId}", methodName, currentPatientId, patientId);
+                        return BaseResponse<PatientResponse>.CreateError(
+                            "Unauthorized: You can only update your own patient information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
+                }
+
                 if (patientId == Guid.Empty)
                 {
                     return BaseResponse<PatientResponse>.CreateError("Patient ID cannot be empty", StatusCodes.Status400BadRequest, "PATIENT_006");
@@ -1150,11 +1343,41 @@ namespace FSCMS.Service.Services
 
             try
             {
+                // 1. Input validation
                 if (relationshipId == Guid.Empty)
                 {
                     return BaseResponse.CreateError("Relationship ID cannot be empty", StatusCodes.Status400BadRequest, "RELATIONSHIP_005");
                 }
 
+                // 2. Authorization check - Only involved patients or staff,admin can delete relationships
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse.CreateError("Unauthorized: You must be logged in", StatusCodes.Status401Unauthorized, "RELATIONSHIP_401");
+                    }
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse.CreateError("Unauthorized: Only patients can access this resource", StatusCodes.Status403Forbidden, "RELATIONSHIP_403");
+                    }
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    var relationshipToCheck = await _unitOfWork.Repository<Relationship>()
+                        .AsQueryable()
+                        .Where(r => r.Id == relationshipId && !r.IsDeleted)
+                        .FirstOrDefaultAsync();
+                    if (relationshipToCheck == null ||
+                        (relationshipToCheck.Patient1Id != currentPatientId && relationshipToCheck.Patient2Id != currentPatientId))
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to delete relationship {RelationshipId} that does not belong to them", methodName, currentPatientId, relationshipId);
+                        return BaseResponse.CreateError("Unauthorized: You can only delete your own relationships", StatusCodes.Status403Forbidden, "RELATIONSHIP_403_FORBIDDEN");
+                    }
+                }
+
+                // 3. Soft delete relationship
                 var existingRelationship = await _unitOfWork.Repository<Relationship>()
                     .AsQueryable()
                     .Where(r => r.Id == relationshipId && !r.IsDeleted)

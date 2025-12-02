@@ -55,7 +55,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Patient ID</param>
         /// <returns>Patient response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(PatientResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetPatientById(Guid id)
         {
@@ -69,7 +69,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Patient ID</param>
         /// <returns>Detailed patient response</returns>
         [HttpGet("{id:guid}/details")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(PatientDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetPatientDetails(Guid id)
         {
@@ -83,7 +83,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="code">Patient code</param>
         /// <returns>Patient response</returns>
         [HttpGet("by-code/{code}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(PatientResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetPatientByCode(string code)
         {
@@ -106,7 +106,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="nationalId">National ID</param>
         /// <returns>Patient response</returns>
         [HttpGet("by-national-id/{nationalId}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(PatientResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetPatientByNationalId(string nationalId)
         {
@@ -129,7 +129,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="accountId">Account ID</param>
         /// <returns>Patient response</returns>
         [HttpGet("by-account/{accountId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient")]
         [ApiDefaultResponse(typeof(PatientResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetPatientByAccountId(Guid accountId)
         {
@@ -158,7 +158,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Patient update request</param>
         /// <returns>Updated patient response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,Patient")]
         [ApiDefaultResponse(typeof(PatientResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdatePatient(Guid id, [FromBody] UpdatePatientRequest request)
         {

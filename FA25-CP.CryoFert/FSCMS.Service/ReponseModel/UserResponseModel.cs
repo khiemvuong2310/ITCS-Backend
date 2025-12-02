@@ -28,6 +28,7 @@ namespace FSCMS.Service.ReponseModel
         public string? RoleName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public PatientResponse? Patient { get; set; }
     }
 
     public class UserDetailResponse : UserResponse
@@ -36,5 +37,6 @@ namespace FSCMS.Service.ReponseModel
         public int? TotalPayments { get; set; }
         public int? TotalFeedbacks { get; set; }
         public string? DoctorSpecialization { get; set; }
+        public new PatientDetailResponse? Patient { get; set; }
     }
 }

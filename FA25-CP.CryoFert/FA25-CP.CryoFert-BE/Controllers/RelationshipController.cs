@@ -125,7 +125,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Relationship ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,Patient")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteRelationship(Guid id)
         {

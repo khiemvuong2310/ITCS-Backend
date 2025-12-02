@@ -35,7 +35,8 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : null))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
-                .ForMember(dest => dest.Country, opt => opt.Ignore()); // Account doesn't have Country
+                .ForMember(dest => dest.Country, opt => opt.Ignore()) // Account doesn't have Country
+                .ForMember(dest => dest.Patient, opt => opt.MapFrom(src => src.Patient));
 
             // Map Account entity to UserDetailResponse (includes base mapping from UserResponse)
             CreateMap<Account, UserDetailResponse>()
@@ -43,7 +44,8 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.TotalAppointments, opt => opt.Ignore()) // Not directly accessible from Account
                 .ForMember(dest => dest.TotalPayments, opt => opt.Ignore()) // Not directly accessible from Account
                 .ForMember(dest => dest.TotalFeedbacks, opt => opt.Ignore()) // Not directly accessible from Account
-                .ForMember(dest => dest.DoctorSpecialization, opt => opt.MapFrom(src => src.Doctor != null ? src.Doctor.Specialty : null));
+                .ForMember(dest => dest.DoctorSpecialization, opt => opt.MapFrom(src => src.Doctor != null ? src.Doctor.Specialty : null))
+                .ForMember(dest => dest.Patient, opt => opt.MapFrom(src => src.Patient));
 
             // Map CreateUserRequest to Account entity
             CreateMap<CreateUserRequest, Account>()
