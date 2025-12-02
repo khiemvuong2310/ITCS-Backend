@@ -373,9 +373,7 @@ namespace FSCMS.Service.Services
                         };
                         await _unitOfWork.Repository<CPSDetail>().InsertAsync(cPSDetails);
                     }
-
                 }
-
                 var patientCode = patient?.PatientCode ?? "UNK";
                 var random = new Random();
                 entity.ContractNumber = $"CT-{patientCode}-{DateTime.UtcNow:yyMMdd}-{random.Next(10, 99)}";

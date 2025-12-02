@@ -49,6 +49,21 @@ namespace FSCMS.Service.RequestModel
         public Guid? UpLoadByUserId { get; set; }
     }
 
+    public class UploadTemplateRequest
+    {
+        [Required(ErrorMessage = "TemplateType is required.")]
+        public EntityTypeMedia TemplateType { get; set; }
+        [Required(ErrorMessage = "File is required.")]
+        public IFormFile File { get; set; } = default!;
+    }
+
+    public class GetTemplateRequest
+    {
+        [Required(ErrorMessage = "TemplateType is required.")]
+        public EntityTypeMedia TemplateType { get; set; }
+    }
+
+
     public enum EntityTypeMedia
 
     {
