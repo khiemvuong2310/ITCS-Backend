@@ -82,8 +82,10 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.StartTime : TimeSpan.Zero))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.Slot != null ? src.Slot.EndTime : TimeSpan.Zero))
                 .ForMember(dest => dest.TotalSlots, opt => opt.MapFrom(src => src.Slot != null ? 1 : 0))
-                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointments.All(a => a.IsDeleted || a.Status == AppointmentStatus.Cancelled || a.Status == AppointmentStatus.Rescheduled || a.Status == AppointmentStatus.Completed || a.Status == AppointmentStatus.NoShow) && !src.Slot.IsDeleted ? 1 : 0))
-                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => src.Slot != null && src.Slot.Appointments.Any(a => !a.IsDeleted && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Rescheduled && a.Status != AppointmentStatus.Completed && a.Status != AppointmentStatus.NoShow) && !src.Slot.IsDeleted ? 1 : 0));
+                // Slot itself is a fixed time block (like enum), not "booked/unavailable" by appointments.
+                // So if a Slot exists, we always treat it as 1 available slot and 0 booked slots here.
+                .ForMember(dest => dest.AvailableSlots, opt => opt.MapFrom(src => src.Slot != null ? 1 : 0))
+                .ForMember(dest => dest.BookedSlots, opt => opt.MapFrom(src => 0));
 
             // Map DoctorSchedule entity to DoctorScheduleDetailResponse
             CreateMap<DoctorSchedule, DoctorScheduleDetailResponse>()
@@ -120,12 +122,8 @@ namespace FSCMS.Service.Mapping
             CreateMap<Slot, SlotResponse>()
                 .ForMember(dest => dest.DoctorScheduleId, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).Select(ds => ds.Id).FirstOrDefault()))
                 .ForMember(dest => dest.Schedule, opt => opt.MapFrom(src => src.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault()))
-                .ForMember(dest => dest.IsBooked, opt => opt.MapFrom(src => src.Appointments.Any(a =>
-                    !a.IsDeleted &&
-                    a.Status != AppointmentStatus.Cancelled &&
-                    a.Status != AppointmentStatus.Rescheduled &&
-                    a.Status != AppointmentStatus.Completed &&
-                    a.Status != AppointmentStatus.NoShow)));
+                // Slot acts like a fixed time enum; booking state is handled at appointment/schedule level, not on Slot itself.
+                .ForMember(dest => dest.IsBooked, opt => opt.MapFrom(src => false));
 
             // Map Slot entity to SlotDetailResponse
             CreateMap<Slot, SlotDetailResponse>()
@@ -135,9 +133,7 @@ namespace FSCMS.Service.Mapping
                         .Where(a =>
                             !a.IsDeleted &&
                             a.Status != AppointmentStatus.Cancelled &&
-                            a.Status != AppointmentStatus.Rescheduled &&
-                            a.Status != AppointmentStatus.Completed &&
-                            a.Status != AppointmentStatus.NoShow)
+                            a.Status != AppointmentStatus.Completed)
                         .OrderBy(a => a.AppointmentDate)
                         .FirstOrDefault()));
 
