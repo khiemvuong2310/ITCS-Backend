@@ -17,8 +17,10 @@ namespace FSCMS.Service.RequestModel
 
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
-
+        [StringLength(100)]
+        public string? Quality { get; set; }
         public bool IsAvailable { get; set; } = true;
+        public bool IsQualityCheck { get; set; } = false;
     }
 
     /// <summary>
@@ -30,7 +32,8 @@ namespace FSCMS.Service.RequestModel
 
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
-
+        [StringLength(100)]
+        public string? Quality { get; set; }
         public bool? IsAvailable { get; set; }
     }
 
@@ -113,9 +116,6 @@ namespace FSCMS.Service.RequestModel
         [StringLength(100)]
         public string MaturityStage { get; set; } = default!;
 
-        [StringLength(100)]
-        public string? Quality { get; set; }
-
         public bool IsMature { get; set; }
 
         [StringLength(100)]
@@ -134,9 +134,6 @@ namespace FSCMS.Service.RequestModel
     {
         [StringLength(100)]
         public string? MaturityStage { get; set; }
-
-        [StringLength(100)]
-        public string? Quality { get; set; }
 
         public bool? IsMature { get; set; }
 
