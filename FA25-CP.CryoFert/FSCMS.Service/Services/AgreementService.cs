@@ -11,7 +11,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
@@ -26,19 +28,22 @@ namespace FSCMS.Service.Services
         private readonly ILogger<AgreementService> _logger;
         private readonly IOTPService _otpService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMediaService _mediaService;
 
         public AgreementService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             ILogger<AgreementService> logger,
             IOTPService otpService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IMediaService mediaService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
         }
         #region Agreement CRUD Operations   
         #region Get All
@@ -925,7 +930,7 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Verify OTP and sign agreement
         /// </summary>
-        public async Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode)
+        public async Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode, IFormFile? signedAgreementFile)
         {
             const string methodName = nameof(VerifySignatureAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
@@ -959,6 +964,21 @@ namespace FSCMS.Service.Services
                         "Invalid OTP format. OTP must be 6 digits",
                         StatusCodes.Status400BadRequest,
                         "INVALID_OTP_FORMAT");
+                }
+
+                Guid? uploaderAccountId = null;
+                var shouldUploadSignedFile = signedAgreementFile != null && signedAgreementFile.Length > 0;
+                if (shouldUploadSignedFile)
+                {
+                    uploaderAccountId = GetCurrentAccountId();
+                    if (!uploaderAccountId.HasValue)
+                    {
+                        _logger.LogWarning("{MethodName}: Unable to determine account ID for signed agreement upload", methodName);
+                        return BaseResponse<AgreementResponse>.CreateError(
+                            "Unable to determine the current user for file upload",
+                            StatusCodes.Status401Unauthorized,
+                            "UNAUTHORIZED");
+                    }
                 }
 
                 var isTestBypass = string.Equals(otpCode, "000000", StringComparison.Ordinal);
@@ -1046,10 +1066,33 @@ namespace FSCMS.Service.Services
                 await transaction.CommitAsync();
 
                 var data = _mapper.Map<AgreementResponse>(entity);
+                var responseMessage = "Agreement signed successfully";
+
+                if (shouldUploadSignedFile && uploaderAccountId.HasValue)
+                {
+                    var uploadOutcome = await TryUploadSignedAgreementFileAsync(entity, signedAgreementFile!, uploaderAccountId.Value);
+                    if (!uploadOutcome.IsSuccess)
+                    {
+                        responseMessage = "Agreement signed successfully, but failed to upload the signed file.";
+                        if (!string.IsNullOrWhiteSpace(uploadOutcome.ErrorMessage))
+                        {
+                            responseMessage = $"{responseMessage} {uploadOutcome.ErrorMessage}";
+                        }
+                        _logger.LogWarning("{MethodName}: Signed agreement file upload failed for agreement {Id}. Reason: {Reason}", methodName, id, uploadOutcome.ErrorMessage);
+                    }
+                    else
+                    {
+                        data.FileUrl = uploadOutcome.FileUrl ?? data.FileUrl;
+                        if (!string.IsNullOrWhiteSpace(uploadOutcome.FileUrl))
+                        {
+                            await PersistAgreementFileUrlAsync(entity, uploadOutcome.FileUrl);
+                        }
+                    }
+                }
 
                 _logger.LogInformation("{MethodName}: Successfully verified signature for agreement {Id}", methodName, id);
 
-                return BaseResponse<AgreementResponse>.CreateSuccess(data, "Agreement signed successfully");
+                return BaseResponse<AgreementResponse>.CreateSuccess(data, responseMessage);
             }
             catch (Exception ex)
             {
@@ -1200,6 +1243,75 @@ namespace FSCMS.Service.Services
                 (AgreementStatus.Active, AgreementStatus.Canceled) => true,
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// Get the current authenticated account ID from the HTTP context
+        /// </summary>
+        private Guid? GetCurrentAccountId()
+        {
+            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var accountId))
+            {
+                return null;
+            }
+
+            return accountId;
+        }
+
+        /// <summary>
+        /// Persist the latest agreement file URL after uploading to media storage
+        /// </summary>
+        private async Task PersistAgreementFileUrlAsync(Agreement agreement, string fileUrl)
+        {
+            agreement.FileUrl = fileUrl;
+            agreement.UpdatedAt = DateTime.UtcNow;
+
+            await _unitOfWork.Repository<Agreement>().UpdateGuid(agreement, agreement.Id);
+            await _unitOfWork.CommitAsync();
+        }
+
+        /// <summary>
+        /// Upload signed agreement file to media service
+        /// </summary>
+        private async Task<(bool IsSuccess, string? ErrorMessage, string? FileUrl)> TryUploadSignedAgreementFileAsync(
+            Agreement agreement,
+            IFormFile signedAgreementFile,
+            Guid accountId)
+        {
+            try
+            {
+                var safeFileName = string.IsNullOrWhiteSpace(signedAgreementFile.FileName)
+                    ? $"signed-agreement-{agreement.AgreementCode}{Path.GetExtension(signedAgreementFile.FileName)}"
+                    : signedAgreementFile.FileName;
+
+                var uploadRequest = new UploadMediaRequest
+                {
+                    File = signedAgreementFile,
+                    FileName = safeFileName,
+                    RelatedEntityId = agreement.Id,
+                    RelatedEntityType = EntityTypeMedia.Agreement,
+                    Title = $"Signed Agreement - {agreement.AgreementCode}",
+                    Description = $"Signed agreement uploaded on {DateTime.UtcNow:O}",
+                    Category = "Agreement",
+                    Tags = "agreement,signed",
+                    Notes = "Uploaded via OTP verification flow"
+                };
+
+                var uploadResponse = await _mediaService.UploadMediaAsync(uploadRequest, accountId);
+
+                if (uploadResponse.Code >= 200 && uploadResponse.Code < 300)
+                {
+                    return (true, null, uploadResponse.Data?.FilePath);
+                }
+
+                return (false, uploadResponse.Message ?? "Failed to upload the signed agreement file.", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Unexpected error while uploading signed agreement file for {AgreementId}", nameof(TryUploadSignedAgreementFileAsync), agreement.Id);
+                return (false, "Unexpected error while uploading signed agreement file.", null);
+            }
         }
         #endregion
         #endregion

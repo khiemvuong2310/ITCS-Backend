@@ -72,8 +72,9 @@ namespace FSCMS.Service.Mapping
             entity.Status = request.Status;
             entity.Notes = request.Notes;
             entity.ApprovedBy = request.ApprovedBy;
-            
-            if (request.Status == ServiceRequestStatus.Approved && entity.ApprovedDate == null)
+
+            // Khi không còn trạng thái Approved, nếu cập nhật sang Completed lần đầu thì set ApprovedDate
+            if (request.Status == ServiceRequestStatus.Completed && entity.ApprovedDate == null)
             {
                 entity.ApprovedDate = DateTime.UtcNow;
             }
