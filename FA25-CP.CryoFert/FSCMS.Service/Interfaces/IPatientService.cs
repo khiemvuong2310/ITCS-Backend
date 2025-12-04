@@ -71,6 +71,13 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<PatientResponse>> UpdatePatientAsync(Guid patientId, UpdatePatientRequest request);
 
         /// <summary>
+        /// Replaces the entire patient information
+        /// </summary>
+        /// <param name="request">Full update request</param>
+        /// <returns>Updated patient responses</returns>
+        Task<BaseResponse<List<PatientResponse>>> UpdatePatientFullAsync(UpdatePatientFullRequest request);
+
+        /// <summary>
         /// Updates patient status (active/inactive)
         /// </summary>
         /// <param name="patientId">Patient ID</param>

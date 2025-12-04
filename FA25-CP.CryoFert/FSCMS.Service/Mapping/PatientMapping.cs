@@ -88,6 +88,20 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.RelationshipsAsPatient2, opt => opt.Ignore())
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
+            CreateMap<UpdatePatientFullRequest, Patient>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.PatientCode, opt => opt.Ignore())
+                .ForMember(dest => dest.NationalID, opt => opt.Ignore())
+                .ForMember(dest => dest.Account, opt => opt.Ignore())
+                .ForMember(dest => dest.Treatments, opt => opt.Ignore())
+                .ForMember(dest => dest.LabSamples, opt => opt.Ignore())
+                .ForMember(dest => dest.CryoStorageContracts, opt => opt.Ignore())
+                .ForMember(dest => dest.RelationshipsAsPatient1, opt => opt.Ignore())
+                .ForMember(dest => dest.RelationshipsAsPatient2, opt => opt.Ignore());
+
             // Treatment summary mappings (assuming Treatment entity exists)
             CreateMap<Treatment, PatientTreatmentSummary>()
                 .ForMember(dest => dest.TreatmentCode, opt => opt.Ignore()) // Map from actual Treatment properties

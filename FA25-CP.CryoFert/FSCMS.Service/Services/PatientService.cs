@@ -753,6 +753,141 @@ namespace FSCMS.Service.Services
         }
 
         /// <summary>
+        /// Replaces existing patients with the provided information (all fields at once, except secure properties)
+        /// </summary>
+        public async Task<BaseResponse<List<PatientResponse>>> UpdatePatientFullAsync(UpdatePatientFullRequest request)
+        {
+            const string methodName = nameof(UpdatePatientFullAsync);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                if (request == null)
+                {
+                    return BaseResponse<List<PatientResponse>>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "PATIENT_001");
+                }
+
+                var requestedIds = request.PatientIds?
+                    .Where(id => id != Guid.Empty)
+                    .Distinct()
+                    .ToList() ?? new List<Guid>();
+
+                var updateAllPatients = !requestedIds.Any();
+
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (currentAccountId == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Unauthorized - No account ID found in token", methodName);
+                        return BaseResponse<List<PatientResponse>>.CreateError(
+                            "Unauthorized: You must be logged in",
+                            StatusCodes.Status401Unauthorized,
+                            "PATIENT_401");
+                    }
+
+                    var currentPatientResult = await GetPatientByAccountIdAsync(currentAccountId.Value);
+                    if (!currentPatientResult.Success || currentPatientResult.Data == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Current user is not a patient", methodName);
+                        return BaseResponse<List<PatientResponse>>.CreateError(
+                            "Unauthorized: Only patients can access this resource",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403");
+                    }
+
+                    var currentPatientId = currentPatientResult.Data.Id;
+                    if (!requestedIds.Any())
+                    {
+                        requestedIds.Add(currentPatientId);
+                    }
+
+                    if (requestedIds.Count != 1 || requestedIds[0] != currentPatientId)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to fully update patients {PatientIds}", methodName, currentPatientId, requestedIds);
+                        return BaseResponse<List<PatientResponse>>.CreateError(
+                            "Unauthorized: Patients can only update their own information",
+                            StatusCodes.Status403Forbidden,
+                            "PATIENT_403_FORBIDDEN");
+                    }
+
+                    updateAllPatients = false;
+                }
+
+                var patientQuery = _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Where(p => !p.IsDeleted);
+
+                if (!updateAllPatients)
+                {
+                    patientQuery = patientQuery.Where(p => requestedIds.Contains(p.Id));
+                }
+
+                var patientsToUpdate = await patientQuery.ToListAsync();
+
+                if (!patientsToUpdate.Any())
+                {
+                    _logger.LogWarning("{MethodName}: No patients matched provided criteria", methodName);
+                    return BaseResponse<List<PatientResponse>>.CreateError(
+                        "No patients found for update",
+                        StatusCodes.Status404NotFound,
+                        "PATIENT_007");
+                }
+
+                if (!updateAllPatients)
+                {
+                    var missingIds = requestedIds.Except(patientsToUpdate.Select(p => p.Id)).ToList();
+                    if (missingIds.Any())
+                    {
+                        _logger.LogWarning("{MethodName}: Some patient IDs were not found: {MissingIds}", methodName, missingIds);
+                        return BaseResponse<List<PatientResponse>>.CreateError(
+                            $"Patient(s) not found: {string.Join(", ", missingIds)}",
+                            StatusCodes.Status404NotFound,
+                            "PATIENT_007");
+                    }
+                }
+                else
+                {
+                    requestedIds = patientsToUpdate.Select(p => p.Id).ToList();
+                }
+
+                foreach (var patient in patientsToUpdate)
+                {
+                    var patientCode = patient.PatientCode;
+                    var nationalId = patient.NationalID;
+
+                    _mapper.Map(request, patient);
+
+                    patient.PatientCode = patientCode;
+                    patient.NationalID = nationalId;
+                    patient.UpdatedAt = DateTime.UtcNow;
+                }
+
+                _unitOfWork.Repository<Patient>().UpdateRange(patientsToUpdate.AsQueryable());
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+
+                var updatedPatients = await GetPatientsWithAccountAsync(requestedIds);
+                var responseData = _mapper.Map<List<PatientResponse>>(updatedPatients);
+
+                _logger.LogInformation("{MethodName} - Fully updated {Count} patient(s): {PatientIds}", methodName, responseData.Count, requestedIds);
+
+                var successMessage = responseData.Count == 1
+                    ? "Patient updated successfully"
+                    : $"Successfully updated {responseData.Count} patients";
+
+                return BaseResponse<List<PatientResponse>>.CreateSuccess(responseData, successMessage);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "{MethodName} - Error fully updating patients: {ErrorMessage}", methodName, ex.Message);
+                return BaseResponse<List<PatientResponse>>.CreateError($"An error occurred while updating patients: {ex.Message}", StatusCodes.Status500InternalServerError, "PATIENT_500");
+            }
+        }
+
+        /// <summary>
         /// Updates patient status (active/inactive)
         /// </summary>
         public async Task<BaseResponse<PatientResponse>> UpdatePatientStatusAsync(Guid patientId, UpdatePatientStatusRequest request)
@@ -1875,6 +2010,28 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region Private Helper Methods
+
+        /// <summary>
+        /// Gets multiple patients with account information
+        /// </summary>
+        private async Task<List<Patient>> GetPatientsWithAccountAsync(List<Guid> patientIds)
+        {
+            if (patientIds == null || !patientIds.Any())
+            {
+                return new List<Patient>();
+            }
+
+            return await _unitOfWork.Repository<Patient>()
+                .AsQueryable()
+                .AsNoTracking()
+                .Include(p => p.Account)
+                .Include(p => p.Treatments)
+                .Include(p => p.LabSamples)
+                .Include(p => p.RelationshipsAsPatient1)
+                .Include(p => p.RelationshipsAsPatient2)
+                .Where(p => patientIds.Contains(p.Id) && !p.IsDeleted)
+                .ToListAsync();
+        }
 
         /// <summary>
         /// Gets a patient with account information

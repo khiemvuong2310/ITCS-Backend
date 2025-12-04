@@ -133,6 +133,59 @@ namespace FSCMS.Service.RequestModel
     }
 
     /// <summary>
+    /// Request model for replacing all patient information in a single operation
+    /// </summary>
+    public class UpdatePatientFullRequest
+    {
+        [JsonPropertyName("patientIds")]
+        public List<Guid> PatientIds { get; set; } = new();
+
+        [JsonPropertyName("emergencyContact")]
+        [StringLength(100, ErrorMessage = "Emergency contact cannot exceed 100 characters.")]
+        public string? EmergencyContact { get; set; }
+
+        [JsonPropertyName("emergencyPhone")]
+        [StringLength(20, ErrorMessage = "Emergency phone cannot exceed 20 characters.")]
+        [Phone(ErrorMessage = "Invalid phone number format.")]
+        public string? EmergencyPhone { get; set; }
+
+        [JsonPropertyName("insurance")]
+        [StringLength(100, ErrorMessage = "Insurance cannot exceed 100 characters.")]
+        public string? Insurance { get; set; }
+
+        [JsonPropertyName("occupation")]
+        [StringLength(100, ErrorMessage = "Occupation cannot exceed 100 characters.")]
+        public string? Occupation { get; set; }
+
+        [JsonPropertyName("medicalHistory")]
+        [StringLength(2000, ErrorMessage = "Medical history cannot exceed 2000 characters.")]
+        public string? MedicalHistory { get; set; }
+
+        [JsonPropertyName("allergies")]
+        [StringLength(1000, ErrorMessage = "Allergies cannot exceed 1000 characters.")]
+        public string? Allergies { get; set; }
+
+        [JsonPropertyName("bloodType")]
+        [StringLength(10, ErrorMessage = "Blood type cannot exceed 10 characters.")]
+        public string? BloodType { get; set; }
+
+        [JsonPropertyName("height")]
+        [Range(0, 300, ErrorMessage = "Height must be between 0 and 300 cm.")]
+        public decimal? Height { get; set; }
+
+        [JsonPropertyName("weight")]
+        [Range(0, 500, ErrorMessage = "Weight must be between 0 and 500 kg.")]
+        public decimal? Weight { get; set; }
+
+        [JsonPropertyName("notes")]
+        [StringLength(1000, ErrorMessage = "Notes cannot exceed 1000 characters.")]
+        public string? Notes { get; set; }
+
+        [JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = true;
+    }
+
+    /// <summary>
     /// Request model for getting patients with pagination and filtering
     /// </summary>
     public class GetPatientsRequest : PagingModel
