@@ -1,57 +1,78 @@
-name: Build, publish and deploy to MonsterASP.NET
+name: Build, Publish and Deploy ASP.NET API (WebDeploy)
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build_and_deploy:
     runs-on: windows-latest
+    env:
+      # Thay đường dẫn đến csproj của bạn nếu khác
+      PROJECT_PATH: FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj
+      PUBLISH_DIR: ./publish
+      ZIP_NAME: publish.zip
+      RUNTIME: win-x86   # đổi thành win-x86 nếu server cần 32-bit
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        run: dotnet restore "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj"
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
 
-      - name: Run tests
-        run: echo "No test project found – skipping tests."
+      - name: Build (Release)
+        run: dotnet build "${{ env.PROJECT_PATH }}" --configuration Release --no-restore
 
-      - name: Build
-        run: dotnet build "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj" --configuration Release --no-restore
+      - name: Run Tests
+        # Nếu repo không có project test, step này sẽ fail — nếu bạn muốn skip khi không có test,
+        # thay bằng "--continue-on-error=true" hoặc remove step này.
+        run: dotnet test --configuration Release
 
-      - name: Publish
-        run: dotnet publish "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj" --configuration Release --output ./publish --runtime win-x86 --self-contained false
-
-      - name: List publish output
-        run: dir publish
-
-      # Debug step: kiểm tra secrets có được set hay không (KHÔNG in password)
-      - name: "Debug: check server secret present"
-        shell: pwsh
-        env:
-          SC: "${{ secrets.SERVER_COMPUTER_NAME }}"
-          WS: "${{ secrets.WEBSITE_NAME }}"
+      - name: Publish project
         run: |
-          if ([string]::IsNullOrEmpty($env:SC)) {
-            Write-Error "SERVER_COMPUTER_NAME is empty!"
+          # xóa publish cũ nếu có
+          if (Test-Path -Path "${{ env.PUBLISH_DIR }}") { Remove-Item -Recurse -Force "${{ env.PUBLISH_DIR }}" }
+          dotnet publish "${{ env.PROJECT_PATH }}" \
+            --configuration Release \
+            --output "${{ env.PUBLISH_DIR }}" \
+            --runtime ${{ env.RUNTIME }} \
+            --no-self-contained \
+            --no-build
+
+      - name: Zip published output
+        run: |
+          if (Test-Path -Path "${{ env.ZIP_NAME }}") { Remove-Item -Force "${{ env.ZIP_NAME }}" }
+          Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.ZIP_NAME }}" -Force
+
+      - name: Deploy to IIS via MSDeploy (Web Deploy)
+        shell: powershell
+        run: |
+          # Đường dẫn msdeploy mặc định trên windows-latest
+          $msdeployPath = "${env:ProgramFiles}\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+          if (!(Test-Path $msdeployPath)) {
+            Write-Error "msdeploy.exe not found at $msdeployPath. Please ensure Web Deploy is installed on the runner or use a self-hosted runner with msdeploy."
             exit 1
           }
-          Write-Host "SERVER_COMPUTER_NAME is set (length: $($env:SC.Length))"
-          Write-Host "WEBSITE_NAME: $env:WS"
 
-      - name: Deploy to MonsterASP.NET via WebDeploy
-        uses: rasmusbuchholdt/simply-web-deploy@2.1.0
-        with:
-          website-name: ${{ secrets.WEBSITE_NAME }}
-          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
-          server-username: ${{ secrets.SERVER_USERNAME }}
-          server-password: ${{ secrets.SERVER_PASSWORD }}
-          source-path: './publish'
-          target-path: 'site\wwwroot'
+          Write-Host "Using msdeploy at: $msdeployPath"
+          & $msdeployPath "-verb:sync" `
+            "-source:package='${{ env.ZIP_NAME }}'" `
+            "-dest:auto,computerName='https://${{ secrets.SERVER_COMPUTER_NAME }}:8172/msdeploy.axd?site=${{ secrets.WEBSITE_NAME }}',userName='${{ secrets.SERVER_USERNAME }}',password='${{ secrets.SERVER_PASSWORD }}',authType='Basic'" `
+            "-allowUntrusted" `
+            "-enableRule:AppOffline" `
+            "-verbosity:verbose"
