@@ -9,48 +9,58 @@ jobs:
     runs-on: windows-latest                         # Dùng runner Windows để publish Windows runtime
 
     steps:
-      # B1: Lấy code từ repository
+      # B1: Checkout source
       - name: Checkout
         uses: actions/checkout@v4
 
-      # B2: Cài .NET SDK (8.x)
+      # B2: Setup .NET SDK 8
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # B3: Restore NuGet packages cho project chính
+      # B3: Restore NuGet packages
       - name: Restore dependencies
         run: dotnet restore "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj"
 
-      # B4: (Tạm skip tests) - sửa lại nếu bạn có test project
+      # B4: (Skip tests) - sửa nếu có tests
       - name: Run tests
-        run: echo "No test project found – skipping tests."   # Thay bằng dotnet test <path> nếu có tests
+        run: echo "No test project found – skipping tests."
 
       # B5: Build project (Release)
       - name: Build
         run: dotnet build "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj" --configuration Release --no-restore
 
-      # B6: Publish ra folder ./publish
-      # --runtime win-x86: build theo runtime Windows (IIS). Thay đổi nếu server cần win-x64.
+      # B6: Publish to ./publish (Windows runtime)
       - name: Publish
         run: dotnet publish "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj" --configuration Release --output ./publish --runtime win-x86 --self-contained false
 
-      # B7: (Tuỳ chọn) Liệt kê file publish để debug nhanh
-      - name: Show publish folder
+      # B7: Show publish folder (quick check)
+      - name: List publish output
         run: dir publish
 
-      # B8: Deploy bằng simply-web-deploy (KHÔNG DÙNG `package`)
-      # IMPORTANT:
-      # - simply-web-deploy expects a folder (source-path) to copy to target (target-path)
-      # - server-computer-name should be set in Secrets; recommended full WebDeploy URL:
-      #   https://<server>:8172/msdeploy.axd?site=<site_name>
+      # B8: (Optional debug) verify SERVER_COMPUTER_NAME secret is not empty
+      # Note: DON'T print secret value or password. This only checks presence.
+      - name: Debug: check server secret present
+        shell: pwsh
+        env:
+          SC: ${{ secrets.SERVER_COMPUTER_NAME }}
+          WS: ${{ secrets.WEBSITE_NAME }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:SC)) { Write-Error "SERVER_COMPUTER_NAME is empty!"; exit 1 }
+          Write-Host "SERVER_COMPUTER_NAME is set (length: $($env:SC.Length))"
+          Write-Host "WEBSITE_NAME: $env:WS"
+
+      # B9: Deploy using simply-web-deploy
+      # IMPORTANT: Here we expect SERVER_COMPUTER_NAME to be like "https://site36198.siteasp.net:8172"
+      # and WEBSITE_NAME to be "site36198". If your host requires a full URL, change SERVER_COMPUTER_NAME secret
+      # to include "/msdeploy.axd?site=site36198".
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
         with:
           website-name: ${{ secrets.WEBSITE_NAME }}                 # e.g. site36198
-          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }} # e.g. https://site36198.siteasp.net:8172/msdeploy.axd?site=site36198
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }} # e.g. https://site36198.siteasp.net:8172
           server-username: ${{ secrets.SERVER_USERNAME }}           # e.g. site36198
-          server-password: ${{ secrets.SERVER_PASSWORD }}           # WebDeploy password
-          source-path: './publish'                                  # Thư mục đã publish
-          target-path: 'site\wwwroot'                               # Đích trên server IIS (thường site\wwwroot)
+          server-password: ${{ secrets.SERVER_PASSWORD }}           # WebDeploy password (secret)
+          source-path: './publish'                                  # folder to copy
+          target-path: 'site\wwwroot'                               # target dir on server
