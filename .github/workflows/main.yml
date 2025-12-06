@@ -1,0 +1,54 @@
+name: Build, publish and deploy to MonsterASP.NET   # Tên của GitHub Actions workflow
+
+on:
+  push:
+    branches: [ main ]                             # Chỉ chạy khi có commit push lên nhánh main
+
+jobs:
+  build_and_deploy:
+    runs-on: windows-latest                        # Chạy job trên máy ảo Windows
+
+    steps:
+      # B1: Clone source code của repo về máy ảo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # B2: Cài đặt .NET SDK 8.0
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'                 # Sử dụng SDK .NET 8
+
+      # B3: Restore các package NuGet cho dự án
+      - name: Restore dependencies
+        run: dotnet restore ./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj
+
+      # B4: Chạy unit test (nếu không có test thì skip)
+      - name: Run tests
+        run: echo "No test project found – skipping tests."   # Bạn có thể sửa path nếu có test
+
+      # B5: Build dự án ở chế độ Release
+      - name: Build
+        run: dotnet build ./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj --configuration Release --no-restore
+
+      # B6: Publish ra folder ./publish
+      # --runtime win-x86 = build theo runtime Windows 32-bit để deploy lên server IIS
+      - name: Publish
+        run: dotnet publish ./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj --configuration Release --output ./publish --runtime win-x86
+
+      # B7: Nén thư mục publish thành file publish.zip để deploy qua WebDeploy
+      - name: Zip publish folder
+        run: |
+          powershell -Command "if(Test-Path publish.zip){Remove-Item publish.zip -Force}; Compress-Archive -Path 'publish/*' -DestinationPath 'publish.zip' -Force"
+
+      # B8: Deploy bằng WebDeploy (MSDeploy)
+      # Cần các secret trong repo:
+      # WEBSITE_NAME, SERVER_COMPUTER_NAME, SERVER_USERNAME, SERVER_PASSWORD
+      - name: Deploy to MonsterASP.NET via WebDeploy
+        uses: rasmusbuchholdt/simply-web-deploy@2.1.0
+        with:
+          package: './publish.zip'                                  # File zip chứa web app để deploy
+          website-name: ${{ secrets.WEBSITE_NAME }}                 # VD: "Default Web Site/MyApp"
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }} # Thường dạng: server:8172/MsDeploy.axd
+          server-username: ${{ secrets.SERVER_USERNAME }}           # Username đăng nhập WebDeploy
+          server-password: ${{ secrets.SERVER_PASSWORD }}           # Password đăng nhập WebDeploy
