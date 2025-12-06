@@ -1,9 +1,8 @@
-name: Build, Publish and Deploy ASP.NET API (msdeploy)
+name: Build, publish and deploy to MonsterASP.NET
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]   # Deploy khi push vào main
 
 jobs:
   build_and_deploy:
@@ -12,7 +11,7 @@ jobs:
       PROJECT_PATH: FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj
       PUBLISH_DIR: ./publish
       ZIP_NAME: publish.zip
-      DOTNET_ROOT: C:\Program Files\dotnet
+      DOTNET_VERSION: '8.0.x'
 
     steps:
       - name: Checkout
@@ -26,58 +25,45 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      - name: Setup .NET SDK
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      # ---------- RESTORE ----------
       - name: Restore dependencies
         run: dotnet restore "${{ env.PROJECT_PATH }}"
 
-      - name: Build (Release)
+      # ---------- BUILD ----------
+      - name: Build
         run: dotnet build "${{ env.PROJECT_PATH }}" --configuration Release --no-restore
 
-      # Nếu bạn KHÔNG có test project hoặc muốn tránh lỗi, comment/remove step này.
-      - name: Run tests (only if test projects exist)
-        shell: pwsh
-        run: |
-          $tests = Get-ChildItem -Path . -Recurse -Filter *.csproj -ErrorAction SilentlyContinue |
-                   Where-Object { $_.FullName -match 'Test' -or $_.DirectoryName -match 'Test' }
-          if ($tests -and $tests.Count -gt 0) {
-            foreach ($t in $tests) {
-              dotnet test $t.FullName --configuration Release --no-build
-            }
-          } else {
-            Write-Host "No test projects found — skipping tests."
-          }
-
-      - name: Publish project
+      # ---------- PUBLISH ----------
+      - name: Publish (framework-dependent, no --runtime)
         shell: pwsh
         run: |
           if (Test-Path -Path "${{ env.PUBLISH_DIR }}") {
             Remove-Item -Recurse -Force "${{ env.PUBLISH_DIR }}"
           }
-
-          Write-Host "Publishing project: $env:PROJECT_PATH (framework-dependent, no --runtime)"
+          Write-Host "Publishing $env:PROJECT_PATH to $env:PUBLISH_DIR (framework-dependent)"
           dotnet publish "${{ env.PROJECT_PATH }}" --configuration Release --output "${{ env.PUBLISH_DIR }}" --no-self-contained --no-build
 
-      - name: Zip published output
+      # ---------- ZIP OUTPUT ----------
+      - name: Zip publish folder
         shell: pwsh
         run: |
-          if (Test-Path -Path "${{ env.ZIP_NAME }}") { Remove-Item -Force "${{ env.ZIP_NAME }}" }
-          Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.ZIP_NAME }}" -Force
-          Write-Host "Created package $env:ZIP_NAME"
-
-      - name: Deploy with msdeploy (Web Deploy)
-        shell: pwsh
-        env:
-          WEBDEPLOY_PORT: 8172
-        run: |
-          $msdeploy = "${env:ProgramFiles}\IIS\Microsoft Web Deploy V3\msdeploy.exe"
-          if (!(Test-Path $msdeploy)) {
-            Write-Error "msdeploy.exe not found at $msdeploy. Use a self-hosted runner with Web Deploy installed or install Web Deploy on the runner."
-            exit 1
+          if (Test-Path -Path "${{ env.ZIP_NAME }}") {
+            Remove-Item -Force "${{ env.ZIP_NAME }}"
           }
+          Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.ZIP_NAME }}" -Force
+          Write-Host "Created package: $env:ZIP_NAME"
 
-          $computer = "https://${{ secrets.SERVER_COMPUTER_NAME }}:$env:WEBDEPLOY_PORT/msdeploy.axd?site=${{ secrets.WEBSITE_NAME }}"
-          & $msdeploy "-verb:sync" "-source:package='${{ env.ZIP_NAME }}'" "-dest:auto,computerName='$computer',userName='${{ secrets.SERVER_USERNAME }}',password='${{ secrets.SERVER_PASSWORD }}',authType='Basic'" "-allowUntrusted" "-enableRule:AppOffline" "-verbosity:verbose"
+      # ---------- DEPLOY ----------
+      - name: Deploy to MonsterASP.NET via WebDeploy
+        uses: rasmusbuchholdt/simply-web-deploy@2.1.0
+        with:
+          package: './publish.zip'
+          website-name: ${{ secrets.WEBSITE_NAME }}
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
+          server-username: ${{ secrets.SERVER_USERNAME }}
+          server-password: ${{ secrets.SERVER_PASSWORD }}
