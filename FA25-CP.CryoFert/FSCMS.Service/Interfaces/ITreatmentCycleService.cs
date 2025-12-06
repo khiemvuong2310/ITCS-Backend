@@ -1,3 +1,4 @@
+using FSCMS.Core.Enum;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 
@@ -5,6 +6,7 @@ namespace FSCMS.Service.Interfaces
 {
     public interface ITreatmentCycleService
     {
+        Task<BaseResponse<TreatmentStatus>> GetTreatmentStatusAsync(Guid treatmentId);
         Task<DynamicResponse<TreatmentCycleResponseModel>> GetAllAsync(GetTreatmentCyclesRequest request);
         Task<BaseResponse<TreatmentCycleDetailResponseModel>> GetByIdAsync(Guid id);
         Task<BaseResponse<TreatmentCycleResponseModel>> CreateAsync(CreateTreatmentCycleRequest request);

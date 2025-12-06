@@ -184,6 +184,30 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns status of Treatment by TreatmentId.
+        public async Task<BaseResponse<TreatmentStatus>> GetTreatmentStatusAsync(Guid treatmentId)
+        {
+            const string methodName = nameof(GetTreatmentStatusAsync);
+            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}", methodName, treatmentId);
+            try
+            {
+                if (treatmentId == Guid.Empty)
+                    return BaseResponse<TreatmentStatus>.CreateError("TreatmentId cannot be empty", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_ID");
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+                if (treatment == null)
+                    return BaseResponse<TreatmentStatus>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+                return BaseResponse<TreatmentStatus>.CreateSuccess(treatment.Status, "Treatment status retrieved successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving treatment status for TreatmentId {TreatmentId}", methodName, treatmentId);
+                return BaseResponse<TreatmentStatus>.CreateError($"Error: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         #endregion
 
         #region Lifecycle Management
