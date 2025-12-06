@@ -38,10 +38,10 @@ jobs:
       - name: Build (Release)
         run: dotnet build "${{ env.PROJECT_PATH }}" --configuration Release --no-restore
 
-      - name: Run Tests
+      - name: Run Tests (skip)
         # Nếu repo không có project test, step này sẽ fail — nếu bạn muốn skip khi không có test,
         # thay bằng "--continue-on-error=true" hoặc remove step này.
-        run: dotnet test --configuration Release
+        run: echo "Skipping tests because no test project exists."
 
       - name: Publish project
         run: |
