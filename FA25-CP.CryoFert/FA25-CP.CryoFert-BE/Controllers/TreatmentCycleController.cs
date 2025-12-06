@@ -1,15 +1,16 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using FSCMS.Service.Interfaces;
-using FSCMS.Service.RequestModel;
-using FSCMS.Service.ReponseModel;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
-using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
-using FSCMS.Data.UnitOfWork;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
+using FSCMS.Data.UnitOfWork;
+using FSCMS.Service.Interfaces;
+using FSCMS.Service.ReponseModel;
+using FSCMS.Service.RequestModel;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -25,6 +26,17 @@ namespace FA25_CP.CryoFert_BE.Controllers
         {
             _service = service;
             _unitOfWork = unitOfWork;
+        }
+
+        // Get Treatment Status for a Treatment
+        [HttpGet]
+        [Authorize(Roles = "Receptionist,Doctor,Patient")]
+        [Route("get-status")]
+        [ApiDefaultResponse(typeof(TreatmentStatus))]
+        public async Task<IActionResult> GetTreatmentStatus([FromQuery] Guid treatmentId)
+        {
+            var result = await _service.GetTreatmentStatusAsync(treatmentId);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
         [HttpGet]
