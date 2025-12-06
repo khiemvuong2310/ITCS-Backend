@@ -47,8 +47,9 @@ jobs:
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
         with:
-          package: './publish.zip'                                  # File zip chứa web app để deploy
-          website-name: ${{ secrets.WEBSITE_NAME }}                 # VD: "Default Web Site/MyApp"
-          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }} # Thường dạng: server:8172/MsDeploy.axd
-          server-username: ${{ secrets.SERVER_USERNAME }}           # Username đăng nhập WebDeploy
-          server-password: ${{ secrets.SERVER_PASSWORD }}           # Password đăng nhập WebDeploy
+          website-name: ${{ secrets.WEBSITE_NAME }} 
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
+          server-username: ${{ secrets.SERVER_USERNAME }}
+          server-password: ${{ secrets.SERVER_PASSWORD }}
+          source-path: './publish'
+          target-path: 'site\wwwroot'
