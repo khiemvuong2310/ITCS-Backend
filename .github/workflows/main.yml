@@ -1,55 +1,56 @@
-name: Build, publish and deploy to MonsterASP.NET   # Tên của GitHub Actions workflow
+name: Build, publish and deploy to MonsterASP.NET   # Tên workflow
 
 on:
   push:
-    branches: [ main ]                             # Chỉ chạy khi có commit push lên nhánh main
+    branches: [ main ]                              # Chỉ chạy khi push lên nhánh main
 
 jobs:
   build_and_deploy:
-    runs-on: windows-latest                        # Chạy job trên máy ảo Windows
+    runs-on: windows-latest                         # Dùng runner Windows để publish Windows runtime
 
     steps:
-      # B1: Clone source code của repo về máy ảo
+      # B1: Lấy code từ repository
       - name: Checkout
         uses: actions/checkout@v4
 
-      # B2: Cài đặt .NET SDK 8.0
+      # B2: Cài .NET SDK (8.x)
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'                 # Sử dụng SDK .NET 8
+          dotnet-version: '8.0.x'
 
-      # B3: Restore các package NuGet cho dự án
+      # B3: Restore NuGet packages cho project chính
       - name: Restore dependencies
-        run: dotnet restore ./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj
+        run: dotnet restore "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj"
 
-      # B4: Chạy unit test (nếu không có test thì skip)
+      # B4: (Tạm skip tests) - sửa lại nếu bạn có test project
       - name: Run tests
-        run: echo "No test project found – skipping tests."   # Bạn có thể sửa path nếu có test
+        run: echo "No test project found – skipping tests."   # Thay bằng dotnet test <path> nếu có tests
 
-      # B5: Build dự án ở chế độ Release
+      # B5: Build project (Release)
       - name: Build
-        run: dotnet build ./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj --configuration Release --no-restore
+        run: dotnet build "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj" --configuration Release --no-restore
 
       # B6: Publish ra folder ./publish
-      # --runtime win-x86 = build theo runtime Windows 32-bit để deploy lên server IIS
+      # --runtime win-x86: build theo runtime Windows (IIS). Thay đổi nếu server cần win-x64.
       - name: Publish
-        run: dotnet publish ./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj --configuration Release --output ./publish --runtime win-x86
+        run: dotnet publish "./FA25-CP.CryoFert/FA25-CP.CryoFert-BE/FA25-CP.CryoFert-BE.csproj" --configuration Release --output ./publish --runtime win-x86 --self-contained false
 
-      # B7: Nén thư mục publish thành file publish.zip để deploy qua WebDeploy
-      - name: Zip publish folder
-        run: |
-          powershell -Command "if(Test-Path publish.zip){Remove-Item publish.zip -Force}; Compress-Archive -Path 'publish/*' -DestinationPath 'publish.zip' -Force"
+      # B7: (Tuỳ chọn) Liệt kê file publish để debug nhanh
+      - name: Show publish folder
+        run: dir publish
 
-      # B8: Deploy bằng WebDeploy (MSDeploy)
-      # Cần các secret trong repo:
-      # WEBSITE_NAME, SERVER_COMPUTER_NAME, SERVER_USERNAME, SERVER_PASSWORD
+      # B8: Deploy bằng simply-web-deploy (KHÔNG DÙNG `package`)
+      # IMPORTANT:
+      # - simply-web-deploy expects a folder (source-path) to copy to target (target-path)
+      # - server-computer-name should be set in Secrets; recommended full WebDeploy URL:
+      #   https://<server>:8172/msdeploy.axd?site=<site_name>
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
         with:
-          website-name: ${{ secrets.WEBSITE_NAME }} 
-          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
-          server-username: ${{ secrets.SERVER_USERNAME }}
-          server-password: ${{ secrets.SERVER_PASSWORD }}
-          source-path: './publish'
-          target-path: 'site\wwwroot'
+          website-name: ${{ secrets.WEBSITE_NAME }}                 # e.g. site36198
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }} # e.g. https://site36198.siteasp.net:8172/msdeploy.axd?site=site36198
+          server-username: ${{ secrets.SERVER_USERNAME }}           # e.g. site36198
+          server-password: ${{ secrets.SERVER_PASSWORD }}           # WebDeploy password
+          source-path: './publish'                                  # Thư mục đã publish
+          target-path: 'site\wwwroot'                               # Đích trên server IIS (thường site\wwwroot)
