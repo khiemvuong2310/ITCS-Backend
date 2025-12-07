@@ -540,13 +540,18 @@ namespace FSCMS.Service.Services
         /// </summary>
         public async Task<BaseResponse<UserResponse>> UpdateUserAsync(Guid userId, UpdateUserRequest request)
         {
+            const string methodName = nameof(UpdateUserAsync);
+            _logger.LogInformation("{MethodName} called with userId: {UserId}", methodName, userId);
+
             try
             {
                 if (userId == Guid.Empty)
                 {
+                    _logger.LogWarning("{MethodName}: Invalid user ID provided - {UserId}", methodName, userId);
                     return new BaseResponse<UserResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_USER_ID",
                         Message = "Invalid user ID",
                         Data = null
                     };
@@ -559,16 +564,22 @@ namespace FSCMS.Service.Services
 
                 if (account == null)
                 {
+                    _logger.LogWarning("{MethodName}: User not found with ID: {UserId}", methodName, userId);
                     return new BaseResponse<UserResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
+                        SystemCode = "USER_NOT_FOUND",
                         Message = "User not found",
                         Data = null
                     };
                 }
 
-                // Store original RoleId to preserve it if not being updated
+                // Store original values to preserve them if not being updated
                 var originalRoleId = account.RoleId;
+                var originalFirstName = account.FirstName;
+                var originalLastName = account.LastName;
+                var originalUsername = account.Username;
+                var originalPhone = account.Phone;
 
                 // Check if new role exists (if role is being updated)
                 if (request.RoleId.HasValue)
@@ -579,9 +590,11 @@ namespace FSCMS.Service.Services
 
                     if (!roleExists)
                     {
+                        _logger.LogWarning("{MethodName}: Invalid role ID provided: {RoleId}", methodName, request.RoleId.Value);
                         return new BaseResponse<UserResponse>
                         {
                             Code = StatusCodes.Status400BadRequest,
+                            SystemCode = "INVALID_ROLE_ID",
                             Message = "Invalid role ID",
                             Data = null
                         };
@@ -601,6 +614,27 @@ namespace FSCMS.Service.Services
                 else if (account.RoleId == Guid.Empty)
                 {
                     account.RoleId = originalRoleId;
+                }
+
+                // Ensure required fields are not null or empty
+                // FirstName and LastName are required in database
+                if (string.IsNullOrWhiteSpace(account.FirstName))
+                {
+                    account.FirstName = originalFirstName;
+                }
+                if (string.IsNullOrWhiteSpace(account.LastName))
+                {
+                    account.LastName = originalLastName;
+                }
+                // Username is required in database
+                if (string.IsNullOrWhiteSpace(account.Username))
+                {
+                    account.Username = originalUsername;
+                }
+                // Phone is required in database
+                if (string.IsNullOrWhiteSpace(account.Phone))
+                {
+                    account.Phone = originalPhone;
                 }
 
                 // Save changes
@@ -623,19 +657,23 @@ namespace FSCMS.Service.Services
                     HydrateUserDemographics(updatedAccount, updatedUser);
                 }
 
+                _logger.LogInformation("{MethodName}: Successfully updated user {UserId}", methodName, userId);
                 return new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status200OK,
+                    SystemCode = "SUCCESS",
                     Message = "User updated successfully",
                     Data = updatedUser
                 };
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "{MethodName}: Error updating user {UserId}", methodName, userId);
                 return new BaseResponse<UserResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred: {ex.Message}",
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = "An internal error occurred while updating the user",
                     Data = null
                 };
             }
