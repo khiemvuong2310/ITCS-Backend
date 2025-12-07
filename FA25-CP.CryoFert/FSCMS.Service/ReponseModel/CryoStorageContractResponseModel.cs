@@ -14,8 +14,6 @@ namespace FSCMS.Service.ReponseModel
         public string Status { get; set; } = default!; // Convert từ enum ContractStatus sang string
         public decimal TotalAmount { get; set; }
         public decimal? PaidAmount { get; set; }
-
-        public bool IsAutoRenew { get; set; }
         public DateTime? SignedDate { get; set; }
         public string? SignedBy { get; set; }
         public string? Notes { get; set; }

@@ -22,7 +22,6 @@ namespace FSCMS.Service.RequestModel
 
     public class UpdateCryoStorageContractRequest
     {
-        public bool? IsAutoRenew { get; set; }
         public ContractStatus? Status { get; set; }
         [StringLength(200, ErrorMessage = "Notes cannot exceed 200 characters.")]
         public string? Notes { get; set; }
