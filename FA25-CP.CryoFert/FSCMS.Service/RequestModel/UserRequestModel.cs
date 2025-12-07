@@ -54,10 +54,7 @@ namespace FSCMS.Service.RequestModel
         [StringLength(50, ErrorMessage = "Username cannot exceed 50 characters.")]
         public string? UserName { get; set; }
 
-        [Range(1, 150, ErrorMessage = "Age must be between 1 and 150.")]
-        public int? Age { get; set; }
-
-        public DateTime? DOB { get; set; }
+        public DateOnly? BirthDate { get; set; }
 
         public bool? Gender { get; set; }
 
@@ -66,9 +63,6 @@ namespace FSCMS.Service.RequestModel
 
         [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters.")]
         public string? Address { get; set; }
-
-        [StringLength(100, ErrorMessage = "Location cannot exceed 100 characters.")]
-        public string? Location { get; set; }
 
         [StringLength(100, ErrorMessage = "Country cannot exceed 100 characters.")]
         public string? Country { get; set; }
