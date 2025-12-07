@@ -67,6 +67,14 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.AvatarId, opt => opt.MapFrom(src => src.Image))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.UserName))
+                .ForMember(dest => dest.Address, opt => opt.MapFrom(src => !string.IsNullOrWhiteSpace(src.Address) ? src.Address : src.Location))
+                .ForMember(dest => dest.BirthDate, opt => opt.MapFrom(src => 
+                    src.DOB.HasValue 
+                        ? DateOnly.FromDateTime(src.DOB.Value) 
+                        : (src.Age.HasValue 
+                            ? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-src.Age.Value)) 
+                            : (DateOnly?)null)))
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.Email, opt => opt.Ignore())
                 .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
