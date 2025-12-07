@@ -184,6 +184,30 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns status of Treatment by TreatmentId.
+        public async Task<BaseResponse<TreatmentStatus>> GetTreatmentStatusAsync(Guid treatmentId)
+        {
+            const string methodName = nameof(GetTreatmentStatusAsync);
+            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}", methodName, treatmentId);
+            try
+            {
+                if (treatmentId == Guid.Empty)
+                    return BaseResponse<TreatmentStatus>.CreateError("TreatmentId cannot be empty", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_ID");
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+                if (treatment == null)
+                    return BaseResponse<TreatmentStatus>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+                return BaseResponse<TreatmentStatus>.CreateSuccess(treatment.Status, "Treatment status retrieved successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving treatment status for TreatmentId {TreatmentId}", methodName, treatmentId);
+                return BaseResponse<TreatmentStatus>.CreateError($"Error: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
         #endregion
 
         #region Lifecycle Management
@@ -256,11 +280,18 @@ namespace FSCMS.Service.Services
                         "PREVIOUS_CYCLE_INCOMPLETE");
                 }
 
+                var previousStatus = entity.Status;
                 var statusChangedToCompleted = request.Status.HasValue && request.Status.Value == TreatmentStatus.Completed;
 
                 entity.UpdateEntity(request);
                 entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
+
+                // Cập nhật trạng thái Treatment và TreatmentIUI/IVF nếu Status của cycle thay đổi
+                if (request.Status.HasValue && request.Status.Value != previousStatus)
+                {
+                    await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, request.Status.Value, methodName);
+                }
 
                 if (statusChangedToCompleted)
                 {
@@ -345,6 +376,9 @@ namespace FSCMS.Service.Services
                 entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
+                // Khi bắt đầu chu kỳ, cập nhật trạng thái tổng của Treatment
+                await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
+
                 await AddAuditLog("TreatmentCycle", id, "Start", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
                 await _unitOfWork.CommitAsync();
 
@@ -390,6 +424,9 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Complete", oldValues, JsonSerializer.Serialize(new { entity, request?.Outcome }));
+
+                // Khi hoàn thành chu kỳ, cập nhật trạng thái tổng của Treatment
+                await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
 
                 // Auto-update next cycle status from Planned to Scheduled
                 await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.CycleNumber, methodName);
@@ -442,6 +479,9 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
                 await AddAuditLog("TreatmentCycle", id, "Cancel", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
+
+                // Khi hủy chu kỳ, cập nhật trạng thái tổng của Treatment
+                await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
 
                 // Update all subsequent cycles in the same treatment to Failed status
                 await UpdateAllSubsequentCyclesToFailedAsync(entity.TreatmentId, entity.CycleNumber, request?.Reason, methodName);
@@ -526,6 +566,12 @@ namespace FSCMS.Service.Services
                 }
 
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, entity.Id);
+
+                // Cập nhật trạng thái tổng của Treatment và TreatmentIUI/IVF khi status chu kỳ thay đổi
+                if (isStatusChange)
+                {
+                    await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
+                }
 
                 await AddAuditLog("TreatmentCycle", entity.Id, "UpdateStatusByOrder", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
 
@@ -955,6 +1001,135 @@ namespace FSCMS.Service.Services
                     "{CallingMethodName}: Error updating subsequent cycles to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
                     callingMethodName, treatmentId, currentCycleNumber);
             }
+        }
+
+        /// <summary>
+        /// Đồng bộ trạng thái tổng của Treatment và entity chi tiết (TreatmentIUI/TreatmentIVF)
+        /// dựa trên trạng thái mới của một TreatmentCycle.
+        /// </summary>
+        /// <param name="treatmentId">Id của Treatment cần cập nhật</param>
+        /// <param name="newStatus">Trạng thái mới của cycle (TreatmentStatus)</param>
+        /// <param name="callingMethodName">Tên method gọi phục vụ logging</param>
+        private async Task UpdateTreatmentAggregateStatusAsync(Guid treatmentId, TreatmentStatus newStatus, string callingMethodName)
+        {
+            try
+            {
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+
+                if (treatment == null)
+                {
+                    _logger.LogWarning(
+                        "{CallingMethodName}: Cannot update aggregate treatment status because Treatment {TreatmentId} was not found",
+                        callingMethodName, treatmentId);
+                    return;
+                }
+
+                // Cập nhật trạng thái tổng của Treatment nếu khác
+                if (treatment.Status != newStatus)
+                {
+                    var oldStatus = treatment.Status;
+                    treatment.Status = newStatus;
+                    treatment.UpdatedAt = DateTime.UtcNow;
+                    await _unitOfWork.Repository<Treatment>().UpdateGuid(treatment, treatment.Id);
+
+                    _logger.LogInformation(
+                        "{CallingMethodName}: Updated Treatment {TreatmentId} status from {OldStatus} to {NewStatus}",
+                        callingMethodName, treatmentId, oldStatus, newStatus);
+                }
+
+                // Đồng bộ thêm trạng thái cho TreatmentIUI / TreatmentIVF (nếu có)
+                if (treatment.TreatmentType == TreatmentType.IUI)
+                {
+                    var iui = await _unitOfWork.Repository<TreatmentIUI>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                    if (iui != null)
+                    {
+                        var mappedStatus = MapTreatmentStatusToIUICycleStatus(newStatus);
+                        if (mappedStatus.HasValue && iui.Status != mappedStatus.Value)
+                        {
+                            var oldDetailStatus = iui.Status;
+                            iui.Status = mappedStatus.Value;
+                            iui.UpdatedAt = DateTime.UtcNow;
+                            await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(iui, iui.Id);
+
+                            _logger.LogInformation(
+                                "{CallingMethodName}: Updated TreatmentIUI {TreatmentId} status from {OldStatus} to {NewStatus}",
+                                callingMethodName, treatmentId, oldDetailStatus, mappedStatus.Value);
+                        }
+                    }
+                }
+                else if (treatment.TreatmentType == TreatmentType.IVF)
+                {
+                    var ivf = await _unitOfWork.Repository<TreatmentIVF>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                    if (ivf != null)
+                    {
+                        var mappedStatus = MapTreatmentStatusToIVFCycleStatus(newStatus);
+                        if (mappedStatus.HasValue && ivf.Status != mappedStatus.Value)
+                        {
+                            var oldDetailStatus = ivf.Status;
+                            ivf.Status = mappedStatus.Value;
+                            ivf.UpdatedAt = DateTime.UtcNow;
+                            await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(ivf, ivf.Id);
+
+                            _logger.LogInformation(
+                                "{CallingMethodName}: Updated TreatmentIVF {TreatmentId} status from {OldStatus} to {NewStatus}",
+                                callingMethodName, treatmentId, oldDetailStatus, mappedStatus.Value);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Không làm fail flow chính, chỉ log cảnh báo
+                _logger.LogWarning(ex,
+                    "{CallingMethodName}: Failed to update aggregate treatment status for Treatment {TreatmentId}",
+                    callingMethodName, treatmentId);
+            }
+        }
+
+        /// <summary>
+        /// Map TreatmentStatus chung sang IUICycleStatus cho phác đồ IUI.
+        /// Chỉ map các trạng thái chính, các trạng thái chi tiết sẽ được cập nhật ở luồng riêng nếu cần.
+        /// </summary>
+        private IUICycleStatus? MapTreatmentStatusToIUICycleStatus(TreatmentStatus status)
+        {
+            return status switch
+            {
+                TreatmentStatus.Planned => IUICycleStatus.Planned,
+                TreatmentStatus.Scheduled => IUICycleStatus.Planned,
+                TreatmentStatus.InProgress => IUICycleStatus.Monitoring,
+                TreatmentStatus.OnHold => IUICycleStatus.Monitoring,
+                TreatmentStatus.Completed => IUICycleStatus.Closed,
+                TreatmentStatus.Cancelled => IUICycleStatus.Closed,
+                TreatmentStatus.Failed => IUICycleStatus.Closed,
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// Map TreatmentStatus chung sang IVFCycleStatus cho phác đồ IVF.
+        /// Chỉ map các trạng thái chính, các trạng thái chi tiết sẽ được cập nhật ở luồng riêng nếu cần.
+        /// </summary>
+        private IVFCycleStatus? MapTreatmentStatusToIVFCycleStatus(TreatmentStatus status)
+        {
+            return status switch
+            {
+                TreatmentStatus.Planned => IVFCycleStatus.Planned,
+                TreatmentStatus.Scheduled => IVFCycleStatus.Planned,
+                TreatmentStatus.InProgress => IVFCycleStatus.COS,
+                TreatmentStatus.OnHold => IVFCycleStatus.COS,
+                TreatmentStatus.Completed => IVFCycleStatus.Closed,
+                TreatmentStatus.Cancelled => IVFCycleStatus.Closed,
+                TreatmentStatus.Failed => IVFCycleStatus.Closed,
+                _ => null
+            };
         }
 
         private async Task UpdateTreatmentCurrentStepAsync(Guid treatmentId, int completedCycleNumber, string callingMethodName)

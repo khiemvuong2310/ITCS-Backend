@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using FSCMS.Core.Enum;
 using FSCMS.Service.ReponseModel;
+using Microsoft.AspNetCore.Http;
 
 namespace FSCMS.Service.RequestModel
 {
@@ -96,6 +97,7 @@ namespace FSCMS.Service.RequestModel
         [Required(ErrorMessage = "OTP code is required.")]
         [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP code must be 6 digits.")]
         public string OtpCode { get; set; } = string.Empty;
+        public IFormFile? SignedAgreementFile { get; set; }
     }
 }
 

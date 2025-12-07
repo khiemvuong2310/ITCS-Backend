@@ -53,6 +53,32 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         /// <summary>
+        /// Upload template file
+        /// </summary>
+        [HttpPost("upload-template")]
+        [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> UploadTemplate([FromForm] UploadTemplateRequest request)
+        {
+            if (request.File == null)
+            {
+                return BadRequest(new BaseResponse<MediaResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "File is required"
+                });
+            }
+
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
+
+            var result = await _mediaService.UploadTemplateAsync(request, Guid.Parse(accountId));
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
         /// Get media by ID
         /// </summary>
         [HttpGet("{mediaId}")]
@@ -93,6 +119,17 @@ namespace FA25_CP.CryoFert_BE.Controllers
         public async Task<IActionResult> GetAllMedias([FromQuery] GetMediasRequest request)
         {
             var result = await _mediaService.GetAllMediasAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        /// <summary>
+        /// Get template
+        /// </summary>
+        [HttpGet("template")]
+        [ApiDefaultResponse(typeof(MediaResponse))]
+        public async Task<IActionResult> GetTemplate([FromQuery] GetTemplateRequest request)
+        {
+            var result = await _mediaService.GetTemplateAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
     }

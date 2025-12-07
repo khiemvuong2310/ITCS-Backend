@@ -10,8 +10,9 @@ namespace FSCMS.Service.Interfaces
     {
         Task<BaseResponse<NotificationResponse>> GetNotificationByIdAsync(Guid id);
         Task<DynamicResponse<NotificationResponse>> GetNotificationsAsync(GetNotificationsRequest request);
-        Task<BaseResponse<NotificationResponse>> CreateNotificationAsync(CreateNotificationRequest request);
-        Task<BaseResponse<NotificationResponse>> UpdateNotificationAsync(UpdateNotificationRequest request);
+        Task<BaseResponse<NotificationResponse>> CreateNotificationAsync(CreateNotificationRequest request, Guid accountId);
+        Task<BaseResponse<NotificationResponse>> UpdateNotificationAsync(Guid id, UpdateNotificationRequest request);
         Task<BaseResponse> DeleteNotificationAsync(Guid id);
+        Task<BaseResponse<NotificationResponse>> UpdateSatusRead(Guid id);
     }
 }

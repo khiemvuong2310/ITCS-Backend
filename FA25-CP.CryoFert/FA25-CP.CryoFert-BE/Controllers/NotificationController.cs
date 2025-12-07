@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using System.Security.Claims;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -73,8 +74,13 @@ namespace FA25_CP.CryoFert_BE.Controllers
                     Message = "Invalid input data"
                 });
             }
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
 
-            var result = await _notificationService.CreateNotificationAsync(request);
+            var result = await _notificationService.CreateNotificationAsync(request, Guid.Parse(accountId));
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
@@ -94,16 +100,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 });
             }
 
-            if (id == Guid.Empty || id != request.Id)
-            {
-                return BadRequest(new BaseResponse<NotificationResponse>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "Notification ID mismatch"
-                });
-            }
-
-            var result = await _notificationService.UpdateNotificationAsync(request);
+            var result = await _notificationService.UpdateNotificationAsync(id, request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
@@ -124,6 +121,23 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var result = await _notificationService.DeleteNotificationAsync(id);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        [HttpPut("{id}/read")]
+        [ApiDefaultResponse(typeof(NotificationResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> UpdateNotificationStatusRead(Guid id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<NotificationResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data"
+                });
+            }
+
+            var result = await _notificationService.UpdateSatusRead(id);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
     }

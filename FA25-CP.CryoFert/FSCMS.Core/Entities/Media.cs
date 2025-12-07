@@ -9,7 +9,7 @@ namespace FSCMS.Core.Entities
     /// </summary>
     public class Media : BaseEntity<Guid>
     {
-        protected Media() : base() { }
+        public Media() : base() { }
 
         public Media(
             Guid id,
@@ -49,6 +49,7 @@ namespace FSCMS.Core.Entities
         public DateTime? UploadDate { get; set; }
         public string? UploadedBy { get; set; }
         public Guid? UploadedByUserId { get; set; }
+        public bool IsTemplate { get; set; } = false;
         public bool IsPublic { get; set; } = false;
         public string? ThumbnailPath { get; set; }
         public string? StorageLocation { get; set; } // "Local", "Cloud", "S3", etc.

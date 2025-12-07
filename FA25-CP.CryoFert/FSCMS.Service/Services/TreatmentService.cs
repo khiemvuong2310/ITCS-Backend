@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -367,6 +368,19 @@ namespace FSCMS.Service.Services
                 if (!doctorExists)
                 {
                     return BaseResponse<TreatmentResponseModel>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
+                }
+
+                // Business Rule: Each Patient can only have 1 active Treatment at a time
+                var hasActiveTreatment = await HasActiveTreatmentAsync(request.PatientId);
+                if (hasActiveTreatment)
+                {
+                    _logger.LogWarning(
+                        "{MethodName}: Patient {PatientId} already has an active treatment. Cannot create new treatment.",
+                        methodName, request.PatientId);
+                    return BaseResponse<TreatmentResponseModel>.CreateError(
+                        "Patient already has an active treatment. Please complete, cancel, or fail the existing treatment before creating a new one.",
+                        StatusCodes.Status409Conflict,
+                        "ACTIVE_TREATMENT_EXISTS");
                 }
 
                 // Validate IUI/IVF data consistency with TreatmentType
@@ -915,6 +929,43 @@ namespace FSCMS.Service.Services
                 _logger.LogError(ex, "{MethodName}: Error cancelling Planned cycles for Treatment {TreatmentId}", methodName, treatmentId);
                 throw;
             }
+        }
+
+        private static readonly TreatmentStatus[] ActiveTreatmentStatuses =
+        {
+            TreatmentStatus.Planned,
+            TreatmentStatus.InProgress,
+            TreatmentStatus.Scheduled,
+            TreatmentStatus.OnHold
+        };
+
+        /// <summary>
+        /// Checks if a patient has an active treatment.
+        /// Active treatments are: Planned, InProgress, Scheduled, OnHold
+        /// Non-active treatments are: Completed, Cancelled, Failed
+        /// </summary>
+        /// <param name="patientId">The patient ID to check</param>
+        /// <returns>True if patient has an active treatment, false otherwise</returns>
+        private async Task<bool> HasActiveTreatmentAsync(Guid patientId)
+        {
+            // Use Contains on constant array so EF can translate to SQL IN clause
+            return await _unitOfWork.Repository<Treatment>()
+                .GetQueryable()
+                .AnyAsync(t => t.PatientId == patientId 
+                    && !t.IsDeleted 
+                    && ActiveTreatmentStatuses.Contains(t.Status));
+        }
+
+        /// <summary>
+        /// Determines if a treatment status is considered active.
+        /// Active statuses: Planned, InProgress, Scheduled, OnHold
+        /// Non-active statuses: Completed, Cancelled, Failed
+        /// </summary>
+        /// <param name="status">The treatment status to check</param>
+        /// <returns>True if status is active, false otherwise</returns>
+        private static bool IsActiveStatus(TreatmentStatus status)
+        {
+            return ActiveTreatmentStatuses.Contains(status);
         }
 
         /// <summary>
