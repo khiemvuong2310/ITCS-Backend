@@ -18,5 +18,6 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse> DeleteMediaAsync(Guid mediaId);
         Task<BaseResponse<MediaResponse>> GetTemplateAsync(GetTemplateRequest request);
         Task<BaseResponse<MediaResponse>> UploadTemplateAsync(UploadTemplateRequest request, Guid accountId);
+        Task<string> GetEtaTemplateFromCloudAsync(EntityTypeMedia type);
     }
 }
