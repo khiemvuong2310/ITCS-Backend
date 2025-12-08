@@ -191,7 +191,7 @@ namespace FSCMS.Core
             // TreatmentIUI & Treatment Relationship (One-to-One)
             modelBuilder.Entity<TreatmentIUI>()
                 .HasOne(tiui => tiui.Treatment)
-                .WithOne()
+                .WithOne(t => t.TreatmentIUI)
                 .HasForeignKey<TreatmentIUI>(tiui => tiui.Id)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -427,9 +427,10 @@ namespace FSCMS.Core
             var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010008");
             
             modelBuilder.Entity<Account>().HasData(
-                new Account(adminAccountId, "System", "Admin", null, "admin@cryo.com", "admin", defaultPwdHash, "+84900000001", null, null, true, true, null, null) { RoleId = roleAdminId },
-                new Account(labAccountId, "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "+84900000002", null, null, true, true, null, null) { RoleId = roleLabId },
-                new Account(receptionistAccountId, "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "+84900000003", null, null, true, true, null, null) { RoleId = roleReceptionistId },
+                new Account(adminAccountId, "System", "Admin", null, "admin@cryo.com", "admin", defaultPwdHash, "0901234567", null, true, true, true, null, null) { RoleId = roleAdminId },
+                new Account(labAccountId, "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "0901234568", null, false, true, true, null, null) { RoleId = roleLabId },
+                new Account(receptionistAccountId, "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "0901234569", null, false, true, true, null, null) { RoleId = roleReceptionistId },
+
                 // Doctor accounts
                 new Account(doctor1AccountId, "Nguyen", "Van A", new DateOnly(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
                 new Account(doctor2AccountId, "Tran", "Thi B", new DateOnly(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
