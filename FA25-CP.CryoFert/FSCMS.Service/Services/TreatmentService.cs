@@ -14,10 +14,16 @@ namespace FSCMS.Service.Services
 {
     public class TreatmentService : ITreatmentService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TreatmentService> _logger;
         private readonly ITreatmentIUIService _treatmentIUIService;
         private readonly ITreatmentIVFService _treatmentIVFService;
+
+        #endregion
+
+        #region Constructor
 
         public TreatmentService(
             IUnitOfWork unitOfWork,
@@ -30,6 +36,10 @@ namespace FSCMS.Service.Services
             _treatmentIUIService = treatmentIUIService ?? throw new ArgumentNullException(nameof(treatmentIUIService));
             _treatmentIVFService = treatmentIVFService ?? throw new ArgumentNullException(nameof(treatmentIVFService));
         }
+
+        #endregion
+
+        #region CRUD Operations
 
         public async Task<DynamicResponse<TreatmentResponseModel>> GetAllAsync(GetTreatmentsRequest request)
         {
@@ -240,96 +250,6 @@ namespace FSCMS.Service.Services
                     StatusCodes.Status500InternalServerError, 
                     "INTERNAL_ERROR");
             }
-        }
-
-        /// <summary>
-        /// Retrieves treatment entity with all related navigation properties
-        /// </summary>
-        private async Task<Treatment?> GetTreatmentWithRelatedDataAsync(Guid id)
-        {
-            return await _unitOfWork.Repository<Treatment>()
-                .GetQueryable()
-                .AsNoTracking()
-                .Include(t => t.Patient)
-                .Include(t => t.Doctor)
-                .Include(t => t.TreatmentIVF)
-                .Include(t => t.TreatmentIUI)
-                .Where(t => t.Id == id && !t.IsDeleted)
-                .FirstOrDefaultAsync();
-        }
-
-        /// <summary>
-        /// Maps Treatment entity to TreatmentDetailResponseModel with all related data
-        /// </summary>
-        private async Task<TreatmentDetailResponseModel> MapToDetailResponseModelAsync(Treatment treatment, Guid treatmentId)
-        {
-            // Map base treatment data
-            var responseModel = treatment.ToDetailResponseModel();
-
-            // Load and map IVF data if treatment type is IVF
-            if (treatment.TreatmentType == TreatmentType.IVF && 
-                treatment.TreatmentIVF != null && 
-                !treatment.TreatmentIVF.IsDeleted)
-            {
-                responseModel.IVF = treatment.TreatmentIVF.ToResponseModel();
-            }
-
-            // Load and map IUI data if treatment type is IUI
-            if (treatment.TreatmentType == TreatmentType.IUI)
-            {
-                var iui = treatment.TreatmentIUI;
-                if (iui == null || iui.IsDeleted)
-                {
-                    iui = await _unitOfWork.Repository<TreatmentIUI>()
-                        .GetQueryable()
-                        .AsNoTracking()
-                        .Where(x => x.Id == treatmentId && !x.IsDeleted)
-                        .FirstOrDefaultAsync();
-                }
-
-                if (iui != null)
-                {
-                    responseModel.IUI = iui.ToResponseModel();
-                }
-            }
-
-            // Load and map agreements
-            var agreements = await LoadAgreementsAsync(treatmentId);
-            
-            if (agreements.Any())
-            {
-                var agreementList = agreements.Select(a => a.ToAgreementResponse()).ToList();
-                responseModel.Agreements = agreementList;
-
-                // Attach agreements to IVF/IUI if they exist
-                if (responseModel.IVF != null)
-                {
-                    responseModel.IVF.Agreements = agreementList;
-                }
-
-                if (responseModel.IUI != null)
-                {
-                    responseModel.IUI.Agreements = agreementList;
-                }
-            }
-
-            return responseModel;
-        }
-
-        /// <summary>
-        /// Loads all agreements associated with a treatment
-        /// </summary>
-        private async Task<List<Agreement>> LoadAgreementsAsync(Guid treatmentId)
-        {
-            return await _unitOfWork.Repository<Agreement>()
-                .GetQueryable()
-                .AsNoTracking()
-                .Include(a => a.Treatment)
-                .Include(a => a.Patient)
-                    .ThenInclude(p => p!.Account)
-                .Where(a => a.TreatmentId == treatmentId && !a.IsDeleted)
-                .OrderByDescending(a => a.CreatedAt)
-                .ToListAsync();
         }
 
         public async Task<BaseResponse<TreatmentResponseModel>> CreateAsync(TreatmentCreateUpdateRequest request)
@@ -685,6 +605,10 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Status Operations
+
         /// <summary>
         /// Update treatment status only
         /// </summary>
@@ -787,6 +711,10 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Cycle Management
+
         /// <summary>
         /// Cancels all remaining Planned cycles for a treatment when pregnancy is detected.
         /// This method should be called when any cycle results in pregnancy (e.g., when TreatmentIVF.Status == PregnancyPositive).
@@ -838,6 +766,100 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Private Helper Methods
+
+        /// <summary>
+        /// Retrieves treatment entity with all related navigation properties
+        /// </summary>
+        private async Task<Treatment?> GetTreatmentWithRelatedDataAsync(Guid id)
+        {
+            return await _unitOfWork.Repository<Treatment>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Include(t => t.Patient)
+                .Include(t => t.Doctor)
+                .Include(t => t.TreatmentIVF)
+                .Include(t => t.TreatmentIUI)
+                .Where(t => t.Id == id && !t.IsDeleted)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Maps Treatment entity to TreatmentDetailResponseModel with all related data
+        /// </summary>
+        private async Task<TreatmentDetailResponseModel> MapToDetailResponseModelAsync(Treatment treatment, Guid treatmentId)
+        {
+            // Map base treatment data
+            var responseModel = treatment.ToDetailResponseModel();
+
+            // Load and map IVF data if treatment type is IVF
+            if (treatment.TreatmentType == TreatmentType.IVF && 
+                treatment.TreatmentIVF != null && 
+                !treatment.TreatmentIVF.IsDeleted)
+            {
+                responseModel.IVF = treatment.TreatmentIVF.ToResponseModel();
+            }
+
+            // Load and map IUI data if treatment type is IUI
+            if (treatment.TreatmentType == TreatmentType.IUI)
+            {
+                var iui = treatment.TreatmentIUI;
+                if (iui == null || iui.IsDeleted)
+                {
+                    iui = await _unitOfWork.Repository<TreatmentIUI>()
+                        .GetQueryable()
+                        .AsNoTracking()
+                        .Where(x => x.Id == treatmentId && !x.IsDeleted)
+                        .FirstOrDefaultAsync();
+                }
+
+                if (iui != null)
+                {
+                    responseModel.IUI = iui.ToResponseModel();
+                }
+            }
+
+            // Load and map agreements
+            var agreements = await LoadAgreementsAsync(treatmentId);
+            
+            if (agreements.Any())
+            {
+                var agreementList = agreements.Select(a => a.ToAgreementResponse()).ToList();
+                responseModel.Agreements = agreementList;
+
+                // Attach agreements to IVF/IUI if they exist
+                if (responseModel.IVF != null)
+                {
+                    responseModel.IVF.Agreements = agreementList;
+                }
+
+                if (responseModel.IUI != null)
+                {
+                    responseModel.IUI.Agreements = agreementList;
+                }
+            }
+
+            return responseModel;
+        }
+
+        /// <summary>
+        /// Loads all agreements associated with a treatment
+        /// </summary>
+        private async Task<List<Agreement>> LoadAgreementsAsync(Guid treatmentId)
+        {
+            return await _unitOfWork.Repository<Agreement>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Include(a => a.Treatment)
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p!.Account)
+                .Where(a => a.TreatmentId == treatmentId && !a.IsDeleted)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+        }
+
         private static readonly TreatmentStatus[] ActiveTreatmentStatuses =
         {
             TreatmentStatus.Planned,
@@ -874,6 +896,10 @@ namespace FSCMS.Service.Services
         {
             return ActiveTreatmentStatuses.Contains(status);
         }
+
+        #endregion
+
+        #region Cycle Creation Methods
 
         /// <summary>
         /// Creates IUI treatment cycles with sequential StartDate calculation.
@@ -1192,6 +1218,8 @@ namespace FSCMS.Service.Services
             // All other future steps are Planned
             return TreatmentStatus.Planned;
         }
+
+        #endregion
     }
 }
 

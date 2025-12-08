@@ -18,10 +18,16 @@ namespace FSCMS.Service.Services
 {
     public class MediaService : IMediaService
     {
+        #region Dependencies
+
         private readonly IFileStorageService _fileStorageService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<MediaService> _logger;
         private readonly IMapper _mapper;
+
+        #endregion
+
+        #region Constructor
 
         public MediaService(
             IFileStorageService fileStorageService,
@@ -34,6 +40,10 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
+
+        #endregion
+
+        #region CRUD Operations
 
         public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid accountId)
         {
@@ -590,5 +600,7 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        #endregion
     }
 }

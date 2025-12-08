@@ -19,10 +19,17 @@ namespace FSCMS.Service.Services
 {
     public class NotificationService : INotificationService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<NotificationService> _logger;
         private readonly IHubContext<NotificationHub> _hubContext;
+
+        #endregion
+
+        #region Constructor
+
         public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<NotificationService> logger, IHubContext<NotificationHub> hubContext)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -30,6 +37,10 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _hubContext = hubContext;
         }
+
+        #endregion
+
+        #region CRUD Operations
 
         /// <summary>
         /// Get notification by ID
@@ -422,5 +433,7 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        #endregion
     }
 }

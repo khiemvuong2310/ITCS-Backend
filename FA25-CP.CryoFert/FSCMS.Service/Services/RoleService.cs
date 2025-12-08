@@ -75,6 +75,8 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
         /// <summary>
         /// Get role by ID from cache
         /// </summary>

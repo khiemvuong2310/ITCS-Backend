@@ -15,10 +15,16 @@ namespace FSCMS.Service.Services
 {
     public class EmailService : IEmailService
     {
+        #region Dependencies
+
         private readonly IConfiguration _configuration;
         private readonly string _emailSender;
         private readonly string _emailPassword;
         private readonly string _emailSenderName;
+
+        #endregion
+
+        #region Constructor
 
         public EmailService(
             IConfiguration configuration
@@ -36,6 +42,10 @@ namespace FSCMS.Service.Services
             _emailSenderName = configuration["Email:SenderName"]
                 ?? "CryoFert - Fertility Management System";
         }
+
+        #endregion
+
+        #region Public Methods
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
@@ -63,5 +73,7 @@ namespace FSCMS.Service.Services
 
             await smtpClient.SendMailAsync(mailMessage);
         }
+
+        #endregion
     }
 }
