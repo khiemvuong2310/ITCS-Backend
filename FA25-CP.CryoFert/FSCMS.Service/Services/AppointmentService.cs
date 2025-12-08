@@ -748,66 +748,21 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                     }
 
-                    // Check if slot is already booked for the same day (by an active appointment)
-                    var appointmentDate = request.AppointmentDate;
-                    var slotAlreadyBooked = await _unitOfWork.Repository<Appointment>()
-                        .AsQueryable()
-                        .AnyAsync(a =>
-                            a.SlotId == request.SlotId.Value &&
-                            !a.IsDeleted &&
-                            a.AppointmentDate == appointmentDate &&
-                            a.Status != AppointmentStatus.Cancelled &&
-                            a.Status != AppointmentStatus.Completed);
-
-                    if (slotAlreadyBooked)
-                    {
-                        _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
-                        return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
-                    }
-
                     // Validate all doctors if provided
                     if (request.DoctorIds != null && request.DoctorIds.Any())
                     {
                         foreach (var doctorId in request.DoctorIds)
                         {
-                            // Check if doctor has schedule (if exists, doctor is busy)
-                            var hasSchedule = await _unitOfWork.Repository<DoctorSchedule>()
-                                .AsQueryable()
-                                .AnyAsync(ds =>
-                                    !ds.IsDeleted &&
-                                    ds.DoctorId == doctorId &&
-                                    ds.SlotId == request.SlotId.Value &&
-                                    ds.WorkDate == appointmentDate);
-
-                            if (hasSchedule)
+                            // Check doctor availability via DoctorSchedule + active appointments
+                            var isAvailable = await IsDoctorAvailableForSlotAsync(doctorId, request.SlotId.Value, request.AppointmentDate);
+                            if (!isAvailable)
                             {
-                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} has schedule and is busy for slot {SlotId} on date {AppointmentDate}", 
-                                    methodName, doctorId, request.SlotId.Value, appointmentDate);
+                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} is busy for slot {SlotId} on date {AppointmentDate}", 
+                                    methodName, doctorId, request.SlotId.Value, request.AppointmentDate);
                                 return BaseResponse<AppointmentResponse>.CreateError(
-                                    $"Doctor is busy (has schedule) for the selected slot/date", 
+                                    $"Doctor is busy for the selected slot/date", 
                                     StatusCodes.Status400BadRequest, 
                                     "DOCTOR_NOT_AVAILABLE");
-                            }
-
-                            // Check if doctor already has appointment for same slot, same date
-                            var hasConflictingAppointment = await _unitOfWork.Repository<Appointment>()
-                                .AsQueryable()
-                                .AnyAsync(a =>
-                                    !a.IsDeleted &&
-                                    a.SlotId == request.SlotId.Value &&
-                                    a.AppointmentDate == appointmentDate &&
-                                    a.AppointmentDoctors.Any(ad => ad.DoctorId == doctorId && !ad.IsDeleted) &&
-                                    a.Status != AppointmentStatus.Cancelled &&
-                                    a.Status != AppointmentStatus.Completed);
-
-                            if (hasConflictingAppointment)
-                            {
-                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} already has appointment for slot {SlotId} on date {AppointmentDate}", 
-                                    methodName, doctorId, request.SlotId.Value, appointmentDate);
-                                return BaseResponse<AppointmentResponse>.CreateError(
-                                    $"Doctor already has an appointment for the same slot and date", 
-                                    StatusCodes.Status400BadRequest, 
-                                    "DOCTOR_ALREADY_BOOKED");
                             }
                         }
                     }
