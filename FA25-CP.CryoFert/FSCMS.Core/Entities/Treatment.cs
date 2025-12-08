@@ -57,5 +57,6 @@ namespace FSCMS.Core.Entities
         public virtual ICollection<TreatmentCycle> TreatmentCycles { get; set; } = new List<TreatmentCycle>();
 
         public virtual TreatmentIVF? TreatmentIVF { get; set; }
+        public virtual TreatmentIUI? TreatmentIUI { get; set; }
     }
 }
