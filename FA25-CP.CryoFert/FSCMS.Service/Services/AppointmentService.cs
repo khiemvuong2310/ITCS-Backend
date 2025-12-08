@@ -4,6 +4,7 @@ using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
+using FSCMS.Service.Mapping;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace FSCMS.Service.Services
@@ -24,13 +26,15 @@ namespace FSCMS.Service.Services
         private readonly IMapper _mapper;
         private readonly ILogger<AppointmentService> _logger;
         private readonly ITransactionService _transactionService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService)
+        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
 
         #region Appointment CRUD Operations
@@ -76,7 +80,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AppointmentResponse>.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
-                var appointmentResponse = MapToAppointmentResponse(appointment);
+                var appointmentResponse = appointment.ToAppointmentResponse();
                 await AttachTransactionsAsync(new[] { appointmentResponse });
                 _logger.LogInformation("{MethodName}: Successfully retrieved appointment {AppointmentId}", methodName, appointmentId);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment retrieved successfully");
@@ -132,6 +136,25 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AppointmentDetailResponse>.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
+                // Authorization check: If user is Patient, verify they can only access their own appointments
+                if (IsCurrentUserInRole("Patient"))
+                {
+                    var currentAccountId = GetCurrentAccountId();
+                    if (!currentAccountId.HasValue)
+                    {
+                        _logger.LogWarning("{MethodName}: Unable to get current user account ID", methodName);
+                        return BaseResponse<AppointmentDetailResponse>.CreateError("Unable to identify current user", StatusCodes.Status401Unauthorized, "UNAUTHORIZED");
+                    }
+
+                    // Patient and Account share the same ID, so PatientId == AccountId
+                    if (appointment.PatientId != currentAccountId.Value)
+                    {
+                        _logger.LogWarning("{MethodName}: Patient {AccountId} attempted to access appointment {AppointmentId} belonging to patient {PatientId}", 
+                            methodName, currentAccountId.Value, appointmentId, appointment.PatientId);
+                        return BaseResponse<AppointmentDetailResponse>.CreateError("You do not have permission to access this appointment", StatusCodes.Status403Forbidden, "FORBIDDEN");
+                    }
+                }
+
                 // Load Patient separately if it's null but PatientId exists (e.g., if Patient is soft deleted)
                 if (appointment.Patient == null && appointment.PatientId != Guid.Empty)
                 {
@@ -142,7 +165,7 @@ namespace FSCMS.Service.Services
                         .FirstOrDefaultAsync(p => p.Id == appointment.PatientId);
                 }
 
-                var appointmentDetailResponse = MapToAppointmentDetailResponse(appointment);
+                var appointmentDetailResponse = appointment.ToAppointmentDetailResponse();
                 await AttachTransactionsAsync(new[] { appointmentDetailResponse });
 
                 // Load service requests
@@ -287,7 +310,9 @@ namespace FSCMS.Service.Services
                     .Take(request.Size)
                     .ToListAsync();
 
-                var appointmentResponses = appointments.Select(MapToAppointmentResponse).ToList();
+                var appointmentResponses = appointments
+                    .Select(a => a.ToAppointmentResponse())
+                    .ToList();
                 await AttachTransactionsAsync(appointmentResponses);
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} appointments", methodName, appointmentResponses.Count);
@@ -573,7 +598,9 @@ namespace FSCMS.Service.Services
                     .Take(request.Size)
                     .ToListAsync();
 
-                var appointmentResponses = appointments.Select(MapToAppointmentResponse).ToList();
+                var appointmentResponses = appointments
+                    .Select(a => a.ToAppointmentResponse())
+                    .ToList();
                 await AttachTransactionsAsync(appointmentResponses);
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} appointments (with booking transactions) for patient {PatientId}",
@@ -651,7 +678,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AppointmentResponse>.CreateError("Appointment not found for the specified slot", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
-                var appointmentResponse = MapToAppointmentResponse(appointment);
+                var appointmentResponse = appointment.ToAppointmentResponse();
                 await AttachTransactionsAsync(new[] { appointmentResponse });
                 _logger.LogInformation("{MethodName}: Successfully retrieved appointment for slot {SlotId}", methodName, slotId);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment retrieved successfully");
@@ -721,42 +748,22 @@ namespace FSCMS.Service.Services
                         return BaseResponse<AppointmentResponse>.CreateError("Slot not found", StatusCodes.Status404NotFound, "SLOT_NOT_FOUND");
                     }
 
-                    // Check if slot is already booked for the same day (by an active appointment)
-                    var appointmentDate = request.AppointmentDate;
-                    var slotAlreadyBooked = await _unitOfWork.Repository<Appointment>()
-                        .AsQueryable()
-                        .AnyAsync(a =>
-                            a.SlotId == request.SlotId.Value &&
-                            !a.IsDeleted &&
-                            a.AppointmentDate == appointmentDate &&
-                            a.Status != AppointmentStatus.Cancelled &&
-                            a.Status != AppointmentStatus.Rescheduled);
-
-                    if (slotAlreadyBooked)
+                    // Validate all doctors if provided
+                    if (request.DoctorIds != null && request.DoctorIds.Any())
                     {
-                        _logger.LogWarning("{MethodName}: Slot is already booked", methodName);
-                        return BaseResponse<AppointmentResponse>.CreateError("Slot is already booked", StatusCodes.Status400BadRequest, "SLOT_ALREADY_BOOKED");
-                    }
-
-                    // Ensure there is a matching doctor schedule for the selected date/slot when a doctor is provided.
-                    var primaryDoctorId = request.DoctorIds != null && request.DoctorIds.Any() ? (Guid?)request.DoctorIds.First() : null;
-                    var workDate = appointmentDate;
-                    if (primaryDoctorId.HasValue)
-                    {
-                        var existingSchedule = await _unitOfWork.Repository<DoctorSchedule>()
-                            .AsQueryable()
-                            .FirstOrDefaultAsync(ds => ds.DoctorId == primaryDoctorId.Value && ds.SlotId == slot.Id && ds.WorkDate == workDate && !ds.IsDeleted);
-
-                        if (existingSchedule == null)
+                        foreach (var doctorId in request.DoctorIds)
                         {
-                            // Create an available schedule for this doctor, date, and slot
-                            var newSchedule = new DoctorSchedule(Guid.NewGuid(), primaryDoctorId.Value, slot.Id, workDate, true);
-                            await _unitOfWork.Repository<DoctorSchedule>().InsertAsync(newSchedule);
-                        }
-                        else if (!existingSchedule.IsAvailable)
-                        {
-                            _logger.LogWarning("{MethodName}: Doctor not available for selected slot/date", methodName);
-                            return BaseResponse<AppointmentResponse>.CreateError("Doctor is not available for the selected slot/date", StatusCodes.Status400BadRequest, "DOCTOR_NOT_AVAILABLE");
+                            // Check doctor availability via DoctorSchedule + active appointments
+                            var isAvailable = await IsDoctorAvailableForSlotAsync(doctorId, request.SlotId.Value, request.AppointmentDate);
+                            if (!isAvailable)
+                            {
+                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} is busy for slot {SlotId} on date {AppointmentDate}", 
+                                    methodName, doctorId, request.SlotId.Value, request.AppointmentDate);
+                                return BaseResponse<AppointmentResponse>.CreateError(
+                                    $"Doctor is busy for the selected slot/date", 
+                                    StatusCodes.Status400BadRequest, 
+                                    "DOCTOR_NOT_AVAILABLE");
+                            }
                         }
                     }
                 }
@@ -849,7 +856,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(d => d.Account)
                     .FirstOrDefaultAsync(a => a.Id == appointment.Id);
 
-                var appointmentResponse = MapToAppointmentResponse(createdAppointment!);
+                var appointmentResponse = createdAppointment!.ToAppointmentResponse();
                 _logger.LogInformation("{MethodName}: Successfully created appointment {AppointmentId}", methodName, appointment.Id);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment created successfully", StatusCodes.Status201Created);
             }
@@ -975,7 +982,7 @@ namespace FSCMS.Service.Services
                             .ThenInclude(d => d.Account)
                     .FirstOrDefaultAsync(a => a.Id == appointmentId);
 
-                var appointmentResponse = MapToAppointmentResponse(updatedAppointment!);
+                var appointmentResponse = updatedAppointment!.ToAppointmentResponse();
                 _logger.LogInformation("{MethodName}: Successfully updated appointment {AppointmentId}", methodName, appointmentId);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment updated successfully");
             }
@@ -1448,215 +1455,38 @@ namespace FSCMS.Service.Services
         #region Private Helper Methods
 
         /// <summary>
-        /// Map Appointment entity to AppointmentResponse
+        /// Determine if a doctor is free for the specified slot and appointment date.
+        /// If DoctorSchedule exists, doctor is busy (not available).
+        /// If DoctorSchedule is empty (no record), doctor is available.
         /// </summary>
-        private AppointmentResponse MapToAppointmentResponse(Appointment appointment)
+        private async Task<bool> IsDoctorAvailableForSlotAsync(Guid doctorId, Guid slotId, DateOnly appointmentDate)
         {
-            var response = new AppointmentResponse
+            // Check if doctor has schedule (if exists, doctor is busy)
+            var hasSchedule = await _unitOfWork.Repository<DoctorSchedule>()
+                .AsQueryable()
+                .AnyAsync(ds =>
+                    !ds.IsDeleted &&
+                    ds.DoctorId == doctorId &&
+                    ds.SlotId == slotId &&
+                    ds.WorkDate == appointmentDate);
+
+            if (hasSchedule)
             {
-                Id = appointment.Id,
-                TreatmentCycleId = appointment.TreatmentCycleId,
-                SlotId = appointment.SlotId,
-                Type = appointment.Type,
-                TypeName = appointment.Type.ToString(),
-                Status = appointment.Status,
-                StatusName = appointment.Status.ToString(),
-                AppointmentDate = appointment.AppointmentDate,
-                Reason = appointment.Reason,
-                Instructions = appointment.Instructions,
-                Notes = appointment.Notes,
-                CheckInTime = appointment.CheckInTime,
-                CheckOutTime = appointment.CheckOutTime,
-                IsReminderSent = appointment.IsReminderSent,
-                CreatedAt = appointment.CreatedAt,
-                UpdatedAt = appointment.UpdatedAt
-            };
-
-            // Map TreatmentCycle
-            if (appointment.TreatmentCycle != null)
-            {
-                response.TreatmentCycle = new AppointmentTreatmentCycleInfo
-                {
-                    Id = appointment.TreatmentCycle.Id,
-                    CycleName = appointment.TreatmentCycle.CycleName,
-                    CycleNumber = appointment.TreatmentCycle.CycleNumber,
-                    StartDate = appointment.TreatmentCycle.StartDate,
-                    EndDate = appointment.TreatmentCycle.EndDate,
-                    Status = appointment.TreatmentCycle.Status.ToString()
-                };
-
-                // Map Treatment
-                if (appointment.TreatmentCycle.Treatment != null)
-                {
-                    response.TreatmentCycle.Treatment = new AppointmentTreatmentInfo
-                    {
-                        Id = appointment.TreatmentCycle.Treatment.Id,
-                        TreatmentType = appointment.TreatmentCycle.Treatment.TreatmentType.ToString()
-                    };
-
-                    // Map Patient
-                    if (appointment.TreatmentCycle.Treatment.Patient != null && appointment.TreatmentCycle.Treatment.Patient.Account != null)
-                    {
-                        var account = appointment.TreatmentCycle.Treatment.Patient.Account;
-                        response.TreatmentCycle.Treatment.Patient = new AppointmentPatientInfo
-                        {
-                            Id = appointment.TreatmentCycle.Treatment.Patient.Id,
-                            PatientCode = appointment.TreatmentCycle.Treatment.Patient.PatientCode,
-                            FullName = $"{account.FirstName} {account.LastName}".Trim(),
-                            Phone = account.Phone,
-                            Email = account.Email
-                        };
-                    }
-                }
+                return false; // Doctor is busy (has schedule)
             }
 
-            // Map Patient (prefer direct relation; fallback to patient from treatment)
-            if (appointment.Patient != null && appointment.Patient.Account != null)
-            {
-                var p = appointment.Patient;
-                var pa = p.Account;
-                response.Patient = new AppointmentPatientInfo
-                {
-                    Id = p.Id,
-                    PatientCode = p.PatientCode,
-                    FullName = $"{pa.FirstName} {pa.LastName}".Trim(),
-                    Phone = pa.Phone,
-                    Email = pa.Email
-                };
-            }
-            else if (appointment.TreatmentCycle?.Treatment?.Patient != null && appointment.TreatmentCycle.Treatment.Patient.Account != null)
-            {
-                var p = appointment.TreatmentCycle.Treatment.Patient;
-                var pa = p.Account;
-                response.Patient = new AppointmentPatientInfo
-                {
-                    Id = p.Id,
-                    PatientCode = p.PatientCode,
-                    FullName = $"{pa.FirstName} {pa.LastName}".Trim(),
-                    Phone = pa.Phone,
-                    Email = pa.Email
-                };
-            }
+            // Check if doctor already has appointment for same slot, same date
+            var hasConflictingAppointment = await _unitOfWork.Repository<Appointment>()
+                .AsQueryable()
+                .AnyAsync(a =>
+                    !a.IsDeleted &&
+                    a.SlotId == slotId &&
+                    a.AppointmentDate == appointmentDate &&
+                    a.AppointmentDoctors.Any(ad => ad.DoctorId == doctorId && !ad.IsDeleted) &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    a.Status != AppointmentStatus.Completed);
 
-            // Map Slot
-            if (appointment.Slot != null)
-            {
-                response.Slot = new AppointmentSlotInfo
-                {
-                    Id = appointment.Slot.Id,
-                    StartTime = appointment.Slot.StartTime,
-                    EndTime = appointment.Slot.EndTime,
-                    IsBooked = appointment.Slot.Appointments.Any(a =>
-                        !a.IsDeleted &&
-                        a.Status != AppointmentStatus.Cancelled &&
-                        a.Status != AppointmentStatus.Rescheduled &&
-                        a.Status != AppointmentStatus.Completed &&
-                        a.Status != AppointmentStatus.NoShow)
-                };
-
-                // Map Schedule: pick schedule for the appointment date if available, otherwise first by date
-                if (appointment.Slot != null && appointment.Slot.DoctorSchedules != null && appointment.Slot.DoctorSchedules.Any())
-                {
-                    var apptDateOnly = appointment.AppointmentDate;
-                    var matchedSchedule = appointment.Slot.DoctorSchedules
-                        .FirstOrDefault(ds => ds.WorkDate == apptDateOnly);
-                    var schedule = matchedSchedule ?? appointment.Slot.DoctorSchedules.OrderBy(ds => ds.WorkDate).FirstOrDefault();
-                    if (schedule != null)
-                    {
-                        response.Slot.Schedule = new AppointmentScheduleInfo
-                        {
-                            Id = schedule.Id,
-                            WorkDate = schedule.WorkDate.ToDateTime(TimeOnly.MinValue),
-                            Location = schedule.Location
-                        };
-
-                        // Map Doctor from Schedule
-                        if (schedule.Doctor != null && schedule.Doctor.Account != null)
-                        {
-                            var account = schedule.Doctor.Account;
-                            response.Slot.Schedule.Doctor = new AppointmentDoctorBasicInfo
-                            {
-                                Id = schedule.Doctor.Id,
-                                BadgeId = schedule.Doctor.BadgeId,
-                                Specialty = schedule.Doctor.Specialty,
-                                FullName = $"{account.FirstName} {account.LastName}".Trim()
-                            };
-                        }
-                    }
-                }
-            }
-
-            // Map Doctors
-            if (appointment.AppointmentDoctors != null && appointment.AppointmentDoctors.Any())
-            {
-                response.Doctors = appointment.AppointmentDoctors
-                    .Where(ad => !ad.IsDeleted && ad.Doctor != null && ad.Doctor.Account != null)
-                    .Select(ad =>
-                    {
-                        var account = ad.Doctor!.Account!;
-                        return new AppointmentDoctorInfo
-                        {
-                            Id = ad.Id,
-                            DoctorId = ad.DoctorId,
-                            BadgeId = ad.Doctor.BadgeId,
-                            Specialty = ad.Doctor.Specialty,
-                            FullName = $"{account.FirstName} {account.LastName}".Trim(),
-                            Role = ad.Role,
-                            Notes = ad.Notes
-                        };
-                    })
-                    .ToList();
-            }
-
-            response.DoctorCount = response.Doctors.Count;
-
-            return response;
-        }
-
-        /// <summary>
-        /// Map Appointment entity to AppointmentDetailResponse
-        /// </summary>
-        private AppointmentDetailResponse MapToAppointmentDetailResponse(Appointment appointment)
-        {
-            var baseResponse = MapToAppointmentResponse(appointment);
-            var detailResponse = new AppointmentDetailResponse
-            {
-                Id = baseResponse.Id,
-                TreatmentCycleId = baseResponse.TreatmentCycleId,
-                SlotId = baseResponse.SlotId,
-                Type = baseResponse.Type,
-                TypeName = baseResponse.TypeName,
-                Status = baseResponse.Status,
-                StatusName = baseResponse.StatusName,
-                AppointmentDate = baseResponse.AppointmentDate,
-                Reason = baseResponse.Reason,
-                Instructions = baseResponse.Instructions,
-                Notes = baseResponse.Notes,
-                CheckInTime = baseResponse.CheckInTime,
-                CheckOutTime = baseResponse.CheckOutTime,
-                IsReminderSent = baseResponse.IsReminderSent,
-                CreatedAt = baseResponse.CreatedAt,
-                UpdatedAt = baseResponse.UpdatedAt,
-                Patient = baseResponse.Patient,
-                TreatmentCycle = baseResponse.TreatmentCycle,
-                Slot = baseResponse.Slot,
-                Doctors = baseResponse.Doctors,
-                DoctorCount = baseResponse.DoctorCount
-            };
-
-            // Map MedicalRecord
-            if (appointment.MedicalRecord != null)
-            {
-                detailResponse.MedicalRecord = new AppointmentMedicalRecordInfo
-                {
-                    Id = appointment.MedicalRecord.Id,
-                    RecordDate = appointment.MedicalRecord.CreatedAt,
-                    ChiefComplaint = null, // Add if MedicalRecord has these properties
-                    Diagnosis = null // Add if MedicalRecord has these properties
-                };
-            }
-
-            return detailResponse;
+            return !hasConflictingAppointment;
         }
 
         /// <summary>
@@ -1686,6 +1516,43 @@ namespace FSCMS.Service.Services
                 RelatedEntityType = transaction.RelatedEntityType,
                 RelatedEntityId = transaction.RelatedEntityId
             };
+        }
+
+        /// <summary>
+        /// Gets current account ID from JWT token
+        /// </summary>
+        private Guid? GetCurrentAccountId()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid accountId))
+                {
+                    return null;
+                }
+                return accountId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting current account ID from token");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Checks if current user has the specified role
+        /// </summary>
+        private bool IsCurrentUserInRole(string roleName)
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext?.User?.IsInRole(roleName) ?? false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error checking user role: {RoleName}", roleName);
+                return false;
+            }
         }
 
         /// <summary>

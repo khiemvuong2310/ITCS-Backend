@@ -1,35 +1,93 @@
 ﻿namespace FSCMS.Core.Enum
 {
     /// <summary>
-    /// Types of treatment.
+    /// Các loại điều trị/sử dụng dịch vụ trong hệ thống.
     /// </summary>
     public enum TreatmentType
     {
-        Consultation = 0,            // Tư vấn ban đầu
+        /// <summary>
+        /// Tư vấn ban đầu hoặc tư vấn chuyên môn không gắn với phác đồ cụ thể.
+        /// </summary>
+        Consultation = 0,
 
         // Main treatments
-        IVF = 1,                     // Thụ tinh trong ống nghiệm
-        IUI = 2,                     // Bơm tinh trùng vào buồng tử cung
+
+        /// <summary>
+        /// Thụ tinh trong ống nghiệm (IVF).
+        /// </summary>
+        IVF = 1,
+
+        /// <summary>
+        /// Bơm tinh trùng vào buồng tử cung (IUI).
+        /// </summary>
+        IUI = 2,
 
         // Cryobank-related
-        EggFreezing = 3,             // Trữ đông trứng
-        SpermFreezing = 4,           // Trữ đông tinh trùng
-        EmbryoFreezing = 5,          // Trữ đông phôi
-        FET = 6,                     // Chuyển phôi trữ đông
+
+        /// <summary>
+        /// Dịch vụ trữ đông trứng.
+        /// </summary>
+        EggFreezing = 3,
+
+        /// <summary>
+        /// Dịch vụ trữ đông tinh trùng.
+        /// </summary>
+        SpermFreezing = 4,
+
+        /// <summary>
+        /// Dịch vụ trữ đông phôi.
+        /// </summary>
+        EmbryoFreezing = 5,
+
+        /// <summary>
+        /// Chuyển phôi trữ đông (FET).
+        /// </summary>
+        FET = 6,
 
         // Donor programs
-        EggDonor = 7,                // Nhận trứng hiến
-        SpermDonor = 8,              // Nhận tinh trùng hiến
+
+        /// <summary>
+        /// Chương trình nhận trứng hiến.
+        /// </summary>
+        EggDonor = 7,
+
+        /// <summary>
+        /// Chương trình nhận tinh trùng hiến.
+        /// </summary>
+        SpermDonor = 8,
 
         // Procedures
-        OvulationInduction = 9,      // Kích thích rụng trứng
-        OvarianStimulation = 10,     // Kích thích buồng trứng (chuẩn bị lấy trứng)
-        TesaPesa = 11,               // Lấy tinh trùng từ mào tinh / tinh hoàn
-        Andrology = 12,              // Thủ thuật nam khoa
+
+        /// <summary>
+        /// Kích thích rụng trứng bằng thuốc.
+        /// </summary>
+        OvulationInduction = 9,
+
+        /// <summary>
+        /// Kích thích buồng trứng chuẩn bị cho chọc hút trứng.
+        /// </summary>
+        OvarianStimulation = 10,
+
+        /// <summary>
+        /// Lấy tinh trùng từ mào tinh/tinh hoàn (TESA/PESA...).
+        /// </summary>
+        TesaPesa = 11,
+
+        /// <summary>
+        /// Các thủ thuật/khám nam khoa liên quan.
+        /// </summary>
+        Andrology = 12,
 
         // Testing
-        PGT = 13,                    // Sàng lọc di truyền phôi (PGT)
 
-        Other = 99                   // Điều trị khác
+        /// <summary>
+        /// Sàng lọc di truyền phôi (PGT).
+        /// </summary>
+        PGT = 13,
+
+        /// <summary>
+        /// Các điều trị/dịch vụ khác không thuộc nhóm trên.
+        /// </summary>
+        Other = 99
     }
 }

@@ -21,8 +21,19 @@ namespace FSCMS.Service.Services
             }
             else if (webHostEnvironment != null)
             {
-                // Use ContentRootPath from IWebHostEnvironment if available
-                _templateBasePath = Path.Combine(webHostEnvironment.ContentRootPath, "Templates");
+                // Prefer explicit Templates folder at solution-level service project during dev
+                var contentRoot = webHostEnvironment.ContentRootPath;
+                var serviceTemplatePath = Path.Combine(contentRoot, "..", "FSCMS.Service", "Templates");
+
+                if (Directory.Exists(serviceTemplatePath))
+                {
+                    _templateBasePath = serviceTemplatePath;
+                }
+                else
+                {
+                    // Fallback to Templates under the running project root (publishes)
+                    _templateBasePath = Path.Combine(contentRoot, "Templates");
+                }
             }
             else
             {

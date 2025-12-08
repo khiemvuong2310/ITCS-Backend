@@ -14,8 +14,8 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<bool>> DeleteAsync(Guid id);
         Task<BaseResponse<List<ServiceRequestResponseModel>>> GetByStatusAsync(ServiceRequestStatus status);
         Task<BaseResponse<List<ServiceRequestResponseModel>>> GetByAppointmentAsync(Guid appointmentId);
-        Task<BaseResponse<ServiceRequestResponseModel>> ApproveAsync(Guid id, string approvedBy);
-        Task<BaseResponse<ServiceRequestResponseModel>> RejectAsync(Guid id, string rejectedBy);
+        Task<BaseResponse<ServiceRequestResponseModel>> ApproveAsync(Guid id);
+        Task<BaseResponse<ServiceRequestResponseModel>> RejectAsync(Guid id);
         Task<BaseResponse<ServiceRequestResponseModel>> CompleteAsync(Guid id);
         Task<BaseResponse<ServiceRequestResponseModel>> CancelAsync(Guid id);
     }

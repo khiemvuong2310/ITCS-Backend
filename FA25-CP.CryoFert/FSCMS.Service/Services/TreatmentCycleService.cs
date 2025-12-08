@@ -14,6 +14,8 @@ namespace FSCMS.Service.Services
 {
     public class TreatmentCycleService : ITreatmentCycleService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TreatmentCycleService> _logger;
 
@@ -23,6 +25,11 @@ namespace FSCMS.Service.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        #endregion
+
+        #region Retrieval
+
+        // Returns paginated treatment cycles filtered by request parameters.
         public async Task<DynamicResponse<TreatmentCycleResponseModel>> GetAllAsync(GetTreatmentCyclesRequest request)
         {
             const string methodName = nameof(GetAllAsync);
@@ -122,6 +129,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns detailed info (appointments + docs) for a specific cycle.
         public async Task<BaseResponse<TreatmentCycleDetailResponseModel>> GetByIdAsync(Guid id)
         {
             const string methodName = nameof(GetByIdAsync);
@@ -176,6 +184,35 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Returns status of Treatment by TreatmentId.
+        public async Task<BaseResponse<TreatmentStatus>> GetTreatmentStatusAsync(Guid treatmentId)
+        {
+            const string methodName = nameof(GetTreatmentStatusAsync);
+            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}", methodName, treatmentId);
+            try
+            {
+                if (treatmentId == Guid.Empty)
+                    return BaseResponse<TreatmentStatus>.CreateError("TreatmentId cannot be empty", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_ID");
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+                if (treatment == null)
+                    return BaseResponse<TreatmentStatus>.CreateError("Treatment not found", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+                return BaseResponse<TreatmentStatus>.CreateSuccess(treatment.Status, "Treatment status retrieved successfully", StatusCodes.Status200OK);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error retrieving treatment status for TreatmentId {TreatmentId}", methodName, treatmentId);
+                return BaseResponse<TreatmentStatus>.CreateError($"Error: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+            }
+        }
+
+        #endregion
+
+        #region Lifecycle Management
+
+        // Creates a cycle for an existing treatment.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CreateAsync(CreateTreatmentCycleRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -210,6 +247,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates editable fields of a cycle and optionally its status.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> UpdateAsync(Guid id, UpdateTreatmentCycleRequest request)
         {
             const string methodName = nameof(UpdateAsync);
@@ -233,9 +271,32 @@ namespace FSCMS.Service.Services
 
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
+                var isStatusChange = request.Status.HasValue && request.Status.Value != entity.Status;
+                if (isStatusChange && !await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot update cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
+                var previousStatus = entity.Status;
+                var statusChangedToCompleted = request.Status.HasValue && request.Status.Value == TreatmentStatus.Completed;
+
                 entity.UpdateEntity(request);
                 entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
+
+                // Cập nhật trạng thái Treatment và TreatmentIUI/IVF nếu Status của cycle thay đổi
+                if (request.Status.HasValue && request.Status.Value != previousStatus)
+                {
+                    await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, request.Status.Value, methodName);
+                }
+
+                if (statusChangedToCompleted)
+                {
+                    await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber, methodName);
+                }
 
                 await AddAuditLog("TreatmentCycle", id, "Update", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
 
@@ -255,6 +316,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Soft deletes a cycle and records an audit trail.
         public async Task<BaseResponse<bool>> DeleteAsync(Guid id)
         {
             const string methodName = nameof(DeleteAsync);
@@ -291,6 +353,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Moves a cycle into InProgress (optionally overriding start date).
         public async Task<BaseResponse<TreatmentCycleResponseModel>> StartAsync(Guid id, StartTreatmentCycleRequest request)
         {
             const string methodName = nameof(StartAsync);
@@ -313,6 +376,9 @@ namespace FSCMS.Service.Services
                 entity.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, id);
 
+                // Khi bắt đầu chu kỳ, cập nhật trạng thái tổng của Treatment
+                await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
+
                 await AddAuditLog("TreatmentCycle", id, "Start", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
                 await _unitOfWork.CommitAsync();
 
@@ -325,6 +391,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Completes a cycle, updates next cycle + treatment step tracking.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CompleteAsync(Guid id, CompleteTreatmentCycleRequest request)
         {
             const string methodName = nameof(CompleteAsync);
@@ -340,6 +407,14 @@ namespace FSCMS.Service.Services
                 if (entity.Status == TreatmentStatus.Completed)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("Treatment cycle is already completed", StatusCodes.Status400BadRequest, "ALREADY_COMPLETED");
 
+                if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot complete cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
                 entity.Status = TreatmentStatus.Completed;
@@ -350,8 +425,13 @@ namespace FSCMS.Service.Services
 
                 await AddAuditLog("TreatmentCycle", id, "Complete", oldValues, JsonSerializer.Serialize(new { entity, request?.Outcome }));
 
+                // Khi hoàn thành chu kỳ, cập nhật trạng thái tổng của Treatment
+                await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
+
                 // Auto-update next cycle status from Planned to Scheduled
-                await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.OrderIndex, methodName);
+                await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.CycleNumber, methodName);
+
+                await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber, methodName);
 
                 await _unitOfWork.CommitAsync();
 
@@ -364,6 +444,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Cancels a cycle and marks all subsequent cycles as Failed.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> CancelAsync(Guid id, CancelTreatmentCycleRequest request)
         {
             const string methodName = nameof(CancelAsync);
@@ -382,7 +463,14 @@ namespace FSCMS.Service.Services
                 if (entity.Status == TreatmentStatus.Completed)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("Cannot cancel a completed cycle", StatusCodes.Status400BadRequest, "CYCLE_COMPLETED");
 
-                var oldStatus = entity.Status;
+                if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot cancel cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
                 entity.Status = TreatmentStatus.Cancelled;
@@ -392,12 +480,11 @@ namespace FSCMS.Service.Services
 
                 await AddAuditLog("TreatmentCycle", id, "Cancel", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
 
-                // Auto-update next cycle status from Planned to Scheduled (if current cycle was Scheduled/InProgress)
-                // This ensures workflow continuity when a cycle is cancelled but treatment continues
-                if (oldStatus == TreatmentStatus.Scheduled || oldStatus == TreatmentStatus.InProgress)
-                {
-                    await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.OrderIndex, methodName);
-                }
+                // Khi hủy chu kỳ, cập nhật trạng thái tổng của Treatment
+                await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
+
+                // Update all subsequent cycles in the same treatment to Failed status
+                await UpdateAllSubsequentCyclesToFailedAsync(entity.TreatmentId, entity.CycleNumber, request?.Reason, methodName);
 
                 await _unitOfWork.CommitAsync();
 
@@ -410,10 +497,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates a cycle status by treatmentId + cycle number lookup.
         public async Task<BaseResponse<TreatmentCycleResponseModel>> UpdateStatusByOrderAsync(UpdateTreatmentCycleStatusByOrderRequest request)
         {
             const string methodName = nameof(UpdateStatusByOrderAsync);
-            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}, OrderIndex {OrderIndex}, Status {Status}", 
+            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}, CycleNumber {CycleNumber}, Status {Status}", 
                 methodName, request.TreatmentId, request.CycleNumber, request.Status);
 
             try
@@ -425,18 +513,18 @@ namespace FSCMS.Service.Services
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("TreatmentId cannot be empty", StatusCodes.Status400BadRequest, "INVALID_TREATMENT_ID");
 
                 if (request.CycleNumber <= 0)
-                    return BaseResponse<TreatmentCycleResponseModel>.CreateError("OrderIndex must be greater than 0", StatusCodes.Status400BadRequest, "INVALID_ORDER_INDEX");
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError("CycleNumber must be greater than 0", StatusCodes.Status400BadRequest, "INVALID_CYCLE_NUMBER");
 
-                // Find treatment cycle by TreatmentId and OrderIndex
+                // Find treatment cycle by TreatmentId and CycleNumber
                 var entity = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
                     .FirstOrDefaultAsync(x => x.TreatmentId == request.TreatmentId 
-                        && x.OrderIndex == request.CycleNumber
+                        && x.CycleNumber == request.CycleNumber
                         && !x.IsDeleted);
 
                 if (entity == null)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError(
-                        $"Treatment cycle not found for TreatmentId {request.TreatmentId} and OrderIndex {request.CycleNumber}", 
+                        $"Treatment cycle not found for TreatmentId {request.TreatmentId} and CycleNumber {request.CycleNumber}", 
                         StatusCodes.Status404NotFound, 
                         "NOT_FOUND");
 
@@ -450,7 +538,15 @@ namespace FSCMS.Service.Services
                 var oldStatus = entity.Status;
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
-                // Update status
+                var isStatusChange = request.Status != entity.Status;
+                if (isStatusChange && !await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                {
+                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                        $"Cannot update cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                        StatusCodes.Status409Conflict,
+                        "PREVIOUS_CYCLE_INCOMPLETE");
+                }
+
                 entity.Status = request.Status;
                 entity.UpdatedAt = DateTime.UtcNow;
 
@@ -471,18 +567,25 @@ namespace FSCMS.Service.Services
 
                 await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(entity, entity.Id);
 
+                // Cập nhật trạng thái tổng của Treatment và TreatmentIUI/IVF khi status chu kỳ thay đổi
+                if (isStatusChange)
+                {
+                    await UpdateTreatmentAggregateStatusAsync(entity.TreatmentId, entity.Status, methodName);
+                }
+
                 await AddAuditLog("TreatmentCycle", entity.Id, "UpdateStatusByOrder", oldValues, JsonSerializer.Serialize(entity.ToResponseModel()));
 
                 // Auto-update next cycle status based on current status
                 if (request.Status == TreatmentStatus.Completed)
                 {
                     // Update next cycle from Planned to Scheduled
-                    await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.OrderIndex, methodName);
+                    await UpdateNextCycleStatusAsync(entity.TreatmentId, entity.CycleNumber, methodName);
+                    await UpdateTreatmentCurrentStepAsync(entity.TreatmentId, entity.CycleNumber, methodName);
                 }
                 else if (request.Status == TreatmentStatus.Failed)
                 {
                     // Update next cycle from Planned to Failed
-                    await UpdateNextCycleStatusToFailedAsync(entity.TreatmentId, entity.OrderIndex, methodName);
+                    await UpdateNextCycleStatusToFailedAsync(entity.TreatmentId, entity.CycleNumber, methodName);
                 }
 
                 await _unitOfWork.CommitAsync();
@@ -499,7 +602,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error updating treatment cycle status for TreatmentId {TreatmentId}, OrderIndex {OrderIndex}", 
+                _logger.LogError(ex, "{MethodName}: Error updating treatment cycle status for TreatmentId {TreatmentId}, CycleNumber {CycleNumber}", 
                     methodName, request?.TreatmentId, request?.CycleNumber);
                 return BaseResponse<TreatmentCycleResponseModel>.CreateError(
                     $"Error: {ex.Message}", 
@@ -508,10 +611,17 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Samples & Appointments
+
+        // Returns lab samples tied to the patient of a cycle.
         public async Task<BaseResponse<List<object>>> GetSamplesAsync(Guid id)
         {
             try
             {
+                if (id == Guid.Empty)
+                    return BaseResponse<List<object>>.CreateError("ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 var cycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
                     .Include(tc => tc.Treatment)
@@ -536,6 +646,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Records a new sample for the cycle's patient.
         public async Task<BaseResponse<object>> AddSampleAsync(Guid id, AddCycleSampleRequest request)
         {
             try
@@ -569,6 +680,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Lists appointments linked to a cycle.
         public async Task<BaseResponse<List<AppointmentSummary>>> GetAppointmentsAsync(Guid id)
         {
             try
@@ -595,6 +707,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Creates a new appointment and associates it with the cycle.
         public async Task<BaseResponse<AppointmentSummary>> AddAppointmentAsync(Guid id, AddCycleAppointmentRequest request)
         {
             try
@@ -638,6 +751,11 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Billing & Documents
+
+        // Returns billing snapshot (estimated cost only for now).
         public async Task<BaseResponse<TreatmentCycleBillingResponse>> GetBillingAsync(Guid id)
         {
             try
@@ -667,6 +785,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Lists uploaded documents for the given cycle.
         public async Task<BaseResponse<List<DocumentSummary>>> GetDocumentsAsync(Guid id)
         {
             try
@@ -697,6 +816,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Uploads metadata for a new document tied to the cycle.
         public async Task<BaseResponse<DocumentSummary>> UploadDocumentAsync(Guid id, UploadCycleDocumentRequest request)
         {
             try
@@ -722,14 +842,18 @@ namespace FSCMS.Service.Services
             }
         }
 
+        #endregion
+
+        #region Helper Methods
+
         /// <summary>
         /// Updates the next treatment cycle status from Planned to Scheduled when the current cycle is completed or cancelled.
         /// This maintains workflow continuity by automatically scheduling the next step in the treatment sequence.
         /// </summary>
         /// <param name="treatmentId">The treatment ID to find cycles for</param>
-        /// <param name="currentOrderIndex">The OrderIndex of the current cycle</param>
+        /// <param name="currentCycleNumber">The CycleNumber of the current cycle</param>
         /// <param name="callingMethodName">The name of the calling method for logging purposes</param>
-        private async Task UpdateNextCycleStatusAsync(Guid treatmentId, int currentOrderIndex, string callingMethodName)
+        private async Task UpdateNextCycleStatusAsync(Guid treatmentId, int currentCycleNumber, string callingMethodName)
         {
             try
             {
@@ -737,7 +861,7 @@ namespace FSCMS.Service.Services
                     .GetQueryable()
                     .FirstOrDefaultAsync(tc => 
                         tc.TreatmentId == treatmentId 
-                        && tc.OrderIndex == currentOrderIndex + 1 
+                        && tc.CycleNumber == currentCycleNumber + 1 
                         && !tc.IsDeleted
                         && tc.Status == TreatmentStatus.Planned);
 
@@ -749,22 +873,22 @@ namespace FSCMS.Service.Services
                     await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(nextCycle, nextCycle.Id);
 
                     _logger.LogInformation(
-                        "{CallingMethodName}: Auto-updated next cycle {NextCycleId} (OrderIndex: {NextOrderIndex}) status from {OldStatus} to {NewStatus} for Treatment {TreatmentId}",
-                        callingMethodName, nextCycle.Id, nextCycle.OrderIndex, oldStatus, TreatmentStatus.Scheduled, treatmentId);
+                        "{CallingMethodName}: Auto-updated next cycle {NextCycleId} (CycleNumber: {NextCycleNumber}) status from {OldStatus} to {NewStatus} for Treatment {TreatmentId}",
+                        callingMethodName, nextCycle.Id, nextCycle.CycleNumber, oldStatus, TreatmentStatus.Scheduled, treatmentId);
                 }
                 else
                 {
                     _logger.LogInformation(
-                        "{CallingMethodName}: No next cycle found (OrderIndex: {NextOrderIndex}) or next cycle is not in Planned status for Treatment {TreatmentId}",
-                        callingMethodName, currentOrderIndex + 1, treatmentId);
+                        "{CallingMethodName}: No next cycle found (CycleNumber: {NextCycleNumber}) or next cycle is not in Planned status for Treatment {TreatmentId}",
+                        callingMethodName, currentCycleNumber + 1, treatmentId);
                 }
             }
             catch (Exception ex)
             {
                 // Log error but don't fail the main operation
                 _logger.LogWarning(ex, 
-                    "{CallingMethodName}: Error updating next cycle status for Treatment {TreatmentId} after OrderIndex {OrderIndex}. Main operation will continue.",
-                    callingMethodName, treatmentId, currentOrderIndex);
+                    "{CallingMethodName}: Error updating next cycle status for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
+                    callingMethodName, treatmentId, currentCycleNumber);
             }
         }
 
@@ -773,9 +897,9 @@ namespace FSCMS.Service.Services
         /// This maintains workflow continuity by automatically marking the next step as failed when the current step fails.
         /// </summary>
         /// <param name="treatmentId">The treatment ID to find cycles for</param>
-        /// <param name="currentOrderIndex">The OrderIndex of the current cycle</param>
+        /// <param name="currentCycleNumber">The CycleNumber of the current cycle</param>
         /// <param name="callingMethodName">The name of the calling method for logging purposes</param>
-        private async Task UpdateNextCycleStatusToFailedAsync(Guid treatmentId, int currentOrderIndex, string callingMethodName)
+        private async Task UpdateNextCycleStatusToFailedAsync(Guid treatmentId, int currentCycleNumber, string callingMethodName)
         {
             try
             {
@@ -783,7 +907,7 @@ namespace FSCMS.Service.Services
                     .GetQueryable()
                     .FirstOrDefaultAsync(tc => 
                         tc.TreatmentId == treatmentId 
-                        && tc.OrderIndex == currentOrderIndex + 1 
+                        && tc.CycleNumber == currentCycleNumber + 1 
                         && !tc.IsDeleted
                         && tc.Status == TreatmentStatus.Planned);
 
@@ -797,23 +921,294 @@ namespace FSCMS.Service.Services
                     await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(nextCycle, nextCycle.Id);
 
                     _logger.LogInformation(
-                        "{CallingMethodName}: Auto-updated next cycle {NextCycleId} (OrderIndex: {NextOrderIndex}) status from {OldStatus} to {NewStatus} for Treatment {TreatmentId}",
-                        callingMethodName, nextCycle.Id, nextCycle.OrderIndex, oldStatus, TreatmentStatus.Failed, treatmentId);
+                        "{CallingMethodName}: Auto-updated next cycle {NextCycleId} (CycleNumber: {NextCycleNumber}) status from {OldStatus} to {NewStatus} for Treatment {TreatmentId}",
+                        callingMethodName, nextCycle.Id, nextCycle.CycleNumber, oldStatus, TreatmentStatus.Failed, treatmentId);
                 }
                 else
                 {
                     _logger.LogInformation(
-                        "{CallingMethodName}: No next cycle found (OrderIndex: {NextOrderIndex}) or next cycle is not in Planned status for Treatment {TreatmentId}",
-                        callingMethodName, currentOrderIndex + 1, treatmentId);
+                        "{CallingMethodName}: No next cycle found (CycleNumber: {NextCycleNumber}) or next cycle is not in Planned status for Treatment {TreatmentId}",
+                        callingMethodName, currentCycleNumber + 1, treatmentId);
                 }
             }
             catch (Exception ex)
             {
                 // Log error but don't fail the main operation
                 _logger.LogWarning(ex, 
-                    "{CallingMethodName}: Error updating next cycle status to Failed for Treatment {TreatmentId} after OrderIndex {OrderIndex}. Main operation will continue.",
-                    callingMethodName, treatmentId, currentOrderIndex);
+                    "{CallingMethodName}: Error updating next cycle status to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
+                    callingMethodName, treatmentId, currentCycleNumber);
             }
+        }
+
+        /// <summary>
+        /// Updates all subsequent treatment cycles (with higher CycleNumber) to Failed status when the current cycle is cancelled.
+        /// This ensures that when a cycle fails/is cancelled, all remaining cycles in the treatment are also marked as Failed.
+        /// </summary>
+        /// <param name="treatmentId">The treatment ID to find cycles for</param>
+        /// <param name="currentCycleNumber">The CycleNumber of the current cancelled cycle</param>
+        /// <param name="reason">The reason for cancellation to include in notes</param>
+        /// <param name="callingMethodName">The name of the calling method for logging purposes</param>
+        private async Task UpdateAllSubsequentCyclesToFailedAsync(Guid treatmentId, int currentCycleNumber, string? reason, string callingMethodName)
+        {
+            try
+            {
+                var subsequentCycles = await _unitOfWork.Repository<TreatmentCycle>()
+                    .GetQueryable()
+                    .Where(tc => 
+                        tc.TreatmentId == treatmentId 
+                        && tc.CycleNumber > currentCycleNumber 
+                        && !tc.IsDeleted
+                        && tc.Status != TreatmentStatus.Completed
+                        && tc.Status != TreatmentStatus.Failed
+                        && tc.Status != TreatmentStatus.Cancelled)
+                    .OrderBy(tc => tc.CycleNumber)
+                    .ToListAsync();
+
+                if (subsequentCycles.Any())
+                {
+                    foreach (var cycle in subsequentCycles)
+                    {
+                        var oldStatus = cycle.Status;
+                        cycle.Status = TreatmentStatus.Failed;
+                        cycle.UpdatedAt = DateTime.UtcNow;
+                        cycle.EndDate ??= DateTime.UtcNow;
+                        cycle.Notes = cycle.Notes == null 
+                            ? $"Failed due to cycle #{currentCycleNumber} cancelled: {reason}" 
+                            : cycle.Notes + $"\nFailed due to cycle #{currentCycleNumber} cancelled: {reason}";
+                        
+                        await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(cycle, cycle.Id);
+
+                        _logger.LogInformation(
+                            "{CallingMethodName}: Auto-updated cycle {CycleId} (CycleNumber: {CycleNumber}) status from {OldStatus} to Failed for Treatment {TreatmentId}",
+                            callingMethodName, cycle.Id, cycle.CycleNumber, oldStatus, treatmentId);
+                    }
+
+                    _logger.LogInformation(
+                        "{CallingMethodName}: Updated {Count} subsequent cycles to Failed status for Treatment {TreatmentId}",
+                        callingMethodName, subsequentCycles.Count, treatmentId);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "{CallingMethodName}: No subsequent cycles found to update for Treatment {TreatmentId} after CycleNumber {CycleNumber}",
+                        callingMethodName, treatmentId, currentCycleNumber);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the main operation
+                _logger.LogWarning(ex, 
+                    "{CallingMethodName}: Error updating subsequent cycles to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
+                    callingMethodName, treatmentId, currentCycleNumber);
+            }
+        }
+
+        /// <summary>
+        /// Đồng bộ trạng thái tổng của Treatment và entity chi tiết (TreatmentIUI/TreatmentIVF)
+        /// dựa trên trạng thái mới của một TreatmentCycle.
+        /// </summary>
+        /// <param name="treatmentId">Id của Treatment cần cập nhật</param>
+        /// <param name="newStatus">Trạng thái mới của cycle (TreatmentStatus)</param>
+        /// <param name="callingMethodName">Tên method gọi phục vụ logging</param>
+        private async Task UpdateTreatmentAggregateStatusAsync(Guid treatmentId, TreatmentStatus newStatus, string callingMethodName)
+        {
+            try
+            {
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+
+                if (treatment == null)
+                {
+                    _logger.LogWarning(
+                        "{CallingMethodName}: Cannot update aggregate treatment status because Treatment {TreatmentId} was not found",
+                        callingMethodName, treatmentId);
+                    return;
+                }
+
+                // Cập nhật trạng thái tổng của Treatment nếu khác
+                if (treatment.Status != newStatus)
+                {
+                    var oldStatus = treatment.Status;
+                    treatment.Status = newStatus;
+                    treatment.UpdatedAt = DateTime.UtcNow;
+                    await _unitOfWork.Repository<Treatment>().UpdateGuid(treatment, treatment.Id);
+
+                    _logger.LogInformation(
+                        "{CallingMethodName}: Updated Treatment {TreatmentId} status from {OldStatus} to {NewStatus}",
+                        callingMethodName, treatmentId, oldStatus, newStatus);
+                }
+
+                // Đồng bộ thêm trạng thái cho TreatmentIUI / TreatmentIVF (nếu có)
+                if (treatment.TreatmentType == TreatmentType.IUI)
+                {
+                    var iui = await _unitOfWork.Repository<TreatmentIUI>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                    if (iui != null)
+                    {
+                        var mappedStatus = MapTreatmentStatusToIUICycleStatus(newStatus);
+                        if (mappedStatus.HasValue && iui.Status != mappedStatus.Value)
+                        {
+                            var oldDetailStatus = iui.Status;
+                            iui.Status = mappedStatus.Value;
+                            iui.UpdatedAt = DateTime.UtcNow;
+                            await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(iui, iui.Id);
+
+                            _logger.LogInformation(
+                                "{CallingMethodName}: Updated TreatmentIUI {TreatmentId} status from {OldStatus} to {NewStatus}",
+                                callingMethodName, treatmentId, oldDetailStatus, mappedStatus.Value);
+                        }
+                    }
+                }
+                else if (treatment.TreatmentType == TreatmentType.IVF)
+                {
+                    var ivf = await _unitOfWork.Repository<TreatmentIVF>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                    if (ivf != null)
+                    {
+                        var mappedStatus = MapTreatmentStatusToIVFCycleStatus(newStatus);
+                        if (mappedStatus.HasValue && ivf.Status != mappedStatus.Value)
+                        {
+                            var oldDetailStatus = ivf.Status;
+                            ivf.Status = mappedStatus.Value;
+                            ivf.UpdatedAt = DateTime.UtcNow;
+                            await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(ivf, ivf.Id);
+
+                            _logger.LogInformation(
+                                "{CallingMethodName}: Updated TreatmentIVF {TreatmentId} status from {OldStatus} to {NewStatus}",
+                                callingMethodName, treatmentId, oldDetailStatus, mappedStatus.Value);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Không làm fail flow chính, chỉ log cảnh báo
+                _logger.LogWarning(ex,
+                    "{CallingMethodName}: Failed to update aggregate treatment status for Treatment {TreatmentId}",
+                    callingMethodName, treatmentId);
+            }
+        }
+
+        /// <summary>
+        /// Map TreatmentStatus chung sang IUICycleStatus cho phác đồ IUI.
+        /// Chỉ map các trạng thái chính, các trạng thái chi tiết sẽ được cập nhật ở luồng riêng nếu cần.
+        /// </summary>
+        private IUICycleStatus? MapTreatmentStatusToIUICycleStatus(TreatmentStatus status)
+        {
+            return status switch
+            {
+                TreatmentStatus.Planned => IUICycleStatus.Planned,
+                TreatmentStatus.Scheduled => IUICycleStatus.Planned,
+                TreatmentStatus.InProgress => IUICycleStatus.Monitoring,
+                TreatmentStatus.OnHold => IUICycleStatus.Monitoring,
+                TreatmentStatus.Completed => IUICycleStatus.Closed,
+                TreatmentStatus.Cancelled => IUICycleStatus.Closed,
+                TreatmentStatus.Failed => IUICycleStatus.Closed,
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// Map TreatmentStatus chung sang IVFCycleStatus cho phác đồ IVF.
+        /// Chỉ map các trạng thái chính, các trạng thái chi tiết sẽ được cập nhật ở luồng riêng nếu cần.
+        /// </summary>
+        private IVFCycleStatus? MapTreatmentStatusToIVFCycleStatus(TreatmentStatus status)
+        {
+            return status switch
+            {
+                TreatmentStatus.Planned => IVFCycleStatus.Planned,
+                TreatmentStatus.Scheduled => IVFCycleStatus.Planned,
+                TreatmentStatus.InProgress => IVFCycleStatus.COS,
+                TreatmentStatus.OnHold => IVFCycleStatus.COS,
+                TreatmentStatus.Completed => IVFCycleStatus.Closed,
+                TreatmentStatus.Cancelled => IVFCycleStatus.Closed,
+                TreatmentStatus.Failed => IVFCycleStatus.Closed,
+                _ => null
+            };
+        }
+
+        private async Task UpdateTreatmentCurrentStepAsync(Guid treatmentId, int completedCycleNumber, string callingMethodName)
+        {
+            try
+            {
+                var treatment = await _unitOfWork.Repository<Treatment>()
+                    .GetQueryable()
+                    .FirstOrDefaultAsync(t => t.Id == treatmentId && !t.IsDeleted);
+
+                if (treatment == null)
+                {
+                    _logger.LogWarning("{CallingMethodName}: Unable to update current step because Treatment {TreatmentId} was not found", callingMethodName, treatmentId);
+                    return;
+                }
+
+                if (treatment.TreatmentType == TreatmentType.IUI)
+                {
+                    var iui = await _unitOfWork.Repository<TreatmentIUI>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                    if (iui != null && iui.CurrentStep != completedCycleNumber)
+                    {
+                        iui.CurrentStep = completedCycleNumber;
+                        iui.UpdatedAt = DateTime.UtcNow;
+                        await _unitOfWork.Repository<TreatmentIUI>().UpdateGuid(iui, iui.Id);
+                        _logger.LogInformation("{CallingMethodName}: Updated IUI current step to {CurrentStep} for Treatment {TreatmentId}", callingMethodName, completedCycleNumber, treatmentId);
+                    }
+                }
+                else if (treatment.TreatmentType == TreatmentType.IVF)
+                {
+                    var ivf = await _unitOfWork.Repository<TreatmentIVF>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == treatmentId && !x.IsDeleted);
+
+                    if (ivf != null && ivf.CurrentStep != completedCycleNumber)
+                    {
+                        ivf.CurrentStep = completedCycleNumber;
+                        ivf.UpdatedAt = DateTime.UtcNow;
+                        await _unitOfWork.Repository<TreatmentIVF>().UpdateGuid(ivf, ivf.Id);
+                        _logger.LogInformation("{CallingMethodName}: Updated IVF current step to {CurrentStep} for Treatment {TreatmentId}", callingMethodName, completedCycleNumber, treatmentId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "{CallingMethodName}: Failed to update treatment current step for Treatment {TreatmentId}", callingMethodName, treatmentId);
+            }
+        }
+
+        private async Task<bool> IsPreviousCycleCompletedAsync(Guid treatmentId, int cycleNumber, string callingMethodName)
+        {
+            if (cycleNumber <= 1)
+            {
+                return true;
+            }
+
+            var previousCycle = await _unitOfWork.Repository<TreatmentCycle>()
+                .GetQueryable()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(tc =>
+                    tc.TreatmentId == treatmentId &&
+                    tc.CycleNumber == cycleNumber - 1 &&
+                    !tc.IsDeleted);
+
+            if (previousCycle == null)
+            {
+                _logger.LogWarning("{CallingMethodName}: Previous cycle #{PreviousCycleNumber} not found for Treatment {TreatmentId}", callingMethodName, cycleNumber - 1, treatmentId);
+                return true;
+            }
+
+            var isCompleted = previousCycle.Status == TreatmentStatus.Completed;
+            if (!isCompleted)
+            {
+                _logger.LogInformation("{CallingMethodName}: Previous cycle #{PreviousCycleNumber} for Treatment {TreatmentId} is not completed (Status: {Status})", callingMethodName, cycleNumber - 1, treatmentId, previousCycle.Status);
+            }
+
+            return isCompleted;
         }
 
         private async Task AddAuditLog(string entityType, Guid entityId, string action, string? oldValues, string? newValues)
@@ -821,6 +1216,8 @@ namespace FSCMS.Service.Services
             var log = new AuditLog(Guid.NewGuid(), null, entityType, entityId, action, oldValues, newValues, null, null, DateTime.UtcNow.AddHours(7));
             await _unitOfWork.Repository<AuditLog>().InsertAsync(log);
         }
+
+        #endregion
     }
 }
 

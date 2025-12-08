@@ -197,6 +197,7 @@ namespace FA25_CP.CryoFert_BE
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapHub<TransactionHub>("/transactionHub");
+            app.MapHub<NotificationHub>("/notificationHub");
 
             app.MapControllers();
 

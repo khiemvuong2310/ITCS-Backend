@@ -199,6 +199,8 @@ namespace FSCMS.Service.Services
                 }
                 //locationExists.LabSample = labSampleExists;
                 labSampleExists.Status = SpecimenStatus.Stored;
+                labSampleExists.CryoLocationId = locationExists.Id;
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(labSampleExists, labSampleExists.Id);
                 await IncrementSampleCountAsync(locationExists.Id);
 
                 var entity = _mapper.Map<CryoImport>(request);

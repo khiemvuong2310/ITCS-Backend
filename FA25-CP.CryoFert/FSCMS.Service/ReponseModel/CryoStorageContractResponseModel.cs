@@ -14,8 +14,6 @@ namespace FSCMS.Service.ReponseModel
         public string Status { get; set; } = default!; // Convert từ enum ContractStatus sang string
         public decimal TotalAmount { get; set; }
         public decimal? PaidAmount { get; set; }
-
-        public bool IsAutoRenew { get; set; }
         public DateTime? SignedDate { get; set; }
         public string? SignedBy { get; set; }
         public string? Notes { get; set; }
@@ -28,6 +26,12 @@ namespace FSCMS.Service.ReponseModel
 
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+    }
+
+    public class RenderCryoContractResponse
+    {
+        // Danh sách mẫu lưu trữ trong hợp đồng
+        public string Contract { get; set; }
     }
 
     public class CryoStorageContractDetailResponse : CryoStorageContractResponse

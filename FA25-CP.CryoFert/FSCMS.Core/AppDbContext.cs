@@ -60,6 +60,7 @@ namespace FSCMS.Core
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Media> Medias { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -373,6 +374,19 @@ namespace FSCMS.Core
                 .HasForeignKey(al => al.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Notification Relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Patient)
+                .WithMany()
+                .HasForeignKey(n => n.PatientId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // ========================================
             // Seed Data: Roles
             // ========================================
@@ -402,6 +416,12 @@ namespace FSCMS.Core
             var receptionistAccountId = new Guid("00000000-0000-0000-0000-000000010003");
             var doctor1AccountId = new Guid("00000000-0000-0000-0000-000000010004");
             var doctor2AccountId = new Guid("00000000-0000-0000-0000-000000010005");
+            var doctor3AccountId = new Guid("00000000-0000-0000-0000-000000010009");
+            var doctor4AccountId = new Guid("00000000-0000-0000-0000-000000010010");
+            var doctor5AccountId = new Guid("00000000-0000-0000-0000-000000010011");
+            var doctor6AccountId = new Guid("00000000-0000-0000-0000-000000010012");
+            var doctor7AccountId = new Guid("00000000-0000-0000-0000-000000010013");
+            var doctor8AccountId = new Guid("00000000-0000-0000-0000-000000010014");
             var patient1AccountId = new Guid("00000000-0000-0000-0000-000000010006");
             var patient2AccountId = new Guid("00000000-0000-0000-0000-000000010007");
             var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010008");
@@ -412,12 +432,18 @@ namespace FSCMS.Core
                 new Account(receptionistAccountId, "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "0901234569", null, false, true, true, null, null) { RoleId = roleReceptionistId },
 
                 // Doctor accounts
-                new Account(doctor1AccountId, "Nguyen", "Van A", new DateTime(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor2AccountId, "Tran", "Thi B", new DateTime(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor1AccountId, "Nguyen", "Van A", new DateOnly(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor2AccountId, "Tran", "Thi B", new DateOnly(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor3AccountId, "Le", "Minh C", new DateOnly(1978, 2, 14), "doctor3@cryo.com", "doctor3", defaultPwdHash, "+84900000012", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor4AccountId, "Pham", "Thi D", new DateOnly(1982, 11, 30), "doctor4@cryo.com", "doctor4", defaultPwdHash, "+84900000013", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor5AccountId, "Vo", "Hoang E", new DateOnly(1975, 6, 8), "doctor5@cryo.com", "doctor5", defaultPwdHash, "+84900000014", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor6AccountId, "Dang", "Thi F", new DateOnly(1988, 9, 22), "doctor6@cryo.com", "doctor6", defaultPwdHash, "+84900000015", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor7AccountId, "Bui", "Quoc G", new DateOnly(1983, 4, 5), "doctor7@cryo.com", "doctor7", defaultPwdHash, "+84900000016", null, true, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor8AccountId, "Ho", "Thi H", new DateOnly(1979, 12, 18), "doctor8@cryo.com", "doctor8", defaultPwdHash, "+84900000017", null, false, true, true, null, null) { RoleId = roleDoctorId },
                 // Patient accounts
-                new Account(patient1AccountId, "Le", "Van C", new DateTime(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", null, true, true, true, null, null) { RoleId = rolePatientId },
-                new Account(patient2AccountId, "Pham", "Thi D", new DateTime(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", null, false, true, true, null, null) { RoleId = rolePatientId },
-                new Account(patient3AccountId, "Hoang", "Van E", new DateTime(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", null, true, true, true, null, null) { RoleId = rolePatientId }
+                new Account(patient1AccountId, "Le", "Van C", new DateOnly(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", null, true, true, true, null, null) { RoleId = rolePatientId },
+                new Account(patient2AccountId, "Pham", "Thi D", new DateOnly(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", null, false, true, true, null, null) { RoleId = rolePatientId },
+                new Account(patient3AccountId, "Hoang", "Van E", new DateOnly(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", null, true, true, true, null, null) { RoleId = rolePatientId }
             );
 
             // Seed Doctors
@@ -437,7 +463,55 @@ namespace FSCMS.Core
                     10,
                     new DateTime(2015, 6, 1),
                     true
-                ) { LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" }
+                ) { LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" },
+                new Doctor(
+                    doctor3AccountId,
+                    "DOC003",
+                    "Andrology",
+                    20,
+                    new DateTime(2005, 3, 15),
+                    true
+                ) { LicenseNumber = "LIC-DOC-003", Certificates = "Expert in Male Infertility and Microsurgery" },
+                new Doctor(
+                    doctor4AccountId,
+                    "DOC004",
+                    "Embryology",
+                    12,
+                    new DateTime(2013, 7, 1),
+                    true
+                ) { LicenseNumber = "LIC-DOC-004", Certificates = "Clinical Embryologist, ICSI Specialist" },
+                new Doctor(
+                    doctor5AccountId,
+                    "DOC005",
+                    "Reproductive Surgery",
+                    25,
+                    new DateTime(2000, 1, 10),
+                    true
+                ) { LicenseNumber = "LIC-DOC-005", Certificates = "Laparoscopic and Hysteroscopic Surgery Expert" },
+                new Doctor(
+                    doctor6AccountId,
+                    "DOC006",
+                    "Reproductive Genetics",
+                    8,
+                    new DateTime(2017, 9, 1),
+                    true
+                ) { LicenseNumber = "LIC-DOC-006", Certificates = "PGT-A/PGT-M Specialist, Genetic Counseling" },
+                new Doctor(
+                    doctor7AccountId,
+                    "DOC007",
+                    "Fertility Preservation",
+                    14,
+                    new DateTime(2011, 4, 20),
+                    true
+                ) { LicenseNumber = "LIC-DOC-007", Certificates = "Oncofertility and Cryopreservation Expert" },
+                new Doctor(
+                    doctor8AccountId,
+                    "DOC008",
+                    "Reproductive Immunology",
+                    18,
+                    new DateTime(2007, 11, 5),
+                    true
+                ) { LicenseNumber = "LIC-DOC-008", Certificates = "Recurrent Pregnancy Loss and Immunotherapy Specialist" }
             );
 
             // Seed Patients

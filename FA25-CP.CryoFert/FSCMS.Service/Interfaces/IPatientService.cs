@@ -71,6 +71,13 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<PatientResponse>> UpdatePatientAsync(Guid patientId, UpdatePatientRequest request);
 
         /// <summary>
+        /// Replaces the entire patient information
+        /// </summary>
+        /// <param name="request">Full update request</param>
+        /// <returns>Updated patient responses</returns>
+        Task<BaseResponse<List<PatientResponse>>> UpdatePatientFullAsync(UpdatePatientFullRequest request);
+
+        /// <summary>
         /// Updates patient status (active/inactive)
         /// </summary>
         /// <param name="patientId">Patient ID</param>
@@ -146,6 +153,30 @@ namespace FSCMS.Service.Interfaces
         /// <param name="request">Reject relationship request</param>
         /// <returns>Updated relationship response</returns>
         Task<BaseResponse<RelationshipResponse>> RejectRelationshipAsync(RejectRelationshipRequest request);
+
+        /// <summary>
+        /// Cancels a pending relationship request initiated by the current patient
+        /// </summary>
+        /// <param name="request">Cancel relationship request</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> CancelRelationshipAsync(CancelRelationshipRequest request);
+
+        /// <summary>
+        /// Approves a relationship request via email link with token verification
+        /// </summary>
+        /// <param name="relationshipId">Relationship ID</param>
+        /// <param name="token">Approval token from email</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> ApproveRelationshipByTokenAsync(Guid relationshipId, string token);
+
+        /// <summary>
+        /// Rejects a relationship request via email link with token verification
+        /// </summary>
+        /// <param name="relationshipId">Relationship ID</param>
+        /// <param name="token">Approval token from email</param>
+        /// <param name="rejectionReason">Optional rejection reason</param>
+        /// <returns>Updated relationship response</returns>
+        Task<BaseResponse<RelationshipResponse>> RejectRelationshipByTokenAsync(Guid relationshipId, string token, string? rejectionReason = null);
 
         #endregion
 

@@ -70,6 +70,11 @@ namespace FSCMS.Service.ReponseModel
         public DateTime? UpdatedAt { get; set; }
     }
 
+    public class RenderAgreementResponse
+    {
+        public string Agreement { get; set; }
+    }
+
     /// <summary>
     /// Detailed response model for agreement with full information
     /// </summary>

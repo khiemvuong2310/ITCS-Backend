@@ -17,6 +17,7 @@ namespace FSCMS.Service.RequestModel
         public string? Outcome { get; set; }
         public string? Notes { get; set; }
         public IUICycleStatus? Status { get; set; }
+        public int? CurrentStep { get; set; }
     }
 }
 

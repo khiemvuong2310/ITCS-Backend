@@ -182,14 +182,14 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [HttpPost("{id}/verify-signature")]
         [Authorize(Roles = "Patient")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
-        public async Task<IActionResult> VerifySignature(Guid id, [FromBody] VerifySignatureRequest request)
+        public async Task<IActionResult> VerifySignature(Guid id, [FromForm] VerifySignatureRequest request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(BaseResponse<AgreementResponse>.CreateError("Invalid input data", 400, "INVALID_REQUEST"));
             }
 
-            var result = await _agreementService.VerifySignatureAsync(id, request.OtpCode);
+            var result = await _agreementService.VerifySignatureAsync(id, request.OtpCode, request.SignedAgreementFile);
             return StatusCode(result.Code ?? 500, result);
         }
 
@@ -203,6 +203,13 @@ namespace FA25_CP.CryoFert_BE.Controllers
         public async Task<IActionResult> GetAgreementFile(Guid id)
         {
             var result = await _agreementService.GetAgreementFileAsync(id);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
+        [HttpGet("{id}/html")]
+        public async Task<IActionResult> GenerateAgreement(Guid id)
+        {
+            var result = await _agreementService.RenderAgreementAsync(id);
             return StatusCode(result.Code ?? 500, result);
         }
     }

@@ -426,12 +426,12 @@ namespace FSCMS.Service.Services
                         ));
                 }
 
+                // Appointments that block a doctor's availability (only active, not cancelled/completed)
                 var blockingStatuses = new[]
                 {
                     AppointmentStatus.Scheduled,
                     AppointmentStatus.Confirmed,
-                    AppointmentStatus.CheckedIn,
-                    AppointmentStatus.InProgress
+                    AppointmentStatus.CheckedIn
                 };
 
                 if (request.WorkDate.HasValue)
@@ -1144,9 +1144,7 @@ namespace FSCMS.Service.Services
 				scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.Appointments.Any(a =>
 						!a.IsDeleted &&
 						a.Status != AppointmentStatus.Cancelled &&
-						a.Status != AppointmentStatus.Rescheduled &&
-						a.Status != AppointmentStatus.Completed &&
-						a.Status != AppointmentStatus.NoShow) ? 1 : 0;
+						a.Status != AppointmentStatus.Completed) ? 1 : 0;
 				scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved schedule {ScheduleId}", methodName, scheduleId);
@@ -1202,9 +1200,7 @@ namespace FSCMS.Service.Services
 				scheduleDetailResponse.BookedSlots = schedule.Slot != null && schedule.Slot.Appointments.Any(a =>
 						!a.IsDeleted &&
 						a.Status != AppointmentStatus.Cancelled &&
-						a.Status != AppointmentStatus.Rescheduled &&
-						a.Status != AppointmentStatus.Completed &&
-						a.Status != AppointmentStatus.NoShow) ? 1 : 0;
+						a.Status != AppointmentStatus.Completed) ? 1 : 0;
 				scheduleDetailResponse.AvailableSlots = scheduleDetailResponse.TotalSlots - scheduleDetailResponse.BookedSlots;
 
                 // Map slots
@@ -1305,9 +1301,7 @@ namespace FSCMS.Service.Services
 					scheduleResponse.BookedSlots = schedule.Slot != null && schedule.Slot.Appointments.Any(a =>
 							!a.IsDeleted &&
 							a.Status != AppointmentStatus.Cancelled &&
-							a.Status != AppointmentStatus.Rescheduled &&
-							a.Status != AppointmentStatus.Completed &&
-							a.Status != AppointmentStatus.NoShow) ? 1 : 0;
+							a.Status != AppointmentStatus.Completed) ? 1 : 0;
 					scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
                 }
 
@@ -1483,9 +1477,7 @@ namespace FSCMS.Service.Services
 				scheduleResponse.BookedSlots = createdSchedule.Slot != null && createdSchedule.Slot.Appointments.Any(a =>
 						!a.IsDeleted &&
 						a.Status != AppointmentStatus.Cancelled &&
-						a.Status != AppointmentStatus.Rescheduled &&
-						a.Status != AppointmentStatus.Completed &&
-						a.Status != AppointmentStatus.NoShow) ? 1 : 0;
+						a.Status != AppointmentStatus.Completed) ? 1 : 0;
 				scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
 
                 _logger.LogInformation("{MethodName}: Successfully created schedule {ScheduleId}", methodName, schedule.Id);
@@ -1595,9 +1587,7 @@ namespace FSCMS.Service.Services
 				scheduleResponse.BookedSlots = updatedSchedule.Slot != null && updatedSchedule.Slot.Appointments.Any(a =>
 						!a.IsDeleted &&
 						a.Status != AppointmentStatus.Cancelled &&
-						a.Status != AppointmentStatus.Rescheduled &&
-						a.Status != AppointmentStatus.Completed &&
-						a.Status != AppointmentStatus.NoShow) ? 1 : 0;
+						a.Status != AppointmentStatus.Completed) ? 1 : 0;
 				scheduleResponse.AvailableSlots = scheduleResponse.TotalSlots - scheduleResponse.BookedSlots;
 
                 _logger.LogInformation("{MethodName}: Successfully updated schedule {ScheduleId}", methodName, scheduleId);
@@ -1643,9 +1633,7 @@ namespace FSCMS.Service.Services
 				var hasBookedSlots = schedule.Slot != null && schedule.Slot.Appointments.Any(a =>
 						!a.IsDeleted &&
 						a.Status != AppointmentStatus.Cancelled &&
-						a.Status != AppointmentStatus.Rescheduled &&
-						a.Status != AppointmentStatus.Completed &&
-						a.Status != AppointmentStatus.NoShow);
+						a.Status != AppointmentStatus.Completed);
                 if (hasBookedSlots)
                 {
                     _logger.LogWarning("{MethodName}: Cannot delete schedule with booked slots: {ScheduleId}", methodName, scheduleId);

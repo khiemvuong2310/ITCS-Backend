@@ -73,8 +73,8 @@ namespace FSCMS.Service.Services
 
                 var response = _mapper.Map<LabSampleDetailResponse>(sample);
                 response.Patient.FullName = patient.Account.FirstName + " " + patient.Account.LastName;
-                response.Patient.DOB = patient.Account.BirthDate;
-                if(patient.Account.Gender != null)
+                response.Patient.DOB = patient.Account.BirthDate?.ToDateTime(TimeOnly.MinValue);
+                if (patient.Account.Gender != null)
                     response.Patient.Gender = (bool)patient.Account.Gender ? "Man" : "Female";
 
                 return new BaseResponse<LabSampleDetailResponse>
@@ -192,13 +192,21 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status400BadRequest,
                         Message = "Invalid sperm request."
                     };
-
-                var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(p => p.Account)
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
                 if (patient == null)
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Patient not found."
+                    };
+                if (patient.Account.Gender == null || patient.Account.Gender == false)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Gender patient invalid for sperm sample."
                     };
 
                 // 1️⃣ Tạo LabSample cha
@@ -207,7 +215,11 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                labSample.Status = SpecimenStatus.Collected;
+                if(request.Quality != null)
+                {
+                    labSample.Quality = request.Quality;
+                }
+                labSample.Status = request.IsQualityCheck? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -273,12 +285,21 @@ namespace FSCMS.Service.Services
                         Message = "Invalid oocyte request."
                     };
 
-                var patient = await _unitOfWork.Repository<Patient>().GetByIdGuid(request.PatientId);
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(p => p.Account)
+                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
                 if (patient == null)
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
                         Message = "Patient not found."
+                    };
+                if (patient.Account.Gender == null || patient.Account.Gender == true)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Gender patient invalid for occyte sample."
                     };
                 // 1️⃣ Tạo LabSample cha
                 var labSample = _mapper.Map<LabSample>(request);
@@ -286,7 +307,12 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Oocyte);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                labSample.Status = SpecimenStatus.Collected;
+                if (request.Quality != null)
+                {
+                    labSample.Quality = request.Quality;
+                }
+                labSample.Status = request.IsQualityCheck ? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
+
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -375,6 +401,13 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status404NotFound,
                         Message = "Oocyte not found or already used."
                     };
+                
+                if (sperm.PatientId != patient.Id || oocyte.PatientId != patient.Id)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Sperm or Oocyte does not belong to the specified patient."
+                    };
 
                 // 1️⃣ Tạo LabSample cha
                 var labSample = _mapper.Map<LabSample>(request);
@@ -382,7 +415,12 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Embryo);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                labSample.Status = SpecimenStatus.Collected;
+                if (request.Quality != null)
+                {
+                    labSample.Quality = request.Quality;
+                }
+                labSample.Status = request.IsQualityCheck ? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
+
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -606,6 +644,17 @@ namespace FSCMS.Service.Services
 
                 _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
+                if(request.Quality != null)
+                {
+                    entity.Quality = request.Quality;
+                }
+                if(request.Status != null)
+                {
+                    entity.Status = (SpecimenStatus)request.Status;
+                } else
+                {
+                    entity.Status = SpecimenStatus.QualityChecked;
+                }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
@@ -663,6 +712,18 @@ namespace FSCMS.Service.Services
 
                 _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
+                if (request.Quality != null)
+                {
+                    entity.Quality = request.Quality;
+                }
+                if (request.Status != null)
+                {
+                    entity.Status = (SpecimenStatus)request.Status;
+                }
+                else
+                {
+                    entity.Status = SpecimenStatus.QualityChecked;
+                }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
@@ -721,6 +782,18 @@ namespace FSCMS.Service.Services
 
                 _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
+                if (request.Quality != null)
+                {
+                    entity.Quality = request.Quality;
+                }
+                if (request.Status != null)
+                {
+                    entity.Status = (SpecimenStatus)request.Status;
+                }
+                else
+                {
+                    entity.Status = SpecimenStatus.QualityChecked;
+                }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();

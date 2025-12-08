@@ -49,6 +49,20 @@ namespace FA25_CP.CryoFert_BE.Controllers
             }
 
             var result = await _treatmentService.GetAllAsync(request);
+            
+            // If no data found, return 404 Not Found
+            if (result.MetaData?.Total == 0 || (result.Data != null && !result.Data.Any()))
+            {
+                return StatusCode(StatusCodes.Status404NotFound, new DynamicResponse<TreatmentResponseModel>
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    SystemCode = "NOT_FOUND",
+                    Message = "No treatments found",
+                    MetaData = result.MetaData ?? new PagingMetaData(),
+                    Data = result.Data ?? new List<TreatmentResponseModel>()
+                });
+            }
+            
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

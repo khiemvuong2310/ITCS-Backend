@@ -44,18 +44,25 @@ namespace FSCMS.Service.RequestModel
 
     public class UpdateUserRequest
     {
+        [StringLength(100, ErrorMessage = "FirstName cannot exceed 100 characters.")]
+        public string? FirstName { get; set; }
+
+        [StringLength(100, ErrorMessage = "LastName cannot exceed 100 characters.")]
+        public string? LastName { get; set; }
+
         [RegularExpression(@"^[\p{L}0-9\s]+$", ErrorMessage = "Username cannot contain special characters.")]
         [StringLength(50, ErrorMessage = "Username cannot exceed 50 characters.")]
         public string? UserName { get; set; }
 
-        [Range(1, 150, ErrorMessage = "Age must be between 1 and 150.")]
-        public int? Age { get; set; }
+        public DateOnly? BirthDate { get; set; }
+
+        public bool? Gender { get; set; }
 
         [RegularExpression(@"^\+?[0-9]{10,15}$", ErrorMessage = "Phone number must be between 10 and 15 digits and may start with a '+' sign.")]
         public string? Phone { get; set; }
 
-        [StringLength(100, ErrorMessage = "Location cannot exceed 100 characters.")]
-        public string? Location { get; set; }
+        [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters.")]
+        public string? Address { get; set; }
 
         [StringLength(100, ErrorMessage = "Country cannot exceed 100 characters.")]
         public string? Country { get; set; }

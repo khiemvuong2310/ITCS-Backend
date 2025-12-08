@@ -24,16 +24,7 @@ namespace FSCMS.Core.Entities
         public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
         public RelationshipStatus Status { get; set; } = RelationshipStatus.Pending;
-
-        /// <summary>
-        /// Patient ID người tạo request
-        /// Note: CreatedAt từ BaseEntity = thời điểm request được gửi
-        /// </summary>
         public Guid? RequestedBy { get; set; }
-
-        /// <summary>
-        /// Patient ID người phản hồi request
-        /// </summary>
         public Guid? RespondedBy { get; set; }
 
         /// <summary>
@@ -47,6 +38,12 @@ namespace FSCMS.Core.Entities
         /// </summary>
         public DateTime? ExpiresAt { get; set; }
         public string? RejectionReason { get; set; }
+
+        /// <summary>
+        /// Token bảo mật cho email-based approve/reject
+        /// Token được generate khi tạo relationship và validate khi approve/reject từ email
+        /// </summary>
+        public string? ApprovalToken { get; set; }
 
 
         //Navigate properties

@@ -53,21 +53,57 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                var patient = await _unitOfWork.Repository<Patient>()
-                    .AsQueryable()
-                    .Include(p => p.Account)
-                    .FirstOrDefaultAsync(p => p.Id == request.PatientId && !p.IsDeleted);
+                object? entityExists = request.RelatedEntityType switch
+                {
+                    EntityTypeTransaction.ServiceRequest=> await _unitOfWork.Repository<ServiceRequest>()
+                                    .AsQueryable()
+                                    .Include(x => x.Appointment)
+                                    .Where(p => p.Id == request.RelatedEntityId && !p.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    _ => null
+                };
 
-                if (patient == null)
+                if (entityExists == null)
+                {
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status404NotFound,
-                        Message = "Patient not found"
+                        SystemCode = "ENTITY_NOT_FOUND",
+                        Message = $"Related entity {request.RelatedEntityType} with ID {request.RelatedEntityId} not found",
+                        Data = null
                     };
+                }
+
+                Guid? patientId = entityExists switch
+                {
+                    ServiceRequest mr => mr.Appointment?.PatientId,
+                    Appointment tc => tc.PatientId,
+                    Account acc => acc.Id,
+                    CryoStorageContract csc => csc.PatientId,
+                    _ => null
+                };
+
+                if (patientId == null)
+                {
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "PATIENT_NOT_FOUND",
+                        Message = "Cannot determine PatientId from related entity"
+                    };
+                }
 
                 var transaction = await _unitOfWork.Repository<Transaction>()
                     .AsQueryable()
-                    .FirstOrDefaultAsync(p => p.RelatedEntityType == request.RelatedEntityType.ToString() && !p.IsDeleted && p.RelatedEntityId == request.RelatedEntityId && request.PatientId == p.PatientId && p.Status == TransactionStatus.Pending);
+                    .FirstOrDefaultAsync(p => p.RelatedEntityType == request.RelatedEntityType.ToString() && !p.IsDeleted && p.RelatedEntityId == request.RelatedEntityId && patientId == p.PatientId && p.Status == TransactionStatus.Pending);
 
                 if (transaction == null)
                     return new BaseResponse<TransactionResponseModel>
@@ -443,7 +479,10 @@ namespace FSCMS.Service.Services
 
             return entityType switch
             {
-                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == AppointmentStatus.InProgress),
+                // Appointment considered valid for transactions when it's not deleted and not cancelled
+                EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>()
+                    .AsQueryable()
+                    .AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status != AppointmentStatus.Cancelled),
                 EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ContractStatus.Pending),
                 EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted && e.Status == ServiceRequestStatus.Pending),
                 //EntityTypeTransaction.Patient => await _unitOfWork.Repository<Patient>().AsQueryable().AnyAsync(e => e.Id == entityId && !e.IsDeleted),
@@ -486,7 +525,22 @@ namespace FSCMS.Service.Services
                         };
                     query = query.Where(t => t.PatientId == request.PatientId);
                 }
-                    
+
+                if (request.TransactionId != Guid.Empty)
+                {
+                    var transaction = await _unitOfWork.Repository<Transaction>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(p => p.Id == request.TransactionId && !p.IsDeleted);
+
+                    if (transaction == null)
+                        return new DynamicResponse<TransactionResponseModel>
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Message = "Transaction not found"
+                        };
+                    query = query.Where(t => t.Id == request.TransactionId);
+                }
+
 
                 if (request.RelatedEntityType.HasValue)
                     query = query.Where(t => t.RelatedEntityType == request.RelatedEntityType.Value.ToString());
