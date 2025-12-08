@@ -876,6 +876,294 @@ namespace FSCMS.Service.Services
         }
 
         /// <summary>
+        /// Creates IUI treatment cycles with sequential StartDate calculation.
+        /// Each cycle starts after the previous cycle ends (based on ExpectedDurationDays).
+        /// Business Rules:
+        /// - Cycles are created sequentially without overlap
+        /// - Each cycle's StartDate = Previous cycle's StartDate + Previous cycle's ExpectedDurationDays
+        /// </summary>
+        /// <param name="treatmentId">The treatment ID</param>
+        /// <param name="baselineDate">The baseline start date</param>
+        /// <param name="protocol">The IUI protocol</param>
+        /// <param name="methodName">The calling method name for logging</param>
+        /// <returns>List of created treatment cycles</returns>
+        private async Task<List<TreatmentCycle>> CreateIUICyclesAsync(Guid treatmentId, DateTime baselineDate, string protocol, string methodName)
+        {
+            // Validate input parameters
+            if (treatmentId == Guid.Empty)
+            {
+                _logger.LogError("{MethodName}: Invalid treatmentId provided", methodName);
+                throw new ArgumentException("Treatment ID cannot be empty", nameof(treatmentId));
+            }
+
+            if (string.IsNullOrWhiteSpace(protocol))
+            {
+                _logger.LogWarning("{MethodName}: Protocol is empty, using default", methodName);
+                protocol = "Default IUI Protocol";
+            }
+
+            var createdCycles = new List<TreatmentCycle>();
+            
+            // Define IUI step plan
+            // Note: All ExpectedDurationDays must be >= 1 (0 is automatically converted to 1)
+            var stepPlan = new List<(int CycleNumber, string CycleName, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
+            {
+                (1, "Pre-Cycle Preparation", TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase begins at baseline."),
+                (2, "Day 2-3 Assessment", TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
+                (3, "Day 7-10 Follicle Monitoring", TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 1, "Mid-cycle follicle monitoring."),
+                (4, "Day 10-12 Trigger", TreatmentStepType.IUI_Day10_12_Trigger, 1, "Ovulation trigger planning."),
+                (5, "IUI Procedure", TreatmentStepType.IUI_Procedure, 1, "Intrauterine insemination procedure."),
+                (6, "Post-IUI Monitoring", TreatmentStepType.IUI_PostIUI, 1, "Immediate post-procedure care."),
+                (7, "Beta HCG (14 days)", TreatmentStepType.IUI_BetaHCGTest, 1, "Pregnancy test 14 days after procedure.")
+            };
+
+            // Calculate sequential ScheduledDate based on ExpectedDurationDays
+            var cyclesWithDates = CalculateSequentialCycleDates(baselineDate, stepPlan);
+
+            // Validate calculated dates
+            ValidateCycleDates(cyclesWithDates, methodName);
+
+            // Determine status for each cycle
+            var now = DateTime.UtcNow;
+            var firstUpcomingIndex = cyclesWithDates.FindIndex(step => step.ScheduledDate >= now);
+            if (firstUpcomingIndex == -1)
+            {
+                firstUpcomingIndex = cyclesWithDates.Count - 1;
+            }
+
+            // Create cycles
+            for (int index = 0; index < cyclesWithDates.Count; index++)
+            {
+                var step = cyclesWithDates[index];
+                var status = DetermineCycleStatus(step.ScheduledDate, index, firstUpcomingIndex, now);
+
+                var cycle = new TreatmentCycle(
+                    Guid.NewGuid(),
+                    treatmentId,
+                    step.CycleName,
+                    step.CycleNumber,
+                    step.ScheduledDate,
+                    step.StepType,
+                    step.ExpectedDurationDays)
+                {
+                    Status = status,
+                    Protocol = protocol,
+                    Notes = $"{step.Notes} ExpectedDurationDays={step.ExpectedDurationDays}."
+                };
+
+                await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
+                createdCycles.Add(cycle);
+
+                _logger.LogInformation("{MethodName}: Created IUI cycle {CycleNumber} ({StepType}) with StartDate {StartDate} and ExpectedDurationDays {DurationDays} for Treatment {TreatmentId}",
+                    methodName, step.CycleNumber, step.StepType, step.ScheduledDate.ToString("yyyy-MM-dd"), step.ExpectedDurationDays, treatmentId);
+            }
+
+            _logger.LogInformation("{MethodName}: Successfully created {Count} IUI cycles for Treatment {TreatmentId}", 
+                methodName, createdCycles.Count, treatmentId);
+
+            return createdCycles;
+        }
+
+        /// <summary>
+        /// Creates IVF treatment cycles with sequential StartDate calculation.
+        /// Each cycle starts after the previous cycle ends (based on ExpectedDurationDays).
+        /// Business Rules:
+        /// - Cycles are created sequentially without overlap
+        /// - Each cycle's StartDate = Previous cycle's StartDate + Previous cycle's ExpectedDurationDays
+        /// </summary>
+        /// <returns>List of created treatment cycles</returns>
+        private async Task<List<TreatmentCycle>> CreateIVFCyclesAsync(Guid treatmentId, DateTime baselineDate, string protocol, string methodName)
+        {
+            // Validate input parameters
+            if (treatmentId == Guid.Empty)
+            {
+                _logger.LogError("{MethodName}: Invalid treatmentId provided", methodName);
+                throw new ArgumentException("Treatment ID cannot be empty", nameof(treatmentId));
+            }
+
+            if (string.IsNullOrWhiteSpace(protocol))
+            {
+                _logger.LogWarning("{MethodName}: Protocol is empty, using default", methodName);
+                protocol = "Default IVF Protocol";
+            }
+
+            var createdCycles = new List<TreatmentCycle>();
+            
+            // Define IVF step plan
+            // Note: All ExpectedDurationDays must be >= 1 (0 is automatically converted to 1)
+            var stepPlan = new List<(int CycleNumber, string CycleName, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
+            {
+                (1, "Pre-Cycle Preparation", TreatmentStepType.IVF_PreCyclePreparation, 14, "Patient prep and protocol confirmation starts at baseline."),
+                (2, "Controlled Ovarian Stimulation", TreatmentStepType.IVF_StimulationStart, 10, "Stimulation start (COS day 1)."),
+                (3, "Mid-Stimulation Monitoring", TreatmentStepType.IVF_Monitoring, 1, "Ultrasound/bloodwork mid stimulation."),
+                (4, "Ovulation Trigger", TreatmentStepType.IVF_Trigger, 1, "Trigger shot ~day 10."),
+                (5, "Oocyte Pick-Up (OPU)", TreatmentStepType.IVF_OPU, 1, "Oocyte retrieval ~36h post trigger."),
+                (6, "Fertilization/Lab", TreatmentStepType.IVF_Fertilization, 1, "Fertilization/ICSI lab work."),
+                (7, "Embryo Culture", TreatmentStepType.IVF_EmbryoCulture, 3, "Embryo assessment (Day 3 checkpoint)."),
+                (8, "Embryo Transfer", TreatmentStepType.IVF_EmbryoTransfer, 1, "Default day-5 transfer.")
+            };
+
+            // Calculate sequential ScheduledDate based on ExpectedDurationDays
+            var cyclesWithDates = CalculateSequentialCycleDates(baselineDate, stepPlan);
+
+            // Validate calculated dates
+            ValidateCycleDates(cyclesWithDates, methodName);
+
+            // Determine status for each cycle
+            var now = DateTime.UtcNow;
+            var scheduledIndex = cyclesWithDates.FindIndex(step => step.ScheduledDate >= now);
+            if (scheduledIndex == -1)
+            {
+                scheduledIndex = cyclesWithDates.Count - 1;
+            }
+
+            // Create cycles
+            for (int index = 0; index < cyclesWithDates.Count; index++)
+            {
+                var step = cyclesWithDates[index];
+                var status = DetermineCycleStatus(step.ScheduledDate, index, scheduledIndex, now);
+
+                var cycle = new TreatmentCycle(
+                    Guid.NewGuid(),
+                    treatmentId,
+                    step.CycleName,
+                    step.CycleNumber,
+                    step.ScheduledDate,
+                    step.StepType,
+                    step.ExpectedDurationDays)
+                {
+                    Status = status,
+                    Protocol = protocol,
+                    Notes = step.Notes
+                };
+
+                await _unitOfWork.Repository<TreatmentCycle>().InsertAsync(cycle);
+                createdCycles.Add(cycle);
+
+                _logger.LogInformation("{MethodName}: Created IVF cycle {CycleNumber} ({StepType}) with StartDate {StartDate} and ExpectedDurationDays {DurationDays} for Treatment {TreatmentId}",
+                    methodName, step.CycleNumber, step.StepType, step.ScheduledDate.ToString("yyyy-MM-dd"), step.ExpectedDurationDays, treatmentId);
+            }
+
+            _logger.LogInformation("{MethodName}: Successfully created {Count} IVF cycles for Treatment {TreatmentId}", 
+                methodName, createdCycles.Count, treatmentId);
+
+            return createdCycles;
+        }
+
+        /// <summary>
+        /// Calculates sequential ScheduledDate for treatment cycles based on ExpectedDurationDays.
+        /// Ensures each cycle starts after the previous cycle ends (no overlap).
+        /// Business Rule: Minimum ExpectedDurationDays is 1 day (0 is converted to 1).
+        /// </summary>
+        /// <param name="baselineDate">The baseline start date</param>
+        /// <param name="stepPlan">List of step plans with CycleNumber, CycleName, StepType, ExpectedDurationDays, and Notes</param>
+        /// <returns>List of cycles with calculated ScheduledDate</returns>
+        private List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)> 
+            CalculateSequentialCycleDates(
+                DateTime baselineDate,
+                List<(int CycleNumber, string CycleName, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)> stepPlan)
+        {
+            if (stepPlan == null || !stepPlan.Any())
+            {
+                throw new ArgumentException("Step plan cannot be null or empty", nameof(stepPlan));
+            }
+
+            var cyclesWithDates = new List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>();
+            var currentStartDate = baselineDate;
+
+            foreach (var step in stepPlan)
+            {
+                // Ensure minimum ExpectedDurationDays is 1 day (business rule)
+                var durationDays = Math.Max(1, step.ExpectedDurationDays);
+
+                // For the first cycle, use baselineDate
+                // For subsequent cycles, start after the previous cycle ends
+                if (cyclesWithDates.Any())
+                {
+                    var previousCycle = cyclesWithDates.Last();
+                    currentStartDate = previousCycle.ScheduledDate.AddDays(previousCycle.ExpectedDurationDays);
+                }
+                else
+                {
+                    currentStartDate = baselineDate;
+                }
+
+                cyclesWithDates.Add((
+                    step.CycleNumber,
+                    step.CycleName,
+                    currentStartDate,
+                    step.StepType,
+                    durationDays,
+                    step.Notes
+                ));
+            }
+
+            return cyclesWithDates;
+        }
+
+        /// <summary>
+        /// Validates that treatment cycles are properly sequenced without overlap.
+        /// Business Rules:
+        /// - Cycles must be in ascending order by CycleNumber
+        /// - Each cycle's StartDate must be >= previous cycle's EndDate (no overlap)
+        /// - All ExpectedDurationDays must be >= 1
+        /// </summary>
+        /// <param name="cyclesWithDates">List of cycles with calculated dates</param>
+        /// <param name="methodName">The calling method name for logging</param>
+        /// <exception cref="InvalidOperationException">Thrown if validation fails</exception>
+        private void ValidateCycleDates(
+            List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)> cyclesWithDates,
+            string methodName)
+        {
+            if (cyclesWithDates == null || !cyclesWithDates.Any())
+            {
+                _logger.LogWarning("{MethodName}: No cycles to validate", methodName);
+                return;
+            }
+
+            // Validate ExpectedDurationDays
+            var invalidDurationCycles = cyclesWithDates.Where(c => c.ExpectedDurationDays < 1).ToList();
+            if (invalidDurationCycles.Any())
+            {
+                var cycleNumbers = string.Join(", ", invalidDurationCycles.Select(c => c.CycleNumber));
+                _logger.LogError("{MethodName}: Found cycles with ExpectedDurationDays < 1: {CycleNumbers}", methodName, cycleNumbers);
+                throw new InvalidOperationException($"Cycles {cycleNumbers} have ExpectedDurationDays < 1. Minimum is 1 day.");
+            }
+
+            // Validate sequential ordering and no overlap
+            for (int i = 1; i < cyclesWithDates.Count; i++)
+            {
+                var previousCycle = cyclesWithDates[i - 1];
+                var currentCycle = cyclesWithDates[i];
+
+                // Validate CycleNumber is sequential
+                if (currentCycle.CycleNumber != previousCycle.CycleNumber + 1)
+                {
+                    _logger.LogError("{MethodName}: Cycle numbers are not sequential. Previous: {Previous}, Current: {Current}",
+                        methodName, previousCycle.CycleNumber, currentCycle.CycleNumber);
+                    throw new InvalidOperationException($"Cycle numbers must be sequential. Found gap between cycle {previousCycle.CycleNumber} and {currentCycle.CycleNumber}.");
+                }
+
+                // Calculate previous cycle's end date
+                var previousEndDate = previousCycle.ScheduledDate.AddDays(previousCycle.ExpectedDurationDays);
+
+                // Validate no overlap: current cycle must start after previous cycle ends
+                if (currentCycle.ScheduledDate < previousEndDate)
+                {
+                    _logger.LogError("{MethodName}: Cycle overlap detected. Cycle {CurrentCycle} starts on {CurrentStart} but previous cycle {PreviousCycle} ends on {PreviousEnd}",
+                        methodName, currentCycle.CycleNumber, currentCycle.ScheduledDate.ToString("yyyy-MM-dd"),
+                        previousCycle.CycleNumber, previousEndDate.ToString("yyyy-MM-dd"));
+                    throw new InvalidOperationException(
+                        $"Cycle overlap detected: Cycle {currentCycle.CycleNumber} starts on {currentCycle.ScheduledDate:yyyy-MM-dd} " +
+                        $"but previous cycle {previousCycle.CycleNumber} ends on {previousEndDate:yyyy-MM-dd}. " +
+                        $"Cycles must be sequential without overlap.");
+                }
+            }
+
+            _logger.LogDebug("{MethodName}: Successfully validated {Count} cycles with no overlaps", methodName, cyclesWithDates.Count);
+        }
+
+        /// <summary>
         /// Determines the status of a treatment cycle based on its scheduled date and position in the sequence.
         /// Unified logic for both IUI and IVF treatments:
         /// - Completed: steps with ScheduledDate < now (past steps)
