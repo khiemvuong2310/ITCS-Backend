@@ -15,14 +15,14 @@ namespace FSCMS.Core.Entities
     public class Patient : BaseEntity<Guid>
     {
         protected Patient() : base() { }
-        public Patient(Guid id, string patientCode, string nationalId)
+        public Patient(Guid id, string patientCode, string? nationalId)
         {
             Id = id;
             PatientCode = patientCode;
-            NationalID = nationalId;
+            NationalID = nationalId ?? string.Empty;
         }
         public string PatientCode { get; set; } = default!;
-        public string NationalID { get; set; } = default!;
+        public string NationalID { get; set; } = string.Empty;
         public string? EmergencyContact { get; set; }
         public string? EmergencyPhone { get; set; }
         public string? Insurance { get; set; }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using static FSCMS.Service.ReponseModel.CryoStorageContractResponse;
 
 namespace FSCMS.Service.Services
 {
@@ -26,10 +28,11 @@ namespace FSCMS.Service.Services
         private readonly IEmailService _emailService;
         private readonly IEmailTemplateService _emailTemplateService;
         private readonly IMemoryCache _cache;
+        private readonly IMediaService _mediaService;
 
         public CryoStorageContractService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CryoStorageContractService> logger, ITransactionService transactionService, IEmailTemplateService emailTemplateService,
             IMemoryCache cache,
-            IEmailService emailService)
+            IEmailService emailService, IMediaService mediaService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -38,6 +41,7 @@ namespace FSCMS.Service.Services
             _emailTemplateService = emailTemplateService;
             _cache = cache;
             _emailService = emailService;
+            _mediaService = mediaService;
         }
 
         #region Get All
@@ -517,5 +521,94 @@ namespace FSCMS.Service.Services
             }
         }
         #endregion
+
+        public async Task<BaseResponse<RenderCryoContractResponse>> RenderCryoContractAsync(Guid id)
+        {
+            try
+            {
+                // Lấy hợp đồng từ DB
+                var contract = await _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .Include(x => x.Patient)
+                        .ThenInclude(d => d.Account)
+                    .Include(x => x.CryoPackage)
+                    .Include(x => x.CPSDetails)
+                        .ThenInclude(d => d.LabSample)
+                            .ThenInclude(c => c.CryoLocation)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (contract == null)
+                {
+                    return new BaseResponse<RenderCryoContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract not found"
+                    };
+                }
+
+                // Lấy template HTML
+                var templateText = await _mediaService.GetEtaTemplateFromCloudAsync(EntityTypeMedia.CryoStorageContract);
+
+                // Replace các trường tĩnh
+                templateText = templateText.Replace("<%= it.contract.contractNumber %>", contract.ContractNumber)
+                                           .Replace("<%= it.contract.startDate %>", contract.StartDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                           .Replace("<%= it.contract.endDate %>", contract.EndDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                           .Replace("<%= it.contract.status %>", contract.Status.ToString())
+                                           .Replace("<%= it.contract.patientName %>", $"{contract.Patient.Account.FirstName} {contract.Patient.Account.LastName}")
+                                           .Replace("<%= it.contract.signedBy %>", contract.SignedBy ?? "N/A")
+                                           .Replace("<%= it.contract.signedDate %>", contract.SignedDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                           .Replace("<%= it.contract.cryoPackageName %>", contract.CryoPackage.PackageName)
+                                           .Replace("<%= it.contract.totalAmount %>", contract.TotalAmount.ToString("N0"))
+                                           .Replace("<%= it.contract.paidAmount %>", (contract.PaidAmount?.ToString("N0") ?? "0"))
+                                           .Replace("<%= it.contract.notes %>", string.IsNullOrEmpty(contract.Notes) ? "N/A" : contract.Notes)
+                                           .Replace("<%= it.generatedAt %>", contract.CreatedAt.ToString("yyyy-MM-dd"))
+                                           .Replace("<%= it.updatedAt %>", DateTime.UtcNow.ToString("yyyy-MM-dd"));
+
+                // Build table samples
+                string sampleRows = "";
+                int index = 1;
+                foreach (var s in contract.CPSDetails)
+                {
+                    var locationName = s.LabSample.CryoLocation?.Name ?? "N/A";
+                    bool isActive = s.Status == "Storage";
+                    sampleRows += $"<tr>" +
+                                  $"<td>{index}</td>" +
+                                  $"<td>{s.LabSample.SampleCode}</td>" +
+                                  $"<td>{s.LabSample.SampleType}</td>" +
+                                  $"<td>{locationName}</td>" +
+                                  $"<td>{(isActive ? "Yes" : "No")}</td>" +
+                                  $"</tr>";
+                    index++;
+                }
+
+                // Replace toàn bộ vòng lặp sample table
+                templateText = System.Text.RegularExpressions.Regex.Replace(templateText,
+                    "<% it.contract.samples.forEach\\(\\(s, index\\) => \\{ %>.*?<% }\\) %>",
+                    sampleRows,
+                    System.Text.RegularExpressions.RegexOptions.Singleline);
+
+                // Trả về kết quả
+                RenderCryoContractResponse data = new RenderCryoContractResponse
+                {
+                    Contract = templateText
+                };
+
+                return new BaseResponse<RenderCryoContractResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Contract render successfully",
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error render contract ID: {Id}", id);
+                return new BaseResponse<RenderCryoContractResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
+            }
+        }
     }
 }

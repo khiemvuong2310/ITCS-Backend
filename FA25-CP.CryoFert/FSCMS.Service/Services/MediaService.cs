@@ -511,6 +511,23 @@ namespace FSCMS.Service.Services
             }
         }
 
+        public async Task<string> GetEtaTemplateFromCloudAsync(EntityTypeMedia type)
+        {
+            var media = await _unitOfWork.Repository<Media>()
+                    .AsQueryable()
+                    .AsNoTracking()
+                    .Where(u => u.IsTemplate && !u.IsDeleted && u.RelatedEntityType == type.ToString())
+                    .FirstOrDefaultAsync();
+
+            if (media == null)
+            {
+                return null;
+            }
+            using var client = new HttpClient();
+            var templateContent = await client.GetStringAsync(media.FilePath);
+            return templateContent;
+        }
+
         public async Task<BaseResponse<MediaResponse>> UpdateMediaAsync(Guid mediaId, UpdateMediaRequest request)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();

@@ -561,7 +561,8 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Only pending service requests can be approved", StatusCodes.Status400BadRequest, "INVALID_STATUS");
                 }
 
-                entity.Status = ServiceRequestStatus.Approved;
+                // Khi bỏ trạng thái Approved, việc duyệt sẽ chuyển thẳng sang Completed
+                entity.Status = ServiceRequestStatus.Completed;
                 entity.ApprovedDate = DateTime.UtcNow;
                 entity.ApprovedBy = approvedBy;
                 entity.UpdatedAt = DateTime.UtcNow;
@@ -666,10 +667,10 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Service request not found", StatusCodes.Status404NotFound, "SERVICE_REQUEST_NOT_FOUND");
                 }
 
-                if (entity.Status != ServiceRequestStatus.Approved)
+                if (entity.Status != ServiceRequestStatus.Pending)
                 {
-                    _logger.LogWarning("{MethodName}: Only approved service requests can be completed: {Id}", methodName, id);
-                    return BaseResponse<ServiceRequestResponseModel>.CreateError("Only approved service requests can be completed", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    _logger.LogWarning("{MethodName}: Only pending service requests can be completed: {Id}", methodName, id);
+                    return BaseResponse<ServiceRequestResponseModel>.CreateError("Only pending service requests can be completed", StatusCodes.Status400BadRequest, "INVALID_STATUS");
                 }
 
                 entity.Status = ServiceRequestStatus.Completed;

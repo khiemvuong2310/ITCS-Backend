@@ -1,6 +1,7 @@
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Threading.Tasks;
 
@@ -59,7 +60,7 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Verify OTP and sign agreement
         /// </summary>
-        Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode);
+        Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode, IFormFile? signedAgreementFile);
 
         /// <summary>
         /// Get agreement file(s) from Media table

@@ -215,7 +215,11 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                labSample.Status = SpecimenStatus.Collected;
+                if(request.Quality != null)
+                {
+                    labSample.Quality = request.Quality;
+                }
+                labSample.Status = request.IsQualityCheck? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -303,7 +307,12 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Oocyte);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                labSample.Status = SpecimenStatus.Collected;
+                if (request.Quality != null)
+                {
+                    labSample.Quality = request.Quality;
+                }
+                labSample.Status = request.IsQualityCheck ? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
+
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -406,7 +415,12 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Embryo);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                labSample.Status = SpecimenStatus.Collected;
+                if (request.Quality != null)
+                {
+                    labSample.Quality = request.Quality;
+                }
+                labSample.Status = request.IsQualityCheck ? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
+
 
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
@@ -630,6 +644,17 @@ namespace FSCMS.Service.Services
 
                 _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
+                if(request.Quality != null)
+                {
+                    entity.Quality = request.Quality;
+                }
+                if(request.Status != null)
+                {
+                    entity.Status = (SpecimenStatus)request.Status;
+                } else
+                {
+                    entity.Status = SpecimenStatus.QualityChecked;
+                }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
@@ -687,6 +712,18 @@ namespace FSCMS.Service.Services
 
                 _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
+                if (request.Quality != null)
+                {
+                    entity.Quality = request.Quality;
+                }
+                if (request.Status != null)
+                {
+                    entity.Status = (SpecimenStatus)request.Status;
+                }
+                else
+                {
+                    entity.Status = SpecimenStatus.QualityChecked;
+                }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
@@ -745,6 +782,18 @@ namespace FSCMS.Service.Services
 
                 _mapper.Map(request, entity);
                 entity.UpdatedAt = DateTime.UtcNow;
+                if (request.Quality != null)
+                {
+                    entity.Quality = request.Quality;
+                }
+                if (request.Status != null)
+                {
+                    entity.Status = (SpecimenStatus)request.Status;
+                }
+                else
+                {
+                    entity.Status = SpecimenStatus.QualityChecked;
+                }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();

@@ -11,23 +11,18 @@ namespace FSCMS.Core.Enum
         Pending = 1,
 
         /// <summary>
-        /// Yêu cầu dịch vụ đã được phê duyệt/chấp thuận thực hiện.
-        /// </summary>
-        Approved = 2,
-
-        /// <summary>
         /// Yêu cầu dịch vụ bị từ chối (không được thực hiện).
         /// </summary>
-        Rejected = 3,
+        Rejected = 2,
 
         /// <summary>
         /// Yêu cầu dịch vụ đã được thực hiện xong.
         /// </summary>
-        Completed = 4,
+        Completed = 3,
 
         /// <summary>
         /// Yêu cầu dịch vụ bị hủy bỏ trước khi hoàn thành.
         /// </summary>
-        Cancelled = 5
+        Cancelled = 4
     }
 }

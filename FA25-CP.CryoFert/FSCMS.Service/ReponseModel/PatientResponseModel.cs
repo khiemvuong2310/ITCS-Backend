@@ -17,7 +17,7 @@ namespace FSCMS.Service.ReponseModel
         public string PatientCode { get; set; } = default!;
 
         [JsonPropertyName("nationalId")]
-        public string NationalID { get; set; } = default!;
+        public string NationalID { get; set; } = string.Empty;
 
         [JsonPropertyName("emergencyContact")]
         public string? EmergencyContact { get; set; }
@@ -210,7 +210,7 @@ namespace FSCMS.Service.ReponseModel
         public string PatientCode { get; set; } = default!;
 
         [JsonPropertyName("nationalId")]
-        public string NationalID { get; set; } = default!;
+        public string NationalID { get; set; } = string.Empty;
 
         [JsonPropertyName("fullName")]
         public string? FullName { get; set; }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -930,6 +931,14 @@ namespace FSCMS.Service.Services
             }
         }
 
+        private static readonly TreatmentStatus[] ActiveTreatmentStatuses =
+        {
+            TreatmentStatus.Planned,
+            TreatmentStatus.InProgress,
+            TreatmentStatus.Scheduled,
+            TreatmentStatus.OnHold
+        };
+
         /// <summary>
         /// Checks if a patient has an active treatment.
         /// Active treatments are: Planned, InProgress, Scheduled, OnHold
@@ -939,11 +948,12 @@ namespace FSCMS.Service.Services
         /// <returns>True if patient has an active treatment, false otherwise</returns>
         private async Task<bool> HasActiveTreatmentAsync(Guid patientId)
         {
+            // Use Contains on constant array so EF can translate to SQL IN clause
             return await _unitOfWork.Repository<Treatment>()
                 .GetQueryable()
                 .AnyAsync(t => t.PatientId == patientId 
                     && !t.IsDeleted 
-                    && IsActiveStatus(t.Status));
+                    && ActiveTreatmentStatuses.Contains(t.Status));
         }
 
         /// <summary>
@@ -955,10 +965,7 @@ namespace FSCMS.Service.Services
         /// <returns>True if status is active, false otherwise</returns>
         private static bool IsActiveStatus(TreatmentStatus status)
         {
-            return status == TreatmentStatus.Planned 
-                || status == TreatmentStatus.InProgress 
-                || status == TreatmentStatus.Scheduled 
-                || status == TreatmentStatus.OnHold;
+            return ActiveTreatmentStatuses.Contains(status);
         }
 
         /// <summary>
