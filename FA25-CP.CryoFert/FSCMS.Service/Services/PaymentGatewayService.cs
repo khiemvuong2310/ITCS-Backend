@@ -8,14 +8,28 @@ namespace FSCMS.Service.Services
 {
     public class PaymentGatewayService
     {
+        #region Dependencies
+
         private readonly VnPayOptions _options;
 
+        #endregion
+
+        #region Properties
+
         public string HashSecret => _options.vnp_HashSecret;
+
+        #endregion
+
+        #region Constructor
 
         public PaymentGatewayService(IOptions<VnPayOptions> options)
         {
             _options = options.Value;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public string CreateVnPayUrl(Transaction transaction)
         {
@@ -45,5 +59,7 @@ namespace FSCMS.Service.Services
 
             return vnpay.CreateRequestUrl(_options.vnp_Url, _options.vnp_HashSecret);
         }
+
+        #endregion
     }
 }

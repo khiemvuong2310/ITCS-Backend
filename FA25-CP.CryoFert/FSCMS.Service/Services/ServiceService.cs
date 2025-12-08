@@ -13,14 +13,24 @@ namespace FSCMS.Service.Services
 {
     public class ServiceService : IServiceService
     {
+        #region Dependencies
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ServiceService> _logger;
+
+        #endregion
+
+        #region Constructor
 
         public ServiceService(IUnitOfWork unitOfWork, ILogger<ServiceService> logger)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        #endregion
+
+        #region CRUD Operations
 
         public async Task<DynamicResponse<ServiceResponseModel>> GetAllAsync(GetServicesRequest request)
         {
@@ -465,5 +475,7 @@ namespace FSCMS.Service.Services
                 return BaseResponse<List<ServiceResponseModel>>.CreateError($"Error searching services: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
             }
         }
+
+        #endregion
     }
 }

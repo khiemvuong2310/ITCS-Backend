@@ -11,12 +11,23 @@ namespace FSCMS.Service.Services
     /// </summary>
     public class OTPService : IOTPService
     {
+        #region Dependencies
+
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
         private readonly IEmailTemplateService _emailTemplateService;
         private readonly ILogger<OTPService> _logger;
+
+        #endregion
+
+        #region Constants
+
         private const string OTP_CACHE_PREFIX = "agreement_otp:";
         private const int DEFAULT_OTP_EXPIRY_MINUTES = 10;
+
+        #endregion
+
+        #region Constructor
 
         public OTPService(
             IMemoryCache cache,
@@ -29,6 +40,10 @@ namespace FSCMS.Service.Services
             _emailTemplateService = emailTemplateService ?? throw new ArgumentNullException(nameof(emailTemplateService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Generate a 6-digit OTP code
@@ -191,6 +206,8 @@ namespace FSCMS.Service.Services
                 return Task.CompletedTask;
             }
         }
+
+        #endregion
     }
 }
 
