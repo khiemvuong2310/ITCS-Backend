@@ -546,6 +546,15 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                if(contract.Status == ContractStatus.Active || contract.Status == ContractStatus.Expired)
+                {
+                    return new BaseResponse<RenderCryoContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Contract already active or expired"
+                    };
+                }
+
                 // Lấy template HTML
                 var templateText = await _mediaService.GetEtaTemplateFromCloudAsync(EntityTypeMedia.CryoStorageContract);
 
@@ -555,6 +564,9 @@ namespace FSCMS.Service.Services
                                            .Replace("<%= it.contract.endDate %>", contract.EndDate?.ToString("yyyy-MM-dd") ?? "N/A")
                                            .Replace("<%= it.contract.status %>", contract.Status.ToString())
                                            .Replace("<%= it.contract.patientName %>", $"{contract.Patient.Account.FirstName} {contract.Patient.Account.LastName}")
+                                           .Replace("<%= it.contract.patientAddress %>", $"{contract.Patient.Account.Address}")
+                                           .Replace("<%= it.contract.patientDob %>", $"{contract.Patient.Account.BirthDate}")
+                                           .Replace("<%= it.contract.patientPhone %>", $"{contract.Patient.Account.Phone}")
                                            .Replace("<%= it.contract.signedBy %>", contract.SignedBy ?? "N/A")
                                            .Replace("<%= it.contract.signedDate %>", contract.SignedDate?.ToString("yyyy-MM-dd") ?? "N/A")
                                            .Replace("<%= it.contract.cryoPackageName %>", contract.CryoPackage.PackageName)

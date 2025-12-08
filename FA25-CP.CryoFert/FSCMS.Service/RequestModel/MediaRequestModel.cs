@@ -72,5 +72,7 @@ namespace FSCMS.Service.RequestModel
         Account = 2,
         Agreement = 3,
         CryoStorageContract = 4,
+        CryoImport = 5,
+        CryoExport = 6,
     }
 }

@@ -53,7 +53,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? 500, result);
         }
 
-        [HttpGet("{id}/contract-html")]
+        [HttpGet("{id}/html")]
         public async Task<IActionResult> GenerateContract(Guid id)
         {
             var result = await _contractService.RenderCryoContractAsync(id);

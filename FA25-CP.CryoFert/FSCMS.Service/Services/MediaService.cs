@@ -98,6 +98,16 @@ namespace FSCMS.Service.Services
                                     .AsQueryable()
                                     .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
                                     .FirstOrDefaultAsync(),
+                    EntityTypeMedia.CryoImport => await _unitOfWork.Repository<CryoImport>()
+                                    .AsQueryable()
+                                    .Include(m => m.LabSample)
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeMedia.CryoExport => await _unitOfWork.Repository<CryoExport>()
+                                    .AsQueryable()
+                                    .Include(m => m.LabSample)
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
                     _ => null
                 };
 
@@ -119,6 +129,8 @@ namespace FSCMS.Service.Services
                     Account acc => acc.Id,
                     Agreement ag => ag.PatientId,
                     CryoStorageContract csc => csc.PatientId,
+                    CryoImport ci => ci.LabSample?.PatientId,
+                    CryoExport ce => ce.LabSample?.PatientId,
                     _ => null
                 };
 
