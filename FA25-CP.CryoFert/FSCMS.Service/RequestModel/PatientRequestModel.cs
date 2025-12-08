@@ -21,9 +21,8 @@ namespace FSCMS.Service.RequestModel
         public string PatientCode { get; set; } = default!;
 
         [JsonPropertyName("nationalId")]
-        [Required(ErrorMessage = "National ID is required.")]
         [StringLength(20, ErrorMessage = "National ID cannot exceed 20 characters.")]
-        public string NationalID { get; set; } = default!;
+        public string NationalID { get; set; } = string.Empty;
 
         [JsonPropertyName("emergencyContact")]
         [StringLength(100, ErrorMessage = "Emergency contact cannot exceed 100 characters.")]

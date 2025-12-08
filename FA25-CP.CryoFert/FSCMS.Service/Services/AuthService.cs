@@ -756,9 +756,8 @@ namespace FSCMS.Service.Services
                     if (existingPatient == null)
                     {
                         var patientCode = await GenerateUniquePatientCodeAsync();
-                        var nationalId = GenerateDefaultNationalId(account.Id);
 
-                        var patient = new Patient(account.Id, patientCode, nationalId)
+                        var patient = new Patient(account.Id, patientCode, string.Empty)
                         {
                             IsActive = true
                         };
