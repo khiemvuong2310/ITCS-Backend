@@ -72,15 +72,18 @@ namespace FSCMS.Service.Services
                     return BaseResponse<PatientResponse>.CreateError("Patient code already exists", StatusCodes.Status409Conflict, "PATIENT_002");
                 }
 
-                // Check if national ID already exists
-                var existingPatientByNationalId = await _unitOfWork.Repository<Patient>()
-                    .AsQueryable()
-                    .Where(p => p.NationalID == request.NationalID && !p.IsDeleted)
-                    .FirstOrDefaultAsync();
-
-                if (existingPatientByNationalId != null)
+                // Check if national ID already exists (skip check for empty strings - multiple patients can have empty NationalID)
+                if (!string.IsNullOrWhiteSpace(request.NationalID))
                 {
-                    return BaseResponse<PatientResponse>.CreateError("National ID already exists", StatusCodes.Status409Conflict, "PATIENT_003");
+                    var existingPatientByNationalId = await _unitOfWork.Repository<Patient>()
+                        .AsQueryable()
+                        .Where(p => p.NationalID == request.NationalID && !p.IsDeleted)
+                        .FirstOrDefaultAsync();
+
+                    if (existingPatientByNationalId != null)
+                    {
+                        return BaseResponse<PatientResponse>.CreateError("National ID already exists", StatusCodes.Status409Conflict, "PATIENT_003");
+                    }
                 }
 
                 // Check if account exists and is not already associated with another patient
@@ -1745,9 +1748,10 @@ namespace FSCMS.Service.Services
         {
             try
             {
+                // Empty strings are allowed - multiple patients can have empty NationalID
                 if (string.IsNullOrWhiteSpace(nationalId))
                 {
-                    return BaseResponse<bool>.CreateError("National ID cannot be empty", StatusCodes.Status400BadRequest, "PATIENT_009");
+                    return BaseResponse<bool>.CreateSuccess(true, "Empty National ID is allowed");
                 }
 
                 var query = _unitOfWork.Repository<Patient>()
