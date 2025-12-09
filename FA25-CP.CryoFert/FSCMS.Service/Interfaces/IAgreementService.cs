@@ -66,7 +66,6 @@ namespace FSCMS.Service.Interfaces
         /// Get agreement file(s) from Media table
         /// </summary>
         Task<BaseResponse<List<MediaResponse>>> GetAgreementFileAsync(Guid id);
-        Task<BaseResponse<RenderAgreementResponse>> RenderAgreementAsync(Guid id);
     }
 }
 

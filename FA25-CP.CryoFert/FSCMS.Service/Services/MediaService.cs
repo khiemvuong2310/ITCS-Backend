@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using DinkToPdf;
+using DinkToPdf.Contracts;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Interfaces;
 using FSCMS.Data.UnitOfWork;
@@ -24,17 +26,20 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<MediaService> _logger;
         private readonly IMapper _mapper;
+        private readonly IConverter _converter;
 
         #endregion
 
         #region Constructor
 
         public MediaService(
+            IConverter converter,
             IFileStorageService fileStorageService,
             IUnitOfWork unitOfWork,
             ILogger<MediaService> logger,
             IMapper mapper)
         {
+            _converter = converter ?? throw new ArgumentNullException(nameof(converter));
             _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -45,7 +50,7 @@ namespace FSCMS.Service.Services
 
         #region CRUD Operations
 
-        public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid accountId)
+        public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid? accountId)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             var file = request.File;
@@ -62,13 +67,19 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                var account = await _unitOfWork.Repository<Account>().GetByIdGuid(accountId);
-                if (account == null)
-                    return new BaseResponse<MediaResponse>
-                    {
-                        Code = StatusCodes.Status401Unauthorized,
-                        Message = "UnAuthorize."
-                    };
+                string? uploadedBy = null;
+                Guid? uploadedByUserId = accountId;
+                if (accountId != null)
+                {
+                    var account = await _unitOfWork.Repository<Account>().GetByIdGuid((Guid)accountId);
+                    if (account == null)
+                        return new BaseResponse<MediaResponse>
+                        {
+                            Code = StatusCodes.Status401Unauthorized,
+                            Message = "UnAuthorize."
+                        };
+                    uploadedBy = $"{account.FirstName} {account.LastName}";
+                }
 
                 // Check RelatedEntityType and RelatedEntityId
                 // if (string.IsNullOrWhiteSpace(request.RelatedEntityType) || !request.RelatedEntityId.HasValue)
@@ -167,8 +178,8 @@ namespace FSCMS.Service.Services
                 newMedia.PatientId = patientId;
                 newMedia.CloudUrl = filePath;
                 newMedia.UploadDate = DateTime.UtcNow;
-                newMedia.UploadedBy = $"{account.FirstName} {account.LastName}";
-                newMedia.UploadedByUserId = accountId;
+                newMedia.UploadedBy = uploadedBy;
+                newMedia.UploadedByUserId = uploadedByUserId;
                 newMedia.IsTemplate = false;
 
                 await _unitOfWork.Repository<Media>().InsertAsync(newMedia);
@@ -229,7 +240,7 @@ namespace FSCMS.Service.Services
                                     .AsQueryable()
                                     .Where(p => p.IsTemplate && !p.IsDeleted && p.RelatedEntityType == request.TemplateType.ToString())
                                     .FirstOrDefaultAsync();
-                if(oldTemplate != null)
+                if (oldTemplate != null)
                 {
                     oldTemplate.IsDeleted = true;
                     oldTemplate.UpdatedAt = DateTime.UtcNow;
@@ -602,5 +613,364 @@ namespace FSCMS.Service.Services
         }
 
         #endregion
+
+        private async Task<byte[]> GeneratePdfFromHtmlAsync(string htmlContent)
+        {
+            var doc = new HtmlToPdfDocument()
+            {
+                GlobalSettings = new GlobalSettings
+                {
+                    ColorMode = ColorMode.Color,
+                    Orientation = Orientation.Portrait,
+                    PaperSize = PaperKind.A4,
+                    DPI = 300,
+                },
+                Objects =
+                {
+                    new ObjectSettings
+                    {
+                        HtmlContent = htmlContent,
+                        WebSettings = { DefaultEncoding = "utf-8" },
+                    }
+                }
+            };
+
+            // chạy DinkToPdf
+            return _converter.Convert(doc);
+        }
+
+        private IFormFile ConvertPdfBytesToFormFile(byte[] pdfBytes, string fileName)
+        {
+            var stream = new MemoryStream(pdfBytes);
+            stream.Position = 0;
+
+            var formFile = new FormFile(stream, 0, pdfBytes.Length, "file", $"{fileName}.pdf")
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "application/pdf"
+            };
+
+            return formFile;
+        }
+
+        public async Task<BaseResponse<MediaResponse>> UploadPdfFromHtmlAsync(
+            Guid relatedEntityId,
+            EntityTypeMedia relatedEntityType)
+        {
+            object? entityExists = relatedEntityType switch
+            {
+                EntityTypeMedia.MedicalRecord => await _unitOfWork.Repository<MedicalRecord>()
+                                .AsQueryable()
+                                .Include(x => x.Appointment)
+                                .Where(p => p.Id == relatedEntityId && !p.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                EntityTypeMedia.TreatmentCycle => await _unitOfWork.Repository<TreatmentCycle>()
+                                .AsQueryable()
+                                .Include(x => x.Treatment)
+                                .Where(m => m.Id == relatedEntityId && !m.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                EntityTypeMedia.Account => await _unitOfWork.Repository<Account>()
+                                .AsQueryable()
+                                .Where(m => m.Id == relatedEntityId && !m.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                EntityTypeMedia.Agreement => await _unitOfWork.Repository<Agreement>()
+                                .AsQueryable()
+                                .Where(m => m.Id == relatedEntityId && !m.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                EntityTypeMedia.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()
+                                .AsQueryable()
+                                .Where(m => m.Id == relatedEntityId && !m.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                EntityTypeMedia.CryoImport => await _unitOfWork.Repository<CryoImport>()
+                                .AsQueryable()
+                                .Include(m => m.LabSample)
+                                .Where(m => m.Id == relatedEntityId && !m.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                EntityTypeMedia.CryoExport => await _unitOfWork.Repository<CryoExport>()
+                                .AsQueryable()
+                                .Include(m => m.LabSample)
+                                .Where(m => m.Id == relatedEntityId && !m.IsDeleted)
+                                .FirstOrDefaultAsync(),
+                _ => null
+            };
+
+            if (entityExists == null)
+            {
+                return new BaseResponse<MediaResponse>
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    SystemCode = "ENTITY_NOT_FOUND",
+                    Message = $"Related entity {relatedEntityType} with ID {relatedEntityId} not found",
+                    Data = null
+                };
+            }
+            GetHtmlRequest getHtml = new GetHtmlRequest
+            {
+                RelatedEntityId = relatedEntityId,
+                RelatedEntityType = relatedEntityType
+            };
+
+            var renderResult  = await RenderHtmlAsync(getHtml);
+            if (renderResult.Data == null)
+            {
+                return new BaseResponse<MediaResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    SystemCode = "RENDER_HTML_ERROR",
+                    Message = "Render file HTML error",
+                    Data = null
+                };
+            }
+            string htmlContent = renderResult.Data.Html;
+            // 1. Convert HTML → PDF bytes
+            var pdfBytes = await GeneratePdfFromHtmlAsync(htmlContent);
+            string namePart = entityExists switch
+            {
+                CryoStorageContract c => c.ContractNumber ?? relatedEntityId.ToString(),
+                Agreement a => a.AgreementCode ?? relatedEntityId.ToString(),
+                _ => relatedEntityId.ToString()
+            };
+            string fileName = $"{relatedEntityType}-{namePart}";
+            
+            // 2. PDF bytes → IFormFile
+            var formFile = ConvertPdfBytesToFormFile(pdfBytes, fileName);
+
+            // 3. Tạo UploadMediaRequest để tái sử dụng MediaService hiện có
+            var request = new UploadMediaRequest
+            {
+                File = formFile,
+                FileName = fileName,
+                RelatedEntityId = relatedEntityId,
+                RelatedEntityType = relatedEntityType,
+                Title = fileName,
+                Description = "Generated PDF file",
+                Category = "PDF Document",
+                IsPublic = true,
+                Tags = "PDF,Generated",
+                Notes = "PDF generated from HTML content"
+            };
+
+            // 4. Gọi lại upload file như bình thường
+            return await UploadMediaAsync(request, null);
+        }
+
+        public async Task<BaseResponse<RenderHtmlResponse>> RenderHtmlAsync(GetHtmlRequest request)
+        {
+            try
+            {
+                object? entityExists = request.RelatedEntityType switch
+                {
+                    // EntityTypeMedia.MedicalRecord => await _unitOfWork.Repository<MedicalRecord>()
+                    //                 .AsQueryable()
+                    //                 .Include(x => x.Appointment)
+                    //                 .Where(p => p.Id == request.RelatedEntityId && !p.IsDeleted)
+                    //                 .FirstOrDefaultAsync(),
+                    // EntityTypeMedia.TreatmentCycle => await _unitOfWork.Repository<TreatmentCycle>()
+                    //                 .AsQueryable()
+                    //                 .Include(x => x.Treatment)
+                    //                 .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                    //                 .FirstOrDefaultAsync(),
+                    // EntityTypeMedia.Account => await _unitOfWork.Repository<Account>()
+                    //                 .AsQueryable()
+                    //                 .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                    //                 .FirstOrDefaultAsync(),
+                    EntityTypeMedia.Agreement => await _unitOfWork.Repository<Agreement>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeMedia.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    // EntityTypeMedia.CryoImport => await _unitOfWork.Repository<CryoImport>()
+                    //                 .AsQueryable()
+                    //                 .Include(m => m.LabSample)
+                    //                 .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                    //                 .FirstOrDefaultAsync(),
+                    // EntityTypeMedia.CryoExport => await _unitOfWork.Repository<CryoExport>()
+                    //                 .AsQueryable()
+                    //                 .Include(m => m.LabSample)
+                    //                 .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                    //                 .FirstOrDefaultAsync(),
+                    _ => null
+                };
+
+                if (entityExists == null)
+                {
+                    return new BaseResponse<RenderHtmlResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        SystemCode = "ENTITY_NOT_FOUND",
+                        Message = $"Related entity {request.RelatedEntityType} with ID {request.RelatedEntityId} not found",
+                        Data = null
+                    };
+                }
+
+                string? htmlContent = entityExists switch
+                {
+                    // MedicalRecord mr => mr.Appointment?.PatientId,
+                    // TreatmentCycle tc => tc.Treatment?.PatientId,
+                    // Account acc => acc.Id,
+                    Agreement ag => await RenderAgreementAsync(ag.Id),
+                    CryoStorageContract csc => await RenderCryoContractAsync(csc.Id),
+                    // CryoImport ci => ci.LabSample?.PatientId,
+                    // CryoExport ce => ce.LabSample?.PatientId,
+                    _ => null
+                };
+
+                if (htmlContent == null)
+                {
+                    return new BaseResponse<RenderHtmlResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        SystemCode = "TEMPLATE_NOT_FOUND",
+                        Message = "Cannot determine Template from related entity"
+                    };
+                }
+
+                // Trả về kết quả
+                RenderHtmlResponse data = new RenderHtmlResponse
+                {
+                    Html = htmlContent
+                };
+
+                return new BaseResponse<RenderHtmlResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Html render successfully",
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error render html from entity ID: {Id}", request.RelatedEntityId);
+                return new BaseResponse<RenderHtmlResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
+            }
+        }
+        private async Task<string?> RenderCryoContractAsync(Guid id)
+        {
+            try
+            {
+                // Lấy hợp đồng từ DB
+                var contract = await _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .Include(x => x.Patient)
+                        .ThenInclude(d => d.Account)
+                    .Include(x => x.CryoPackage)
+                    .Include(x => x.CPSDetails)
+                        .ThenInclude(d => d.LabSample)
+                            .ThenInclude(c => c.CryoLocation)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (contract == null)
+                {
+                    return null;
+                }
+
+                // Lấy template HTML
+                var templateText = await GetEtaTemplateFromCloudAsync(EntityTypeMedia.CryoStorageContract);
+
+                // Replace các trường tĩnh
+                templateText = templateText.Replace("<%= it.contract.contractNumber %>", contract.ContractNumber)
+                                           .Replace("<%= it.contract.startDate %>", contract.StartDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                           .Replace("<%= it.contract.endDate %>", contract.EndDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                           .Replace("<%= it.contract.status %>", contract.Status.ToString())
+                                           .Replace("<%= it.contract.patientName %>", $"{contract.Patient.Account.FirstName} {contract.Patient.Account.LastName}")
+                                           .Replace("<%= it.contract.patientAddress %>", $"{contract.Patient.Account.Address}")
+                                           .Replace("<%= it.contract.patientDob %>", $"{contract.Patient.Account.BirthDate}")
+                                           .Replace("<%= it.contract.patientPhone %>", $"{contract.Patient.Account.Phone}")
+                                           .Replace("<%= it.contract.signedBy %>", contract.SignedBy ?? "N/A")
+                                           .Replace("<%= it.contract.signedDate %>", contract.SignedDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                           .Replace("<%= it.contract.cryoPackageName %>", contract.CryoPackage.PackageName)
+                                           .Replace("<%= it.contract.totalAmount %>", contract.TotalAmount.ToString("N0"))
+                                           .Replace("<%= it.contract.paidAmount %>", (contract.PaidAmount?.ToString("N0") ?? "0"))
+                                           .Replace("<%= it.contract.notes %>", string.IsNullOrEmpty(contract.Notes) ? "N/A" : contract.Notes)
+                                           .Replace("<%= it.generatedAt %>", contract.CreatedAt.ToString("yyyy-MM-dd"))
+                                           .Replace("<%= it.updatedAt %>", DateTime.UtcNow.ToString("yyyy-MM-dd"));
+
+                // Build table samples
+                string sampleRows = "";
+                int index = 1;
+                foreach (var s in contract.CPSDetails)
+                {
+                    var locationName = s.LabSample.CryoLocation?.Name ?? "N/A";
+                    bool isActive = s.Status == "Storage";
+                    sampleRows += $"<tr>" +
+                                  $"<td>{index}</td>" +
+                                  $"<td>{s.LabSample.SampleCode}</td>" +
+                                  $"<td>{s.LabSample.SampleType}</td>" +
+                                  $"<td>{locationName}</td>" +
+                                  $"<td>{(isActive ? "Yes" : "No")}</td>" +
+                                  $"</tr>";
+                    index++;
+                }
+
+                // Replace toàn bộ vòng lặp sample table
+                templateText = System.Text.RegularExpressions.Regex.Replace(templateText,
+                    "<% it.contract.samples.forEach\\(\\(s, index\\) => \\{ %>.*?<% }\\) %>",
+                    sampleRows,
+                    System.Text.RegularExpressions.RegexOptions.Singleline);
+
+                return templateText;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error render contract ID: {Id}", id);
+                return null;
+            }
+        }
+
+        private async Task<string?> RenderAgreementAsync(Guid id)
+        {
+            try
+            {
+                var agreement = await _unitOfWork.Repository<Agreement>()
+                    .AsQueryable()
+                    .Include(x => x.Patient)
+                        .ThenInclude(d => d.Account)
+                    .Include(x => x.Treatment)
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (agreement == null)
+                {
+                    return null;
+                }
+
+                // Lấy template HTML
+                var templateText = await GetEtaTemplateFromCloudAsync(EntityTypeMedia.Agreement);
+
+                // Replace các trường tĩnh
+                templateText = templateText.Replace("<%= it.agreementType %>", agreement.Treatment.TreatmentType.ToString())
+                                           .Replace("<%= it.status %>", agreement.Status.ToString())
+                                           .Replace("<%= it.patient.name %>", $"{agreement.Patient.Account.FirstName} {agreement.Patient.Account.LastName}")
+                                           .Replace("<%= it.patient.dob %>", $"{agreement.Patient.Account.BirthDate}")
+                                           .Replace("<%= it.patient.nationalId %>", agreement.Patient.NationalID)
+                                           .Replace("<%= it.patient.address %>", agreement.Patient.Account.Address)
+                                           .Replace("<%= it.patient.phone %>", agreement.Patient.Account.Phone)
+                                           .Replace("<%= it.date %>", agreement.CreatedAt.ToString("yyyy-MM-dd"));
+                // Replace khối chữ ký Patient
+                templateText = templateText.Replace(
+                    "<% if (it.signatures.patient) { %>SIGNED<% } %>",
+                    agreement.SignedByPatient ? "SIGNED" : ""
+                );
+
+                // Replace khối chữ ký Facility
+                templateText = templateText.Replace(
+                    "<% if (it.signatures.facility) { %>SIGNED<% } %>",
+                    agreement.SignedByDoctor ? "SIGNED" : ""
+                );
+
+                return templateText;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error render Agreement ID: {Id}", id);
+                return null;
+            }
+        }
     }
 }

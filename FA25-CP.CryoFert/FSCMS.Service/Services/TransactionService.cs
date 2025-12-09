@@ -31,6 +31,7 @@ namespace FSCMS.Service.Services
         private readonly ILogger<TransactionService> _logger;
         private readonly PaymentGatewayService _paymentGateway;
         private readonly IHubContext<TransactionHub> _hubContext;
+        private readonly IMediaService _mediaService;
         private readonly VnPayOptions _options;
 
         public TransactionService(
@@ -39,6 +40,7 @@ namespace FSCMS.Service.Services
             ILogger<TransactionService> logger,
             PaymentGatewayService paymentGateway,
             IHubContext<TransactionHub> hubContext,
+            IMediaService mediaService,
             IOptions<VnPayOptions> options)
         {
             _unitOfWork = unitOfWork;
@@ -46,6 +48,7 @@ namespace FSCMS.Service.Services
             _logger = logger;
             _paymentGateway = paymentGateway;
             _hubContext = hubContext;
+            _mediaService = mediaService;
             _options = options.Value;
         }
 
@@ -365,6 +368,7 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.CommitAsync();
                 if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                 {
+                    EntityTypeMedia? typeMedia = null;
                     switch(transaction.RelatedEntityType)
                     {
                         case "ServiceRequest":
@@ -382,6 +386,7 @@ namespace FSCMS.Service.Services
                             await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointment.Id);
                             break;
                         case "CryoStorageContract":
+                            typeMedia = EntityTypeMedia.CryoStorageContract;
                             var cryoStorageContract = await _unitOfWork.Repository<CryoStorageContract>()
                                 .AsQueryable()
                                 .Include(p => p.CPSDetails)
@@ -407,7 +412,10 @@ namespace FSCMS.Service.Services
                     await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                     await _unitOfWork.CommitAsync();
                     await transactionU.CommitAsync();
-
+                    if(typeMedia != null)
+                    {
+                        await _mediaService.UploadPdfFromHtmlAsync(transaction.RelatedEntityId, (EntityTypeMedia)typeMedia);
+                    }
                     // Push SignalR AFTER commit
                     await _hubContext.Clients.User(transaction.PatientId.ToString())
                         .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
@@ -446,7 +454,6 @@ namespace FSCMS.Service.Services
                     await _unitOfWork.Repository<Transaction>().InsertAsync(newTransaction);
                     await _unitOfWork.CommitAsync();
                     await transactionU.CommitAsync();
-
                     // Notify AFTER commit
                     await _hubContext.Clients.User(transaction.PatientId.ToString())
                         .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
