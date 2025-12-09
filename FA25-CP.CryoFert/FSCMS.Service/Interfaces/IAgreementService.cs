@@ -60,13 +60,12 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Verify OTP and sign agreement
         /// </summary>
-        Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode, IFormFile? signedAgreementFile);
+        Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode);
 
         /// <summary>
         /// Get agreement file(s) from Media table
         /// </summary>
         Task<BaseResponse<List<MediaResponse>>> GetAgreementFileAsync(Guid id);
-        Task<BaseResponse<RenderAgreementResponse>> RenderAgreementAsync(Guid id);
     }
 }
 

@@ -28,12 +28,6 @@ namespace FSCMS.Service.ReponseModel
         public DateTime? UpdatedAt { get; set; }
     }
 
-    public class RenderCryoContractResponse
-    {
-        // Danh sách mẫu lưu trữ trong hợp đồng
-        public string Contract { get; set; }
-    }
-
     public class CryoStorageContractDetailResponse : CryoStorageContractResponse
     {
         // Danh sách mẫu lưu trữ trong hợp đồng

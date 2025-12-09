@@ -26,8 +26,8 @@ namespace FSCMS.Service.RequestModel
 
         public DateTime? EndDate { get; set; }
 
-        [StringLength(500, ErrorMessage = "FileUrl cannot exceed 500 characters.")]
-        public string? FileUrl { get; set; }
+        //[StringLength(500, ErrorMessage = "FileUrl cannot exceed 500 characters.")]
+        //public string? FileUrl { get; set; }
     }
 
     /// <summary>
@@ -48,8 +48,8 @@ namespace FSCMS.Service.RequestModel
 
         public bool? SignedByDoctor { get; set; }
 
-        [StringLength(500, ErrorMessage = "FileUrl cannot exceed 500 characters.")]
-        public string? FileUrl { get; set; }
+        //[StringLength(500, ErrorMessage = "FileUrl cannot exceed 500 characters.")]
+        //public string? FileUrl { get; set; }
     }
 
     /// <summary>
@@ -97,7 +97,6 @@ namespace FSCMS.Service.RequestModel
         [Required(ErrorMessage = "OTP code is required.")]
         [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP code must be 6 digits.")]
         public string OtpCode { get; set; } = string.Empty;
-        public IFormFile? SignedAgreementFile { get; set; }
     }
 }
 

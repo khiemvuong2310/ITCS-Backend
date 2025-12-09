@@ -132,5 +132,12 @@ namespace FA25_CP.CryoFert_BE.Controllers
             var result = await _mediaService.GetTemplateAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
+
+        [HttpGet("html")]
+        public async Task<IActionResult> GenerateHtml([FromQuery] GetHtmlRequest request)
+        {
+            var result = await _mediaService.RenderHtmlAsync(request);
+            return StatusCode(result.Code ?? 500, result);
+        }
     }
 }

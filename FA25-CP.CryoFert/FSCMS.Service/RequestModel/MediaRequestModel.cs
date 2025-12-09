@@ -63,6 +63,14 @@ namespace FSCMS.Service.RequestModel
         public EntityTypeMedia TemplateType { get; set; }
     }
 
+    public class GetHtmlRequest
+    {
+        [Required(ErrorMessage = "RelatedEntityType is required.")]
+        public EntityTypeMedia RelatedEntityType { get; set; } // "MedicalRecord", "Patient", "Treatment", "LabTest"
+        [Required(ErrorMessage = "RelatedEntityId is required.")]
+        public Guid RelatedEntityId { get; set; } // ID của MedicalRecord, Patient, Treatment, etc.
+    }
+
 
     public enum EntityTypeMedia
 

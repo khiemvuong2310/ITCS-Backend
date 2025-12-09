@@ -11,7 +11,7 @@ namespace FSCMS.Service.Interfaces
 {
     public interface IMediaService
     {
-        Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid accountId);
+        Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid? accountId);
         Task<BaseResponse<MediaResponse>> GetMediaByIdAsync(Guid mediaId);
         Task<DynamicResponse<MediaResponse>> GetAllMediasAsync(GetMediasRequest request);
         Task<BaseResponse<MediaResponse>> UpdateMediaAsync(Guid mediaId, UpdateMediaRequest request);
@@ -19,5 +19,9 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<MediaResponse>> GetTemplateAsync(GetTemplateRequest request);
         Task<BaseResponse<MediaResponse>> UploadTemplateAsync(UploadTemplateRequest request, Guid accountId);
         Task<string> GetEtaTemplateFromCloudAsync(EntityTypeMedia type);
+        Task<BaseResponse<MediaResponse>> UploadPdfFromHtmlAsync(
+            Guid relatedEntityId,
+            EntityTypeMedia relatedEntityType);
+        Task<BaseResponse<RenderHtmlResponse>> RenderHtmlAsync(GetHtmlRequest request);
     }
 }

@@ -1,4 +1,6 @@
-﻿using DotNetEnv;
+﻿using DinkToPdf;
+using DinkToPdf.Contracts;
+using DotNetEnv;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Filters;
 using FSCMS.Core; // namespace chứa AppDbContext
@@ -43,6 +45,9 @@ namespace FA25_CP.CryoFert_BE
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
+            // using DinkToPdf; using DinkToPdf.Contracts;
+            var pdfTools = new PdfTools();
+            builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(pdfTools));
 
             // 3. DbContext config (MySQL)
             builder.Services.AddDbContext<AppDbContext>(options =>

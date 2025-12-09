@@ -34,6 +34,12 @@ namespace FSCMS.Service.ReponseModel
             public string? StorageLocation { get; set; }
             public string? Notes { get; set; }
         }
+        
+        public class RenderHtmlResponse
+    {
+        // Danh sách mẫu lưu trữ trong hợp đồng
+        public string Html { get; set; }
+    }
     }
 
 }
