@@ -27,7 +27,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering request</param>
         /// <returns>Paginated services</returns>
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServicesRequest request)
         {
@@ -44,7 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service ID</param>
         /// <returns>Service response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -57,7 +57,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <returns>List of active services</returns>
         [HttpGet("active")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetActive()
         {
@@ -71,7 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="categoryId">Service category ID</param>
         /// <returns>List of services in the category</returns>
         [HttpGet("category/{categoryId:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByCategory(Guid categoryId)
         {
@@ -85,7 +85,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="searchTerm">Search term</param>
         /// <returns>List of matching services</returns>
         [HttpGet("search")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> Search([FromQuery] string searchTerm)
         {
