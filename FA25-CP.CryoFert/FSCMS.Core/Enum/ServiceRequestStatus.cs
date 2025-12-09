@@ -21,8 +21,8 @@ namespace FSCMS.Core.Enum
         Completed = 3,
 
         /// <summary>
-        /// Yêu cầu dịch vụ bị hủy bỏ trước khi hoàn thành.
+        /// Yêu cầu đang được xử lý sau khi được duyệt.
         /// </summary>
-        Cancelled = 4
+        InProcess = 4
     }
 }
