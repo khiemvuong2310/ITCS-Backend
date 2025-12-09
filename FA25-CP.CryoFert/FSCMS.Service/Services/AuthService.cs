@@ -109,7 +109,7 @@ namespace FSCMS.Service.Services
                 // Find account by email
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
-                    .Where(u => u.Email == email && !u.IsDeleted)
+                    .Where(u => u.Email == email)
                     .FirstOrDefaultAsync();
 
                 if (account == null)
@@ -139,7 +139,8 @@ namespace FSCMS.Service.Services
                 var patientInfo = await GetPatientInfoByAccountIdAsync(account.Id);
 
                 // Check if account is banned
-                if (account.IsActive == false)
+                // Check soft-delete (treated as banned) and inactive states separately
+                if (account.IsDeleted)
                 {
                     var bannedUserDetailsResponse = await _userService.GetUserByEmailAsync(email);
                     var bannedUserDetails = bannedUserDetailsResponse?.Data;
@@ -150,10 +151,28 @@ namespace FSCMS.Service.Services
                         Data = new LoginResponseModel
                         {
                             User = bannedUserDetails,
-                            EmailVerified = true,
+                            EmailVerified = account.IsVerified,
                             Patient = patientInfo
                         },
                         IsBanned = true
+                    };
+                }
+
+                if (account.IsActive == false)
+                {
+                    var inactiveUserDetailsResponse = await _userService.GetUserByEmailAsync(email);
+                    var inactiveUserDetails = inactiveUserDetailsResponse?.Data;
+                    return new BaseResponseForLogin<LoginResponseModel>
+                    {
+                        Code = StatusCodes.Status403Forbidden,
+                        Message = "Your account is inactive. Please contact support to reactivate your account.",
+                        Data = new LoginResponseModel
+                        {
+                            User = inactiveUserDetails,
+                            EmailVerified = account.IsVerified,
+                            Patient = patientInfo
+                        },
+                        IsBanned = false
                     };
                 }
 
