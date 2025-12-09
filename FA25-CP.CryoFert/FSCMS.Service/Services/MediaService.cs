@@ -39,8 +39,15 @@ namespace FSCMS.Service.Services
             ILogger<MediaService> logger,
             IMapper mapper)
         {
+            // Xác định thư mục DLL theo kiến trúc
+            string architecture = IntPtr.Size == 8 ? "win-x64" : "win-x86";
+            string dllPath = Path.Combine(AppContext.BaseDirectory, "Libs", architecture, "libwkhtmltox.dll");
+
+            // Tạo context và load DLL
             var context = new CustomAssemblyLoadContext();
-            context.LoadUnmanagedLibrary(Path.Combine(AppContext.BaseDirectory, "Libs/win-x64/libwkhtmltox.dll"));
+            context.LoadUnmanagedLibrary(dllPath);
+
+            // Khởi tạo converter DinkToPdf
             _converter = new SynchronizedConverter(new PdfTools());
             _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
