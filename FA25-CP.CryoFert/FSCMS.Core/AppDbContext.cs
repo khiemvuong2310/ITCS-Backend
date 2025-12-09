@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -565,104 +566,287 @@ namespace FSCMS.Core
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
             modelBuilder.Entity<Service>().HasData(
-                // Consultation (USD) - Tư vấn
-                // Khám tư vấn ban đầu: bác sĩ khai thác bệnh sử, đánh giá khả năng sinh sản
-                new Service(new Guid("20000000-0000-0000-0000-000000000001"), "Initial fertility consultation", 120m, catConsultation) { Code = "CONS-INIT", Unit = "session", Duration = 30, Description = "First-time visit and clinical assessment" },
-                // Khám tái khám: theo dõi tiến triển, điều chỉnh kế hoạch điều trị
-                new Service(new Guid("20000000-0000-0000-0000-000000000002"), "Follow-up consultation", 80m, catConsultation) { Code = "CONS-FUP", Unit = "session", Duration = 20, Description = "Follow-up review and plan" },
+                // A. Lab test – Nữ: Bộ nội tiết
+                new Service(new Guid("20000000-0000-0000-0000-000000000101"), "FSH (female)", 200000m, catDiagnostics) { Code = "LAB-FSH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000102"), "LH (female)", 200000m, catDiagnostics) { Code = "LAB-LH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000103"), "Estradiol (E2) (female)", 200000m, catDiagnostics) { Code = "LAB-E2-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000104"), "AMH (female)", 775000m, catDiagnostics) { Code = "LAB-AMH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000105"), "TSH (female)", 200000m, catDiagnostics) { Code = "LAB-TSH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000106"), "FT4/FT3 (female)", 200000m, catDiagnostics) { Code = "LAB-FT-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000107"), "Prolactin (female)", 185000m, catDiagnostics) { Code = "LAB-PRL-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000108"), "Progesterone (female)", 200000m, catDiagnostics) { Code = "LAB-P4-F", Unit = "test" },
 
-                // Diagnostics & Imaging (USD) - Chẩn đoán & Hình ảnh
-                // Siêu âm đầu dò âm đạo: đánh giá buồng trứng, tử cung, niêm mạc
-                new Service(new Guid("20000000-0000-0000-0000-000000000010"), "Transvaginal ultrasound", 60m, catDiagnostics) { Code = "US-TVS", Unit = "scan", Duration = 15 },
-                // Xét nghiệm nội tiết cơ bản: AMH/FSH/LH/E2/PRL để đánh giá dự trữ buồng trứng và trục nội tiết
-                new Service(new Guid("20000000-0000-0000-0000-000000000011"), "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", 150m, catDiagnostics) { Code = "LAB-HORM", Unit = "panel" },
-                // Tinh dịch đồ: đánh giá số lượng, di động, hình dạng tinh trùng
-                new Service(new Guid("20000000-0000-0000-0000-000000000012"), "Semen analysis", 40m, catDiagnostics) { Code = "SA", Unit = "test" },
+                // A. Lab test – Nữ: Miễn dịch – bệnh truyền nhiễm
+                new Service(new Guid("20000000-0000-0000-0000-000000000109"), "HIV screening", 150000m, catDiagnostics) { Code = "LAB-HIV", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000110"), "HBsAg", 125000m, catDiagnostics) { Code = "LAB-HBSAG", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000111"), "Anti-HCV", 185000m, catDiagnostics) { Code = "LAB-HCV", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000112"), "RPR/VDRL (syphilis)", 160000m, catDiagnostics) { Code = "LAB-RPR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000113"), "Rubella IgG/IgM", 400000m, catDiagnostics) { Code = "LAB-RUB", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000114"), "CMV IgG/IgM", 400000m, catDiagnostics) { Code = "LAB-CMV", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000115"), "Chlamydia PCR", 575000m, catDiagnostics) { Code = "LAB-CHLA-PCR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000116"), "Gonorrhea PCR", 575000m, catDiagnostics) { Code = "LAB-GONO-PCR", Unit = "test" },
 
-                // Laboratory Procedures (USD) - Thủ thuật Phòng Lab
-                // Chọc hút noãn (OPU): lấy noãn sau kích thích buồng trứng
-                new Service(new Guid("20000000-0000-0000-0000-000000000020"), "Oocyte retrieval (OPU)", 1500m, catLabProcedures) { Code = "OPU", Unit = "procedure" },
-                // Chuẩn bị tinh trùng: lọc rửa để sử dụng cho IUI/IVF
-                new Service(new Guid("20000000-0000-0000-0000-000000000021"), "Sperm preparation (IUI/IVF)", 90m, catLabProcedures) { Code = "SP-PREP", Unit = "prep" },
-                // Nuôi cấy phôi ngày 1-5: theo dõi và chăm sóc phôi trong labo
-                new Service(new Guid("20000000-0000-0000-0000-000000000022"), "Embryo culture (day 1-5)", 1500m, catLabProcedures) { Code = "EMB-CULT", Unit = "cycle" },
-                // ICSI: tiêm tinh trùng vào bào tương noãn hỗ trợ thụ tinh
-                new Service(new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", 1200m, catLabProcedures) { Code = "ICSI", Unit = "procedure" },
-                // Chuyển phôi (ET): đưa phôi vào buồng tử cung
-                new Service(new Guid("20000000-0000-0000-0000-000000000024"), "Embryo transfer (ET)", 800m, catLabProcedures) { Code = "ET", Unit = "procedure" },
+                // A. Lab test – Nữ: Sinh hóa – huyết học
+                new Service(new Guid("20000000-0000-0000-0000-000000000117"), "Complete blood count (CBC)", 100000m, catDiagnostics) { Code = "LAB-CBC", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000118"), "Blood glucose", 65000m, catDiagnostics) { Code = "LAB-GLU", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000119"), "AST/ALT", 65000m, catDiagnostics) { Code = "LAB-LFT", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000120"), "Creatinine/Urea", 65000m, catDiagnostics) { Code = "LAB-KFT", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000121"), "Electrolyte panel", 160000m, catDiagnostics) { Code = "LAB-ELEC", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000122"), "ABO/Rh blood group", 115000m, catDiagnostics) { Code = "LAB-ABO", Unit = "test" },
 
-                // Cryostorage & Logistics (USD) - Lưu trữ Đông lạnh & Logistics
-                // Thuỷ tinh hoá noãn: làm lạnh siêu nhanh để bảo tồn noãn
-                new Service(new Guid("20000000-0000-0000-0000-000000000030"), "Oocyte vitrification", 600m, catCryoStorage) { Code = "VIT-OOC", Unit = "procedure" },
-                // Trữ đông tinh trùng
-                new Service(new Guid("20000000-0000-0000-0000-000000000031"), "Sperm cryopreservation", 120m, catCryoStorage) { Code = "CRYO-SP", Unit = "procedure" },
-                // Thuỷ tinh hoá phôi
-                new Service(new Guid("20000000-0000-0000-0000-000000000032"), "Embryo vitrification", 700m, catCryoStorage) { Code = "VIT-EMB", Unit = "procedure" },
-                // Phí lưu trữ hằng năm mỗi mẫu
-                new Service(new Guid("20000000-0000-0000-0000-000000000033"), "Annual storage fee (per specimen)", 150m, catCryoStorage) { Code = "STORE-ANNUAL", Unit = "year" },
-                // Rã đông mẫu lưu trữ
-                new Service(new Guid("20000000-0000-0000-0000-000000000034"), "Specimen thawing", 200m, catCryoStorage) { Code = "THAW", Unit = "procedure" },
+                // B. Lab test – Nam: Tinh dịch đồ
+                new Service(new Guid("20000000-0000-0000-0000-000000000123"), "Semen analysis (SA)", 350000m, catDiagnostics) { Code = "LAB-SA", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000124"), "Semen analysis repeat", 250000m, catDiagnostics) { Code = "LAB-SA-REP", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000125"), "MAR test", 525000m, catDiagnostics) { Code = "LAB-MAR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000126"), "DNA Fragmentation (DFI)", 2500000m, catDiagnostics) { Code = "LAB-DFI", Unit = "test" },
 
-                // Treatment Procedures (USD) - Thủ thuật Điều trị
-                // Bơm tinh trùng vào buồng tử cung (IUI)
-                new Service(new Guid("20000000-0000-0000-0000-000000000040"), "Intrauterine insemination (IUI)", 250m, catTreatment) { Code = "IUI", Unit = "cycle" },
-                // Chu kỳ thụ tinh ống nghiệm (IVF)
-                new Service(new Guid("20000000-0000-0000-0000-000000000041"), "In vitro fertilization (IVF) cycle", 12000m, catTreatment) { Code = "IVF", Unit = "cycle" },
-                // Chuyển phôi đông lạnh (FET)
-                new Service(new Guid("20000000-0000-0000-0000-000000000042"), "Frozen embryo transfer (FET)", 3500m, catTreatment) { Code = "FET", Unit = "cycle" },
+                // B. Lab test – Nam: Nội tiết nam
+                new Service(new Guid("20000000-0000-0000-0000-000000000127"), "FSH (male)", 200000m, catDiagnostics) { Code = "LAB-FSH-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000128"), "LH (male)", 200000m, catDiagnostics) { Code = "LAB-LH-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000129"), "Testosterone (male)", 200000m, catDiagnostics) { Code = "LAB-TESTO-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000130"), "Prolactin (male)", 185000m, catDiagnostics) { Code = "LAB-PRL-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000131"), "TSH (male)", 200000m, catDiagnostics) { Code = "LAB-TSH-M", Unit = "test" },
 
-                // Medications (USD) - Thuốc
-                // Bút thuốc kích thích buồng trứng (Gonadotropin)
-                new Service(new Guid("20000000-0000-0000-0000-000000000050"), "Gonadotropin stimulation (per pen)", 90m, catMedication) { Code = "GONA-PEN", Unit = "pen" },
-                // Mũi tiêm kích rụng trứng (hCG trigger)
-                new Service(new Guid("20000000-0000-0000-0000-000000000051"), "Trigger injection (hCG)", 20m, catMedication) { Code = "HCG", Unit = "dose" },
+                // C. Xét nghiệm di truyền
+                new Service(new Guid("20000000-0000-0000-0000-000000000132"), "Karyotype", 1350000m, catDiagnostics) { Code = "LAB-KARYO", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000133"), "Thalassemia test", 950000m, catDiagnostics) { Code = "LAB-THALA", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000134"), "CFTR (cystic fibrosis)", 3000000m, catDiagnostics) { Code = "LAB-CFTR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000135"), "PGT-A/M per embryo", 19000000m, catLabProcedures) { Code = "LAB-PGT", Unit = "embryo" },
 
-                // Administrative & Others (USD) - Hành chính & Khác
-                // Phí mở hồ sơ bệnh án ban đầu
-                new Service(new Guid("20000000-0000-0000-0000-000000000060"), "Medical record creation fee", 10m, catAdministrative) { Code = "ADMIN-MR", Unit = "case" },
-                // Cấp giấy tờ/xác nhận/báo cáo theo yêu cầu
-                new Service(new Guid("20000000-0000-0000-0000-000000000061"), "Certificate/Report issuance", 15m, catAdministrative) { Code = "ADMIN-CERT", Unit = "doc" }
+                // D. Lab test sau IVF/IUI
+                new Service(new Guid("20000000-0000-0000-0000-000000000136"), "β-hCG", 150000m, catDiagnostics) { Code = "LAB-BHCG", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000137"), "Progesterone follow-up", 200000m, catDiagnostics) { Code = "LAB-P4-FU", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000138"), "Estradiol follow-up", 200000m, catDiagnostics) { Code = "LAB-E2-FU", Unit = "test" },
+
+                // Dịch vụ chẩn đoán hình ảnh bổ sung (không thuộc lab test)
+                new Service(new Guid("20000000-0000-0000-0000-000000000139"), "Transvaginal ultrasound", 225000m, catDiagnostics) { Code = "US-TVS", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000140"), "Abdominal ultrasound", 200000m, catDiagnostics) { Code = "US-ABD", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000141"), "Follicular ultrasound", 225000m, catDiagnostics) { Code = "US-FOLL", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000142"), "HSG (hysterosalpingogram)", 1500000m, catDiagnostics) { Code = "IMG-HSG", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000143"), "Diagnostic hysteroscopy", 4500000m, catDiagnostics) { Code = "IMG-HSC", Unit = "procedure" },
+
+                // Thủ thuật IVF/IUI (lab procedures)
+                new Service(new Guid("20000000-0000-0000-0000-000000000144"), "Sperm collection", 150000m, catLabProcedures) { Code = "LAB-SP-COLL", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000145"), "Sperm wash", 650000m, catLabProcedures) { Code = "LAB-SP-WASH", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000146"), "IUI procedure", 3500000m, catLabProcedures) { Code = "LAB-IUI", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000147"), "OPU (oocyte pickup)", 11500000m, catLabProcedures) { Code = "LAB-OPU", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000148"), "ICSI", 9000000m, catLabProcedures) { Code = "LAB-ICSI", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" }
             );
 
-            // Seed Medicines (common items used in fertility treatments)
+            // Seed Medicines (updated list mapped from clinical regimen table)
             modelBuilder.Entity<Medicine>().HasData(
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000001"), "Follitropin alfa", "300 IU", "Injection")
+                // 1. Clomiphene: Thuốc kích trứng dạng uống (thường cho IUI)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000001"), "Clomiphene Citrate", "50 mg/day (max 150 mg/day)", "Oral")
                 {
-                    GenericName = "Recombinant FSH",
+                    Indication = "Ovarian stimulation D2–D6",
+                    Notes = "IUI"
+                },
+
+                // 2. Letrozole: Thuốc kích trứng dạng uống (ưu tiên cho buồng trứng đa nang - PCOS)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000002"), "Letrozole", "2.5–5 mg/day", "Oral")
+                {
+                    Indication = "Ovarian stimulation D2–D6, PCOS",
+                    Notes = "IUI"
+                },
+
+                // 3. Gonal-F / Puregon: Thuốc tiêm chứa FSH để kích thích nang trứng phát triển
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000003"), "Gonal-F / Puregon", "75–150 IU/day", "Subcutaneous injection")
+                {
+                    Indication = "Ovarian stimulation from D2–D3",
+                    Notes = "IUI/IVF"
+                },
+
+                // 4. Menopur: Thuốc tiêm chứa cả FSH và LH (tinh chế từ nước tiểu)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000004"), "Menopur", "75–150 IU/day", "Subcutaneous injection")
+                {
                     Indication = "Ovarian stimulation",
-                    SideEffects = "Headache, abdominal pain",
-                    Notes = "Pen device"
+                    Notes = "IUI/IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000002"), "Chorionic gonadotropin (hCG)", "5,000 IU", "Injection")
+
+                // 5. Pergoveris: Thuốc tiêm tái tổ hợp FSH + LH, dùng cho người đáp ứng kém
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000005"), "Pergoveris", "150 IU FSH + 75 IU LH/day", "Subcutaneous injection")
                 {
-                    GenericName = "hCG",
-                    Indication = "Ovulation trigger",
-                    SideEffects = "Injection site pain",
-                    Notes = "Store refrigerated"
+                    Indication = "Stimulation for poor responders",
+                    Notes = "IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000003"), "Progesterone", "200 mg", "Capsule")
+
+                // 6. Cetrotide: Thuốc ngăn rụng trứng sớm (Antagonist)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000006"), "Cetrotide", "0.25 mg/day", "Subcutaneous injection")
                 {
-                    GenericName = "Progesterone",
+                    Indication = "Prevent premature ovulation from D5",
+                    Notes = "IVF"
+                },
+
+                // 7. Orgalutran: Thuốc ngăn rụng trứng sớm tương tự Cetrotide
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000007"), "Orgalutran", "0.25 mg/day", "Subcutaneous injection")
+                {
+                    Indication = "Prevent premature ovulation from D5",
+                    Notes = "IVF"
+                },
+
+                // 8. Ovidrel: Mũi tiêm kích rụng trứng (Trigger shot) tái tổ hợp
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000008"), "Ovidrel", "250 mcg single dose", "Subcutaneous injection")
+                {
+                    Indication = "Trigger when follicle is 18–20mm",
+                    Notes = "IUI/IVF"
+                },
+
+                // 9. Pregnyl: Mũi tiêm kích rụng trứng (HCG) dạng tiêm bắp
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000009"), "Pregnyl", "5000–10000 IU single dose", "Intramuscular injection")
+                {
+                    Indication = "Trigger when follicle is 18–20mm",
+                    Notes = "IUI/IVF"
+                },
+
+                // 10. Decapeptyl: Mũi Trigger thay thế HCG để giảm nguy cơ quá kích buồng trứng (OHSS)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000010"), "Decapeptyl 0.1 mg", "0.1 mg single dose", "Subcutaneous injection")
+                {
+                    Indication = "Trigger to reduce OHSS risk",
+                    Notes = "IVF"
+                },
+
+                // 11. Progesterone đặt: Hỗ trợ hoàng thể sau chọc hút/chuyển phôi
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000011"), "Progesterone Suppositories", "200 mg x 2–3 times/day", "Vaginal")
+                {
+                    Indication = "Post IUI/OPU/ET support",
+                    Notes = "IUI/IVF/FET"
+                },
+
+                // 12. Duphaston: Progesterone tổng hợp dạng uống
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000012"), "Duphaston", "10 mg x 2–3 times/day", "Oral")
+                {
                     Indication = "Luteal phase support",
-                    SideEffects = "Drowsiness",
-                    Notes = "Taken at bedtime"
+                    Notes = "IUI/IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000004"), "Letrozole", "2.5 mg", "Tablet")
+
+                // 13. Crinone 8%: Gel đặt âm đạo hỗ trợ hoàng thể
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000013"), "Crinone 8%", "1 applicator/day", "Vaginal")
                 {
-                    GenericName = "Letrozole",
-                    Indication = "Ovulation induction",
-                    SideEffects = "Fatigue, dizziness"
+                    Indication = "Support post-ET",
+                    Notes = "IVF/FET"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000005"), "Doxycycline", "100 mg", "Tablet")
+
+                // 14. Proluton: Progesterone dạng dầu tiêm bắp
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000014"), "Proluton", "50 mg x 2–3 times/week", "Intramuscular injection")
                 {
-                    GenericName = "Doxycycline hyclate",
-                    Indication = "Infection prophylaxis",
-                    Contraindication = "Pregnancy"
+                    Indication = "Luteal support post OPU/ET",
+                    Notes = "IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000006"), "Estradiol valerate", "2 mg", "Tablet")
+
+                // 15. Progynova: Estrogen dạng uống để làm dày niêm mạc tử cung
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000015"), "Progynova", "2 mg x 2–3 times/day", "Oral")
                 {
-                    GenericName = "Estradiol",
-                    Indication = "Endometrial preparation"
+                    Indication = "Endometrial thickening",
+                    Notes = "FET"
+                },
+
+                // 16. Estradot: Miếng dán da chứa Estrogen
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000016"), "Estradot", "50–100 mcg/patch every 2 days", "Transdermal patch")
+                {
+                    Indication = "Endometrial thickening",
+                    Notes = "FET"
+                },
+
+                // 17. CoQ10: Chất chống oxy hóa cải thiện chất lượng tinh trùng/trứng
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000017"), "CoQ10", "200–300 mg/day", "Oral")
+                {
+                    Indication = "Sperm quality improvement",
+                    Notes = "Male"
+                },
+
+                // 18. Vitamin E: Vitamin chống oxy hóa bảo vệ tinh trùng
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000018"), "Vitamin E", "400 IU/day", "Oral")
+                {
+                    Indication = "Antioxidant for sperm",
+                    Notes = "Male"
+                },
+
+                // 19. Clomiphene (Nam): Dùng để kích thích cơ thể nam giới tự sinh Testosterone
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000019"), "Clomiphene (Male)", "25 mg/day", "Oral")
+                {
+                    Indication = "Spermatogenesis support",
+                    Notes = "Male"
+                },
+
+                // 20. HCG (Nam): Tiêm để kích thích tinh hoàn sinh tinh
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000020"), "HCG (Male)", "1500 IU x 2–3 times/week", "Injection")
+                {
+                    Indication = "Stimulate spermatogenesis",
+                    Notes = "Male"
+                },
+
+                // 21. FSH (Nam): Tiêm phối hợp để tăng số lượng tinh trùng
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000021"), "FSH (Male)", "150 IU x 2–3 times/week", "Injection")
+                {
+                    Indication = "Increase sperm production",
+                    Notes = "Male"
+                }
+            );
+
+            // Seed CryoPackages (derived from storage pricing table)
+            modelBuilder.Entity<CryoPackage>().HasData(
+                // 1. Trữ đông noãn (trứng) - Gói 1 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000001"), "Oocyte Freezing - 1 Year", 8000000m, 12, 10, SampleType.Oocyte)
+                {
+                    Description = "Initial fee 8,000,000 VND; storage 8,000,000 VND",
+                    Notes = "1-year storage package for up to 10 oocytes"
+                },
+
+                // 2. Trữ đông noãn - Gói 3 năm (Tiết kiệm hơn)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000002"), "Oocyte Freezing - 3 Years", 8000000m, 36, 20, SampleType.Oocyte)
+                {
+                    Description = "Initial fee 8,000,000 VND; storage 20,000,000 VND",
+                    Notes = "Discounted compared to annual renewal"
+                },
+
+                // 3. Trữ đông noãn - Gói 5 năm (Dài hạn)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000003"), "Oocyte Freezing - 5 Years", 8000000m, 60, 30, SampleType.Oocyte)
+                {
+                    Description = "Initial fee 8,000,000 VND; storage 30,000,000 VND",
+                    Notes = "Best value for long-term storage"
+                },
+
+                // 4. Trữ đông tinh trùng - Gói 1 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000004"), "Sperm Freezing - 1 Year", 2000000m, 12, 5, SampleType.Sperm)
+                {
+                    Description = "Initial fee 2,000,000 VND; storage 3,000,000 VND",
+                    Notes = "Storage for up to 5 sperm samples"
+                },
+
+                // 5. Trữ đông tinh trùng - Gói 3 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000005"), "Sperm Freezing - 3 Years", 2000000m, 36, 10, SampleType.Sperm)
+                {
+                    Description = "Initial fee 2,000,000 VND; storage 7,000,000 VND",
+                    Notes = "Cost-effective multi-year plan"
+                },
+
+                // 6. Trữ đông tinh trùng - Gói 5 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000006"), "Sperm Freezing - 5 Years", 2000000m, 60, 15, SampleType.Sperm)
+                {
+                    Description = "Initial fee 2,000,000 VND; storage 10,000,000 VND",
+                    Notes = "Optimal for long-term preservation"
+                },
+
+                // 7. Trữ đông phôi - Gói 1 năm (tối đa 6 phôi/cọng)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000007"), "Embryo Freezing - 1 Year", 10000000m, 12, 6, SampleType.Embryo)
+                {
+                    Description = "Initial fee 10,000,000 VND; storage 10,000,000 VND",
+                    Notes = "Calculated for up to 6 embryos"
+                },
+
+                // 8. Trữ đông phôi - Gói 3 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000008"), "Embryo Freezing - 3 Years", 10000000m, 36, 12, SampleType.Embryo)
+                {
+                    Description = "Initial fee 10,000,000 VND; storage 25,000,000 VND",
+                    Notes = "Significant savings"
+                },
+
+                // 9. Trữ đông phôi - Gói 5 năm (Ưu tiên bệnh nhân IVF dư nhiều phôi)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000009"), "Embryo Freezing - 5 Years", 10000000m, 60, 18, SampleType.Embryo)
+                {
+                    Description = "Initial fee 10,000,000 VND; storage 35,000,000 VND",
+                    Notes = "Long-term plan, priority for IVF patients"
                 }
             );
         }
