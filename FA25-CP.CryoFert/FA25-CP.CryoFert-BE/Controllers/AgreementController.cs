@@ -189,7 +189,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 return BadRequest(BaseResponse<AgreementResponse>.CreateError("Invalid input data", 400, "INVALID_REQUEST"));
             }
 
-            var result = await _agreementService.VerifySignatureAsync(id, request.OtpCode, request.SignedAgreementFile);
+            var result = await _agreementService.VerifySignatureAsync(id, request.OtpCode);
             return StatusCode(result.Code ?? 500, result);
         }
 

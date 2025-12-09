@@ -350,7 +350,7 @@ namespace FSCMS.Service.Services
                     {
                         var sample = await _unitOfWork.Repository<LabSample>()
                             .AsQueryable()
-                            .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType && x.PatientId == patient.Id && x.Status == SpecimenStatus.Collected);
+                            .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType && x.PatientId == patient.Id && x.Status == SpecimenStatus.QualityChecked);
                         if (sample == null)
                         {
                             return new BaseResponse<CryoStorageContractResponse>

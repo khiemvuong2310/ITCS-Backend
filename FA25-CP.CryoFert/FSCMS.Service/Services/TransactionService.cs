@@ -377,6 +377,7 @@ namespace FSCMS.Service.Services
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             serviceRequest.Status = ServiceRequestStatus.Completed;
                             await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
+                            await _unitOfWork.CommitAsync();
                             break;
                         case "Appointment":
                             var appointment = await _unitOfWork.Repository<Appointment>()
@@ -384,6 +385,7 @@ namespace FSCMS.Service.Services
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             appointment.Status = AppointmentStatus.Confirmed;
                             await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointment.Id);
+                            await _unitOfWork.CommitAsync();
                             break;
                         case "CryoStorageContract":
                             typeMedia = EntityTypeMedia.CryoStorageContract;
@@ -404,6 +406,7 @@ namespace FSCMS.Service.Services
                                 await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
                             }
                             await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
+                            await _unitOfWork.CommitAsync();
                             break;
                         default:
                             break;

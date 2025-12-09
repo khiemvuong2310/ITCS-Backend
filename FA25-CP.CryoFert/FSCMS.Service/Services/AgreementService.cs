@@ -355,7 +355,6 @@ namespace FSCMS.Service.Services
                 )
                 {
                     EndDate = request.EndDate,
-                    FileUrl = request.FileUrl,
                     Status = AgreementStatus.Pending,
                     SignedByPatient = false,
                     SignedByDoctor = true,
@@ -504,9 +503,6 @@ namespace FSCMS.Service.Services
                     }
                     entity.Status = request.Status.Value;
                 }
-
-                if (request.FileUrl != null)
-                    entity.FileUrl = request.FileUrl;
 
                 entity.UpdatedAt = DateTime.UtcNow;
 
@@ -932,7 +928,7 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Verify OTP and sign agreement
         /// </summary>
-        public async Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode, IFormFile? signedAgreementFile)
+        public async Task<BaseResponse<AgreementResponse>> VerifySignatureAsync(Guid id, string otpCode)
         {
             const string methodName = nameof(VerifySignatureAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
@@ -966,21 +962,6 @@ namespace FSCMS.Service.Services
                         "Invalid OTP format. OTP must be 6 digits",
                         StatusCodes.Status400BadRequest,
                         "INVALID_OTP_FORMAT");
-                }
-
-                Guid? uploaderAccountId = null;
-                var shouldUploadSignedFile = signedAgreementFile != null && signedAgreementFile.Length > 0;
-                if (shouldUploadSignedFile)
-                {
-                    uploaderAccountId = GetCurrentAccountId();
-                    if (!uploaderAccountId.HasValue)
-                    {
-                        _logger.LogWarning("{MethodName}: Unable to determine account ID for signed agreement upload", methodName);
-                        return BaseResponse<AgreementResponse>.CreateError(
-                            "Unable to determine the current user for file upload",
-                            StatusCodes.Status401Unauthorized,
-                            "UNAUTHORIZED");
-                    }
                 }
 
                 var isTestBypass = string.Equals(otpCode, "000000", StringComparison.Ordinal);
@@ -1066,31 +1047,10 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<Agreement>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
+                await _mediaService.UploadPdfFromHtmlAsync(id, EntityTypeMedia.Agreement);
 
                 var data = _mapper.Map<AgreementResponse>(entity);
                 var responseMessage = "Agreement signed successfully";
-
-                if (shouldUploadSignedFile && uploaderAccountId.HasValue)
-                {
-                    var uploadOutcome = await TryUploadSignedAgreementFileAsync(entity, signedAgreementFile!, uploaderAccountId.Value);
-                    if (!uploadOutcome.IsSuccess)
-                    {
-                        responseMessage = "Agreement signed successfully, but failed to upload the signed file.";
-                        if (!string.IsNullOrWhiteSpace(uploadOutcome.ErrorMessage))
-                        {
-                            responseMessage = $"{responseMessage} {uploadOutcome.ErrorMessage}";
-                        }
-                        _logger.LogWarning("{MethodName}: Signed agreement file upload failed for agreement {Id}. Reason: {Reason}", methodName, id, uploadOutcome.ErrorMessage);
-                    }
-                    else
-                    {
-                        data.FileUrl = uploadOutcome.FileUrl ?? data.FileUrl;
-                        if (!string.IsNullOrWhiteSpace(uploadOutcome.FileUrl))
-                        {
-                            await PersistAgreementFileUrlAsync(entity, uploadOutcome.FileUrl);
-                        }
-                    }
-                }
 
                 _logger.LogInformation("{MethodName}: Successfully verified signature for agreement {Id}", methodName, id);
 

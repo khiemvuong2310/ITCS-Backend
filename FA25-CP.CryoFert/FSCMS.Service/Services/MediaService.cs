@@ -12,6 +12,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
+using FSCMS.Service.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -33,13 +34,14 @@ namespace FSCMS.Service.Services
         #region Constructor
 
         public MediaService(
-            IConverter converter,
             IFileStorageService fileStorageService,
             IUnitOfWork unitOfWork,
             ILogger<MediaService> logger,
             IMapper mapper)
         {
-            _converter = converter ?? throw new ArgumentNullException(nameof(converter));
+            var context = new CustomAssemblyLoadContext();
+            context.LoadUnmanagedLibrary(Path.Combine(AppContext.BaseDirectory, "Libs/win-x64/libwkhtmltox.dll"));
+            _converter = new SynchronizedConverter(new PdfTools());
             _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
