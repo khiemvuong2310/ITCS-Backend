@@ -565,63 +565,72 @@ namespace FSCMS.Core
 
             //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
             modelBuilder.Entity<Service>().HasData(
-                // Consultation (USD) - Tư vấn
-                // Khám tư vấn ban đầu: bác sĩ khai thác bệnh sử, đánh giá khả năng sinh sản
-                new Service(new Guid("20000000-0000-0000-0000-000000000001"), "Initial fertility consultation", 120m, catConsultation) { Code = "CONS-INIT", Unit = "session", Duration = 30, Description = "First-time visit and clinical assessment" },
-                // Khám tái khám: theo dõi tiến triển, điều chỉnh kế hoạch điều trị
-                new Service(new Guid("20000000-0000-0000-0000-000000000002"), "Follow-up consultation", 80m, catConsultation) { Code = "CONS-FUP", Unit = "session", Duration = 20, Description = "Follow-up review and plan" },
+                // A. Lab test – Nữ: Bộ nội tiết
+                new Service(new Guid("20000000-0000-0000-0000-000000000101"), "FSH (female)", 200000m, catDiagnostics) { Code = "LAB-FSH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000102"), "LH (female)", 200000m, catDiagnostics) { Code = "LAB-LH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000103"), "Estradiol (E2) (female)", 200000m, catDiagnostics) { Code = "LAB-E2-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000104"), "AMH (female)", 775000m, catDiagnostics) { Code = "LAB-AMH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000105"), "TSH (female)", 200000m, catDiagnostics) { Code = "LAB-TSH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000106"), "FT4/FT3 (female)", 200000m, catDiagnostics) { Code = "LAB-FT-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000107"), "Prolactin (female)", 185000m, catDiagnostics) { Code = "LAB-PRL-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000108"), "Progesterone (female)", 200000m, catDiagnostics) { Code = "LAB-P4-F", Unit = "test" },
 
-                // Diagnostics & Imaging (USD) - Chẩn đoán & Hình ảnh
-                // Siêu âm đầu dò âm đạo: đánh giá buồng trứng, tử cung, niêm mạc
-                new Service(new Guid("20000000-0000-0000-0000-000000000010"), "Transvaginal ultrasound", 60m, catDiagnostics) { Code = "US-TVS", Unit = "scan", Duration = 15 },
-                // Xét nghiệm nội tiết cơ bản: AMH/FSH/LH/E2/PRL để đánh giá dự trữ buồng trứng và trục nội tiết
-                new Service(new Guid("20000000-0000-0000-0000-000000000011"), "Baseline hormone panel (AMH/FSH/LH/E2/PRL)", 150m, catDiagnostics) { Code = "LAB-HORM", Unit = "panel" },
-                // Tinh dịch đồ: đánh giá số lượng, di động, hình dạng tinh trùng
-                new Service(new Guid("20000000-0000-0000-0000-000000000012"), "Semen analysis", 40m, catDiagnostics) { Code = "SA", Unit = "test" },
+                // A. Lab test – Nữ: Miễn dịch – bệnh truyền nhiễm
+                new Service(new Guid("20000000-0000-0000-0000-000000000109"), "HIV screening", 150000m, catDiagnostics) { Code = "LAB-HIV", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000110"), "HBsAg", 125000m, catDiagnostics) { Code = "LAB-HBSAG", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000111"), "Anti-HCV", 185000m, catDiagnostics) { Code = "LAB-HCV", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000112"), "RPR/VDRL (syphilis)", 160000m, catDiagnostics) { Code = "LAB-RPR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000113"), "Rubella IgG/IgM", 400000m, catDiagnostics) { Code = "LAB-RUB", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000114"), "CMV IgG/IgM", 400000m, catDiagnostics) { Code = "LAB-CMV", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000115"), "Chlamydia PCR", 575000m, catDiagnostics) { Code = "LAB-CHLA-PCR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000116"), "Gonorrhea PCR", 575000m, catDiagnostics) { Code = "LAB-GONO-PCR", Unit = "test" },
 
-                // Laboratory Procedures (USD) - Thủ thuật Phòng Lab
-                // Chọc hút noãn (OPU): lấy noãn sau kích thích buồng trứng
-                new Service(new Guid("20000000-0000-0000-0000-000000000020"), "Oocyte retrieval (OPU)", 1500m, catLabProcedures) { Code = "OPU", Unit = "procedure" },
-                // Chuẩn bị tinh trùng: lọc rửa để sử dụng cho IUI/IVF
-                new Service(new Guid("20000000-0000-0000-0000-000000000021"), "Sperm preparation (IUI/IVF)", 90m, catLabProcedures) { Code = "SP-PREP", Unit = "prep" },
-                // Nuôi cấy phôi ngày 1-5: theo dõi và chăm sóc phôi trong labo
-                new Service(new Guid("20000000-0000-0000-0000-000000000022"), "Embryo culture (day 1-5)", 1500m, catLabProcedures) { Code = "EMB-CULT", Unit = "cycle" },
-                // ICSI: tiêm tinh trùng vào bào tương noãn hỗ trợ thụ tinh
-                new Service(new Guid("20000000-0000-0000-0000-000000000023"), "ICSI", 1200m, catLabProcedures) { Code = "ICSI", Unit = "procedure" },
-                // Chuyển phôi (ET): đưa phôi vào buồng tử cung
-                new Service(new Guid("20000000-0000-0000-0000-000000000024"), "Embryo transfer (ET)", 800m, catLabProcedures) { Code = "ET", Unit = "procedure" },
+                // A. Lab test – Nữ: Sinh hóa – huyết học
+                new Service(new Guid("20000000-0000-0000-0000-000000000117"), "Complete blood count (CBC)", 100000m, catDiagnostics) { Code = "LAB-CBC", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000118"), "Blood glucose", 65000m, catDiagnostics) { Code = "LAB-GLU", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000119"), "AST/ALT", 65000m, catDiagnostics) { Code = "LAB-LFT", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000120"), "Creatinine/Urea", 65000m, catDiagnostics) { Code = "LAB-KFT", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000121"), "Electrolyte panel", 160000m, catDiagnostics) { Code = "LAB-ELEC", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000122"), "ABO/Rh blood group", 115000m, catDiagnostics) { Code = "LAB-ABO", Unit = "test" },
 
-                // Cryostorage & Logistics (USD) - Lưu trữ Đông lạnh & Logistics
-                // Thuỷ tinh hoá noãn: làm lạnh siêu nhanh để bảo tồn noãn
-                new Service(new Guid("20000000-0000-0000-0000-000000000030"), "Oocyte vitrification", 600m, catCryoStorage) { Code = "VIT-OOC", Unit = "procedure" },
-                // Trữ đông tinh trùng
-                new Service(new Guid("20000000-0000-0000-0000-000000000031"), "Sperm cryopreservation", 120m, catCryoStorage) { Code = "CRYO-SP", Unit = "procedure" },
-                // Thuỷ tinh hoá phôi
-                new Service(new Guid("20000000-0000-0000-0000-000000000032"), "Embryo vitrification", 700m, catCryoStorage) { Code = "VIT-EMB", Unit = "procedure" },
-                // Phí lưu trữ hằng năm mỗi mẫu
-                new Service(new Guid("20000000-0000-0000-0000-000000000033"), "Annual storage fee (per specimen)", 150m, catCryoStorage) { Code = "STORE-ANNUAL", Unit = "year" },
-                // Rã đông mẫu lưu trữ
-                new Service(new Guid("20000000-0000-0000-0000-000000000034"), "Specimen thawing", 200m, catCryoStorage) { Code = "THAW", Unit = "procedure" },
+                // B. Lab test – Nam: Tinh dịch đồ
+                new Service(new Guid("20000000-0000-0000-0000-000000000123"), "Semen analysis (SA)", 350000m, catDiagnostics) { Code = "LAB-SA", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000124"), "Semen analysis repeat", 250000m, catDiagnostics) { Code = "LAB-SA-REP", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000125"), "MAR test", 525000m, catDiagnostics) { Code = "LAB-MAR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000126"), "DNA Fragmentation (DFI)", 2500000m, catDiagnostics) { Code = "LAB-DFI", Unit = "test" },
 
-                // Treatment Procedures (USD) - Thủ thuật Điều trị
-                // Bơm tinh trùng vào buồng tử cung (IUI)
-                new Service(new Guid("20000000-0000-0000-0000-000000000040"), "Intrauterine insemination (IUI)", 250m, catTreatment) { Code = "IUI", Unit = "cycle" },
-                // Chu kỳ thụ tinh ống nghiệm (IVF)
-                new Service(new Guid("20000000-0000-0000-0000-000000000041"), "In vitro fertilization (IVF) cycle", 12000m, catTreatment) { Code = "IVF", Unit = "cycle" },
-                // Chuyển phôi đông lạnh (FET)
-                new Service(new Guid("20000000-0000-0000-0000-000000000042"), "Frozen embryo transfer (FET)", 3500m, catTreatment) { Code = "FET", Unit = "cycle" },
+                // B. Lab test – Nam: Nội tiết nam
+                new Service(new Guid("20000000-0000-0000-0000-000000000127"), "FSH (male)", 200000m, catDiagnostics) { Code = "LAB-FSH-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000128"), "LH (male)", 200000m, catDiagnostics) { Code = "LAB-LH-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000129"), "Testosterone (male)", 200000m, catDiagnostics) { Code = "LAB-TESTO-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000130"), "Prolactin (male)", 185000m, catDiagnostics) { Code = "LAB-PRL-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000131"), "TSH (male)", 200000m, catDiagnostics) { Code = "LAB-TSH-M", Unit = "test" },
 
-                // Medications (USD) - Thuốc
-                // Bút thuốc kích thích buồng trứng (Gonadotropin)
-                new Service(new Guid("20000000-0000-0000-0000-000000000050"), "Gonadotropin stimulation (per pen)", 90m, catMedication) { Code = "GONA-PEN", Unit = "pen" },
-                // Mũi tiêm kích rụng trứng (hCG trigger)
-                new Service(new Guid("20000000-0000-0000-0000-000000000051"), "Trigger injection (hCG)", 20m, catMedication) { Code = "HCG", Unit = "dose" },
+                // C. Xét nghiệm di truyền
+                new Service(new Guid("20000000-0000-0000-0000-000000000132"), "Karyotype", 1350000m, catDiagnostics) { Code = "LAB-KARYO", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000133"), "Thalassemia test", 950000m, catDiagnostics) { Code = "LAB-THALA", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000134"), "CFTR (cystic fibrosis)", 3000000m, catDiagnostics) { Code = "LAB-CFTR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000135"), "PGT-A/M per embryo", 19000000m, catLabProcedures) { Code = "LAB-PGT", Unit = "embryo" },
 
-                // Administrative & Others (USD) - Hành chính & Khác
-                // Phí mở hồ sơ bệnh án ban đầu
-                new Service(new Guid("20000000-0000-0000-0000-000000000060"), "Medical record creation fee", 10m, catAdministrative) { Code = "ADMIN-MR", Unit = "case" },
-                // Cấp giấy tờ/xác nhận/báo cáo theo yêu cầu
-                new Service(new Guid("20000000-0000-0000-0000-000000000061"), "Certificate/Report issuance", 15m, catAdministrative) { Code = "ADMIN-CERT", Unit = "doc" }
+                // D. Lab test sau IVF/IUI
+                new Service(new Guid("20000000-0000-0000-0000-000000000136"), "β-hCG", 150000m, catDiagnostics) { Code = "LAB-BHCG", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000137"), "Progesterone follow-up", 200000m, catDiagnostics) { Code = "LAB-P4-FU", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000138"), "Estradiol follow-up", 200000m, catDiagnostics) { Code = "LAB-E2-FU", Unit = "test" },
+
+                // Dịch vụ chẩn đoán hình ảnh bổ sung (không thuộc lab test)
+                new Service(new Guid("20000000-0000-0000-0000-000000000139"), "Transvaginal ultrasound", 225000m, catDiagnostics) { Code = "US-TVS", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000140"), "Abdominal ultrasound", 200000m, catDiagnostics) { Code = "US-ABD", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000141"), "Follicular ultrasound", 225000m, catDiagnostics) { Code = "US-FOLL", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000142"), "HSG (hysterosalpingogram)", 1500000m, catDiagnostics) { Code = "IMG-HSG", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000143"), "Diagnostic hysteroscopy", 4500000m, catDiagnostics) { Code = "IMG-HSC", Unit = "procedure" },
+
+                // Thủ thuật IVF/IUI (lab procedures)
+                new Service(new Guid("20000000-0000-0000-0000-000000000144"), "Sperm collection", 150000m, catLabProcedures) { Code = "LAB-SP-COLL", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000145"), "Sperm wash", 650000m, catLabProcedures) { Code = "LAB-SP-WASH", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000146"), "IUI procedure", 3500000m, catLabProcedures) { Code = "LAB-IUI", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000147"), "OPU (oocyte pickup)", 11500000m, catLabProcedures) { Code = "LAB-OPU", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000148"), "ICSI", 9000000m, catLabProcedures) { Code = "LAB-ICSI", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" }
             );
 
             // Seed Medicines (common items used in fertility treatments)
