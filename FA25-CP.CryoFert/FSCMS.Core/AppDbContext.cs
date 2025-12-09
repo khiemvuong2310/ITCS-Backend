@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Enum;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -633,45 +634,219 @@ namespace FSCMS.Core
                 new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" }
             );
 
-            // Seed Medicines (common items used in fertility treatments)
+            // Seed Medicines (updated list mapped from clinical regimen table)
             modelBuilder.Entity<Medicine>().HasData(
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000001"), "Follitropin alfa", "300 IU", "Injection")
+                // 1. Clomiphene: Thuốc kích trứng dạng uống (thường cho IUI)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000001"), "Clomiphene Citrate", "50 mg/day (max 150 mg/day)", "Oral")
                 {
-                    GenericName = "Recombinant FSH",
+                    Indication = "Ovarian stimulation D2–D6",
+                    Notes = "IUI"
+                },
+
+                // 2. Letrozole: Thuốc kích trứng dạng uống (ưu tiên cho buồng trứng đa nang - PCOS)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000002"), "Letrozole", "2.5–5 mg/day", "Oral")
+                {
+                    Indication = "Ovarian stimulation D2–D6, PCOS",
+                    Notes = "IUI"
+                },
+
+                // 3. Gonal-F / Puregon: Thuốc tiêm chứa FSH để kích thích nang trứng phát triển
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000003"), "Gonal-F / Puregon", "75–150 IU/day", "Subcutaneous injection")
+                {
+                    Indication = "Ovarian stimulation from D2–D3",
+                    Notes = "IUI/IVF"
+                },
+
+                // 4. Menopur: Thuốc tiêm chứa cả FSH và LH (tinh chế từ nước tiểu)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000004"), "Menopur", "75–150 IU/day", "Subcutaneous injection")
+                {
                     Indication = "Ovarian stimulation",
-                    SideEffects = "Headache, abdominal pain",
-                    Notes = "Pen device"
+                    Notes = "IUI/IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000002"), "Chorionic gonadotropin (hCG)", "5,000 IU", "Injection")
+
+                // 5. Pergoveris: Thuốc tiêm tái tổ hợp FSH + LH, dùng cho người đáp ứng kém
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000005"), "Pergoveris", "150 IU FSH + 75 IU LH/day", "Subcutaneous injection")
                 {
-                    GenericName = "hCG",
-                    Indication = "Ovulation trigger",
-                    SideEffects = "Injection site pain",
-                    Notes = "Store refrigerated"
+                    Indication = "Stimulation for poor responders",
+                    Notes = "IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000003"), "Progesterone", "200 mg", "Capsule")
+
+                // 6. Cetrotide: Thuốc ngăn rụng trứng sớm (Antagonist)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000006"), "Cetrotide", "0.25 mg/day", "Subcutaneous injection")
                 {
-                    GenericName = "Progesterone",
+                    Indication = "Prevent premature ovulation from D5",
+                    Notes = "IVF"
+                },
+
+                // 7. Orgalutran: Thuốc ngăn rụng trứng sớm tương tự Cetrotide
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000007"), "Orgalutran", "0.25 mg/day", "Subcutaneous injection")
+                {
+                    Indication = "Prevent premature ovulation from D5",
+                    Notes = "IVF"
+                },
+
+                // 8. Ovidrel: Mũi tiêm kích rụng trứng (Trigger shot) tái tổ hợp
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000008"), "Ovidrel", "250 mcg single dose", "Subcutaneous injection")
+                {
+                    Indication = "Trigger when follicle is 18–20mm",
+                    Notes = "IUI/IVF"
+                },
+
+                // 9. Pregnyl: Mũi tiêm kích rụng trứng (HCG) dạng tiêm bắp
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000009"), "Pregnyl", "5000–10000 IU single dose", "Intramuscular injection")
+                {
+                    Indication = "Trigger when follicle is 18–20mm",
+                    Notes = "IUI/IVF"
+                },
+
+                // 10. Decapeptyl: Mũi Trigger thay thế HCG để giảm nguy cơ quá kích buồng trứng (OHSS)
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000010"), "Decapeptyl 0.1 mg", "0.1 mg single dose", "Subcutaneous injection")
+                {
+                    Indication = "Trigger to reduce OHSS risk",
+                    Notes = "IVF"
+                },
+
+                // 11. Progesterone đặt: Hỗ trợ hoàng thể sau chọc hút/chuyển phôi
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000011"), "Progesterone Suppositories", "200 mg x 2–3 times/day", "Vaginal")
+                {
+                    Indication = "Post IUI/OPU/ET support",
+                    Notes = "IUI/IVF/FET"
+                },
+
+                // 12. Duphaston: Progesterone tổng hợp dạng uống
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000012"), "Duphaston", "10 mg x 2–3 times/day", "Oral")
+                {
                     Indication = "Luteal phase support",
-                    SideEffects = "Drowsiness",
-                    Notes = "Taken at bedtime"
+                    Notes = "IUI/IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000004"), "Letrozole", "2.5 mg", "Tablet")
+
+                // 13. Crinone 8%: Gel đặt âm đạo hỗ trợ hoàng thể
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000013"), "Crinone 8%", "1 applicator/day", "Vaginal")
                 {
-                    GenericName = "Letrozole",
-                    Indication = "Ovulation induction",
-                    SideEffects = "Fatigue, dizziness"
+                    Indication = "Support post-ET",
+                    Notes = "IVF/FET"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000005"), "Doxycycline", "100 mg", "Tablet")
+
+                // 14. Proluton: Progesterone dạng dầu tiêm bắp
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000014"), "Proluton", "50 mg x 2–3 times/week", "Intramuscular injection")
                 {
-                    GenericName = "Doxycycline hyclate",
-                    Indication = "Infection prophylaxis",
-                    Contraindication = "Pregnancy"
+                    Indication = "Luteal support post OPU/ET",
+                    Notes = "IVF"
                 },
-                new Medicine(new Guid("40000000-0000-0000-0000-000000000006"), "Estradiol valerate", "2 mg", "Tablet")
+
+                // 15. Progynova: Estrogen dạng uống để làm dày niêm mạc tử cung
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000015"), "Progynova", "2 mg x 2–3 times/day", "Oral")
                 {
-                    GenericName = "Estradiol",
-                    Indication = "Endometrial preparation"
+                    Indication = "Endometrial thickening",
+                    Notes = "FET"
+                },
+
+                // 16. Estradot: Miếng dán da chứa Estrogen
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000016"), "Estradot", "50–100 mcg/patch every 2 days", "Transdermal patch")
+                {
+                    Indication = "Endometrial thickening",
+                    Notes = "FET"
+                },
+
+                // 17. CoQ10: Chất chống oxy hóa cải thiện chất lượng tinh trùng/trứng
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000017"), "CoQ10", "200–300 mg/day", "Oral")
+                {
+                    Indication = "Sperm quality improvement",
+                    Notes = "Male"
+                },
+
+                // 18. Vitamin E: Vitamin chống oxy hóa bảo vệ tinh trùng
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000018"), "Vitamin E", "400 IU/day", "Oral")
+                {
+                    Indication = "Antioxidant for sperm",
+                    Notes = "Male"
+                },
+
+                // 19. Clomiphene (Nam): Dùng để kích thích cơ thể nam giới tự sinh Testosterone
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000019"), "Clomiphene (Male)", "25 mg/day", "Oral")
+                {
+                    Indication = "Spermatogenesis support",
+                    Notes = "Male"
+                },
+
+                // 20. HCG (Nam): Tiêm để kích thích tinh hoàn sinh tinh
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000020"), "HCG (Male)", "1500 IU x 2–3 times/week", "Injection")
+                {
+                    Indication = "Stimulate spermatogenesis",
+                    Notes = "Male"
+                },
+
+                // 21. FSH (Nam): Tiêm phối hợp để tăng số lượng tinh trùng
+                new Medicine(new Guid("40000000-0000-0000-0000-000000000021"), "FSH (Male)", "150 IU x 2–3 times/week", "Injection")
+                {
+                    Indication = "Increase sperm production",
+                    Notes = "Male"
+                }
+            );
+
+            // Seed CryoPackages (derived from storage pricing table)
+            modelBuilder.Entity<CryoPackage>().HasData(
+                // 1. Trữ đông noãn (trứng) - Gói 1 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000001"), "Oocyte Freezing - 1 Year", 8000000m, 12, 10, SampleType.Oocyte)
+                {
+                    Description = "Initial fee 8,000,000 VND; storage 8,000,000 VND",
+                    Notes = "1-year storage package for up to 10 oocytes"
+                },
+
+                // 2. Trữ đông noãn - Gói 3 năm (Tiết kiệm hơn)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000002"), "Oocyte Freezing - 3 Years", 8000000m, 36, 20, SampleType.Oocyte)
+                {
+                    Description = "Initial fee 8,000,000 VND; storage 20,000,000 VND",
+                    Notes = "Discounted compared to annual renewal"
+                },
+
+                // 3. Trữ đông noãn - Gói 5 năm (Dài hạn)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000003"), "Oocyte Freezing - 5 Years", 8000000m, 60, 30, SampleType.Oocyte)
+                {
+                    Description = "Initial fee 8,000,000 VND; storage 30,000,000 VND",
+                    Notes = "Best value for long-term storage"
+                },
+
+                // 4. Trữ đông tinh trùng - Gói 1 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000004"), "Sperm Freezing - 1 Year", 2000000m, 12, 5, SampleType.Sperm)
+                {
+                    Description = "Initial fee 2,000,000 VND; storage 3,000,000 VND",
+                    Notes = "Storage for up to 5 sperm samples"
+                },
+
+                // 5. Trữ đông tinh trùng - Gói 3 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000005"), "Sperm Freezing - 3 Years", 2000000m, 36, 10, SampleType.Sperm)
+                {
+                    Description = "Initial fee 2,000,000 VND; storage 7,000,000 VND",
+                    Notes = "Cost-effective multi-year plan"
+                },
+
+                // 6. Trữ đông tinh trùng - Gói 5 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000006"), "Sperm Freezing - 5 Years", 2000000m, 60, 15, SampleType.Sperm)
+                {
+                    Description = "Initial fee 2,000,000 VND; storage 10,000,000 VND",
+                    Notes = "Optimal for long-term preservation"
+                },
+
+                // 7. Trữ đông phôi - Gói 1 năm (tối đa 6 phôi/cọng)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000007"), "Embryo Freezing - 1 Year", 10000000m, 12, 6, SampleType.Embryo)
+                {
+                    Description = "Initial fee 10,000,000 VND; storage 10,000,000 VND",
+                    Notes = "Calculated for up to 6 embryos"
+                },
+
+                // 8. Trữ đông phôi - Gói 3 năm
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000008"), "Embryo Freezing - 3 Years", 10000000m, 36, 12, SampleType.Embryo)
+                {
+                    Description = "Initial fee 10,000,000 VND; storage 25,000,000 VND",
+                    Notes = "Significant savings"
+                },
+
+                // 9. Trữ đông phôi - Gói 5 năm (Ưu tiên bệnh nhân IVF dư nhiều phôi)
+                new CryoPackage(new Guid("50000000-0000-0000-0000-000000000009"), "Embryo Freezing - 5 Years", 10000000m, 60, 18, SampleType.Embryo)
+                {
+                    Description = "Initial fee 10,000,000 VND; storage 35,000,000 VND",
+                    Notes = "Long-term plan, priority for IVF patients"
                 }
             );
         }

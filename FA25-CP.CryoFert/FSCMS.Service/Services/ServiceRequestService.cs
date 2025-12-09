@@ -561,8 +561,8 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Only pending service requests can be approved", StatusCodes.Status400BadRequest, "INVALID_STATUS");
                 }
 
-                // Khi bỏ trạng thái Approved, việc duyệt sẽ chuyển thẳng sang Completed
-                entity.Status = ServiceRequestStatus.Completed;
+                // Approve chuyển yêu cầu sang trạng thái đang xử lý
+                entity.Status = ServiceRequestStatus.InProcess;
                 entity.ApprovedDate = DateTime.UtcNow;
                 entity.ApprovedBy = approvedBy;
                 entity.UpdatedAt = DateTime.UtcNow;
@@ -667,10 +667,10 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Service request not found", StatusCodes.Status404NotFound, "SERVICE_REQUEST_NOT_FOUND");
                 }
 
-                if (entity.Status != ServiceRequestStatus.Pending)
+                if (entity.Status != ServiceRequestStatus.InProcess)
                 {
-                    _logger.LogWarning("{MethodName}: Only pending service requests can be completed: {Id}", methodName, id);
-                    return BaseResponse<ServiceRequestResponseModel>.CreateError("Only pending service requests can be completed", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    _logger.LogWarning("{MethodName}: Only in-process service requests can be completed: {Id}", methodName, id);
+                    return BaseResponse<ServiceRequestResponseModel>.CreateError("Only in-process service requests can be completed", StatusCodes.Status400BadRequest, "INVALID_STATUS");
                 }
 
                 entity.Status = ServiceRequestStatus.Completed;
@@ -722,7 +722,8 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestResponseModel>.CreateError("Completed service requests cannot be cancelled", StatusCodes.Status400BadRequest, "INVALID_STATUS");
                 }
 
-                entity.Status = ServiceRequestStatus.Cancelled;
+                // Không còn trạng thái Cancelled; coi hủy như từ chối
+                entity.Status = ServiceRequestStatus.Rejected;
 
                 await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
