@@ -28,7 +28,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering request</param>
         /// <returns>Paginated service requests</returns>
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServiceRequestsRequest request)
         {
@@ -45,7 +45,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Service request response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -59,7 +59,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="status">Service request status</param>
         /// <returns>List of service requests with the specified status</returns>
         [HttpGet("status/{status}")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceRequestResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByStatus(ServiceRequestStatus status)
         {
@@ -73,7 +73,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="appointmentId">Appointment ID</param>
         /// <returns>List of service requests for the appointment</returns>
         [HttpGet("appointment/{appointmentId:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceRequestResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByAppointment(Guid appointmentId)
         {
