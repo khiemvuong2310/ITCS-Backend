@@ -358,7 +358,7 @@ namespace FSCMS.Service.Services
                     Status = AgreementStatus.Pending,
                     SignedByPatient = false,
                     SignedByDoctor = true,
-                    SignedDate = null, // Patient chưa ký
+                    SignedDate = null, 
                     SignatureMethod = null,
                     SignatureIPAddress = null,
                     OTPSentDate = null
@@ -448,15 +448,7 @@ namespace FSCMS.Service.Services
                 // Update fields
                 if (request.StartDate.HasValue)
                 {
-                    // Validate: Cannot change StartDate if agreement is already Active
-                    if (entity.Status == AgreementStatus.Active)
-                    {
-                        _logger.LogWarning("{MethodName}: Cannot change StartDate for Active agreement", methodName);
-                        return BaseResponse<AgreementResponse>.CreateError(
-                            "Cannot change StartDate for Active agreement",
-                            StatusCodes.Status400BadRequest,
-                            "INVALID_OPERATION");
-                    }
+                    // Status Completed/Canceled already blocked above;
                     entity.StartDate = request.StartDate.Value;
                 }
 
@@ -613,8 +605,8 @@ namespace FSCMS.Service.Services
                 // Auto-update status if both parties have signed
                 if (entity.SignedByPatient && entity.SignedByDoctor && entity.Status == AgreementStatus.Pending)
                 {
-                    entity.Status = AgreementStatus.Active;
-                    _logger.LogInformation("{MethodName}: Agreement {Id} automatically set to Active status", methodName, id);
+                    entity.Status = AgreementStatus.Completed;
+                    _logger.LogInformation("{MethodName}: Agreement {Id} automatically set to Completed status", methodName, id);
                 }
 
                 entity.UpdatedAt = DateTime.UtcNow;
@@ -754,9 +746,9 @@ namespace FSCMS.Service.Services
                         "NOT_FOUND");
                 }
 
-                // Business rule: Cannot delete active or completed agreements
+                // Business rule: Cannot delete completed agreements
                 // Only Pending or Canceled agreements can be deleted
-                if (entity.Status == AgreementStatus.Active || entity.Status == AgreementStatus.Completed)
+                if (entity.Status == AgreementStatus.Completed)
                 {
                     _logger.LogWarning("{MethodName}: Cannot delete agreement with status {Status}. Only Pending or Canceled agreements can be deleted",
                         methodName, entity.Status);
@@ -1038,7 +1030,7 @@ namespace FSCMS.Service.Services
                 if (entity.SignedByPatient && entity.SignedByDoctor && entity.Status == AgreementStatus.Pending)
                 {
                     entity.Status = AgreementStatus.Completed;
-                    _logger.LogInformation("{MethodName}: Agreement {Id} automatically set to Active status", methodName, id);
+                    _logger.LogInformation("{MethodName}: Agreement {Id} automatically set to Completed status", methodName, id);
                 }
 
                 // Remove OTP from cache after successful verification
@@ -1179,10 +1171,8 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Validate if status transition is allowed
         /// Business rules:
-        /// - Pending -> Active (when both parties sign)
+        /// - Pending -> Completed (when both parties sign)
         /// - Pending -> Canceled (can cancel anytime)
-        /// - Active -> Completed (when treatment is done)
-        /// - Active -> Canceled (can cancel active agreement)
         /// - Completed -> (no transitions allowed)
         /// - Canceled -> (no transitions allowed)
         /// </summary>
@@ -1199,10 +1189,8 @@ namespace FSCMS.Service.Services
             // Valid transitions
             return (currentStatus, newStatus) switch
             {
-                (AgreementStatus.Pending, AgreementStatus.Active) => true,
+                (AgreementStatus.Pending, AgreementStatus.Completed) => true,
                 (AgreementStatus.Pending, AgreementStatus.Canceled) => true,
-                (AgreementStatus.Active, AgreementStatus.Completed) => true,
-                (AgreementStatus.Active, AgreementStatus.Canceled) => true,
                 _ => false
             };
         }
