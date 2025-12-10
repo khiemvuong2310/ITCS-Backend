@@ -215,7 +215,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             <h1>{title}</h1>
 
             <div class='alert'>
-                <b>Amount:</b> {q["vnp_Amount"]}<br>
+                <b>Amount:</b> @(string.Format(""{{0:N0}} VND"", Convert.ToInt64(q[""vnp_Amount""]) / 100))<br>
                 <b>Bank Code:</b> {q["vnp_BankCode"]}<br>
                 <b>Bank Tran No:</b> {q["vnp_BankTranNo"]}<br>
                 <b>Card Type:</b> {q["vnp_CardType"]}<br>

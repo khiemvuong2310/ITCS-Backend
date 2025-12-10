@@ -144,7 +144,7 @@ namespace FSCMS.Service.Services
             {
                 var labSampleExists = await _unitOfWork.Repository<LabSample>()
                     .AsQueryable()
-                    .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.Status != SpecimenStatus.Stored)
+                    .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.Status == SpecimenStatus.Thawed)
                     .FirstOrDefaultAsync();
 
                 if (labSampleExists == null) 

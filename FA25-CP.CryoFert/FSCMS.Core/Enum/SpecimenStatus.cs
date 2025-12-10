@@ -45,6 +45,6 @@ namespace FSCMS.Core.Enum
         /// <summary>
         /// Mẫu đã được rã đông để sử dụng hoặc đánh giá.
         /// </summary>
-        Thawed = 9
+        Thawed = 9 
     }
 }

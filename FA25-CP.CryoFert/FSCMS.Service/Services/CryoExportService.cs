@@ -163,7 +163,7 @@ namespace FSCMS.Service.Services
 
                 var labSampleExists = await _unitOfWork.Repository<LabSample>()
                     .AsQueryable()
-                    .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.CryoLocationId == locationExists.Id)
+                    .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.CryoLocationId == locationExists.Id && r.Status == SpecimenStatus.Stored)
                     .FirstOrDefaultAsync();
 
                 if (labSampleExists == null)
@@ -202,7 +202,7 @@ namespace FSCMS.Service.Services
                 }
                 var entity = _mapper.Map<CryoExport>(request);
                 //locationExists.LabSamples = null;
-                labSampleExists.Status = SpecimenStatus.Thawed;
+                labSampleExists.Status = SpecimenStatus.QualityChecked;
                 await DecrementSampleCountAsync(locationExists.Id);
                 labSampleExists.CryoLocationId = null;
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(labSampleExists, labSampleExists.Id);
