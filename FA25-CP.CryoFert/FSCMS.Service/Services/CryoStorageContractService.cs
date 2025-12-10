@@ -375,7 +375,6 @@ namespace FSCMS.Service.Services
                             LabSample = sample
                         };
                         await _unitOfWork.Repository<CPSDetail>().InsertAsync(cPSDetails);
-                        await _unitOfWork.CommitAsync();
                     }
                 }
                 var patientCode = patient?.PatientCode ?? "UNK";
