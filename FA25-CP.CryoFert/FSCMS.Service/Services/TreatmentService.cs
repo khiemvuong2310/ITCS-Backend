@@ -282,9 +282,13 @@ namespace FSCMS.Service.Services
                         "INVALID_PREFERRED_START_DATE");
                 }
 
-                // Validate foreign keys
-                var patientExists = await _unitOfWork.Repository<Patient>().GetQueryable().AnyAsync(p => p.Id == request.PatientId && !p.IsDeleted);
-                if (!patientExists)
+                // Validate foreign keys & load patient with account for age/gender checks
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .GetQueryable()
+                    .Include(p => p.Account)
+                    .Where(p => p.Id == request.PatientId && !p.IsDeleted)
+                    .FirstOrDefaultAsync();
+                if (patient == null)
                 {
                     return BaseResponse<TreatmentResponseModel>.CreateError("Patient not found", StatusCodes.Status404NotFound, "PATIENT_NOT_FOUND");
                 }
@@ -293,6 +297,20 @@ namespace FSCMS.Service.Services
                 if (!doctorExists)
                 {
                     return BaseResponse<TreatmentResponseModel>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
+                }
+
+                // Age restriction by treatment type & gender
+                var ageValidation = ValidatePatientAgeForTreatment(
+                    request.TreatmentType,
+                    patient.Account?.Gender,
+                    CalculateAge(patient.Account?.BirthDate, request.StartDate));
+
+                if (!ageValidation.IsValid)
+                {
+                    return BaseResponse<TreatmentResponseModel>.CreateError(
+                        ageValidation.Message,
+                        StatusCodes.Status400BadRequest,
+                        ageValidation.SystemCode);
                 }
 
                 // Business Rule: Each Patient can only have 1 active Treatment at a time
@@ -769,6 +787,70 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region Private Helper Methods
+
+        /// <summary>
+        /// Calculates age (years) from birth date at a given reference date.
+        /// Returns null when birth date is missing.
+        /// </summary>
+        private static int? CalculateAge(DateOnly? birthDate, DateTime referenceDate)
+        {
+            if (!birthDate.HasValue)
+            {
+                return null;
+            }
+
+            var reference = DateOnly.FromDateTime(referenceDate.Date);
+            var age = reference.Year - birthDate.Value.Year;
+
+            if (reference < birthDate.Value.AddYears(age))
+            {
+                age--;
+            }
+
+            return age;
+        }
+
+        /// <summary>
+        /// Validates patient age based on treatment type and gender.
+        /// IUI: female <= 40, male <= 60
+        /// IVF: female <= 45, male <= 60
+        /// </summary>
+        private (bool IsValid, string Message, string SystemCode) ValidatePatientAgeForTreatment(
+            TreatmentType treatmentType,
+            bool? gender,
+            int? age)
+        {
+            if (gender is null)
+            {
+                return (false, "Không thể xác định giới tính bệnh nhân để kiểm tra giới hạn tuổi.", "PATIENT_GENDER_REQUIRED");
+            }
+
+            if (age is null)
+            {
+                return (false, "Không thể xác định tuổi bệnh nhân (thiếu ngày sinh).", "PATIENT_BIRTHDATE_REQUIRED");
+            }
+
+            var isMale = gender.Value;
+            var maxAge = treatmentType switch
+            {
+                TreatmentType.IUI => isMale ? 60 : 40,
+                TreatmentType.IVF => isMale ? 60 : 45,
+                _ => 60
+            };
+
+            if (age > maxAge)
+            {
+                var limitText = isMale
+                    ? "nam ≤ 60 tuổi"
+                    : treatmentType == TreatmentType.IUI ? "nữ ≤ 40 tuổi" : "nữ ≤ 45 tuổi";
+
+                return (false,
+                    $"Điều trị {treatmentType} chỉ áp dụng cho {limitText}. Tuổi bệnh nhân hiện tại: {age}.",
+                    "PATIENT_AGE_EXCEEDED");
+            }
+
+            return (true, string.Empty, string.Empty);
+        }
 
         /// <summary>
         /// Retrieves treatment entity with all related navigation properties
