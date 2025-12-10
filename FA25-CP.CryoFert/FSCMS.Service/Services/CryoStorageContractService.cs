@@ -360,6 +360,8 @@ namespace FSCMS.Service.Services
                                 Data = null
                             };
                         }
+                        sample.Status = SpecimenStatus.Frozen;
+                        await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
                         var cPSDetails = new CPSDetail
                         {
                             LabSampleId = c.LabSampleId,
@@ -373,6 +375,7 @@ namespace FSCMS.Service.Services
                             LabSample = sample
                         };
                         await _unitOfWork.Repository<CPSDetail>().InsertAsync(cPSDetails);
+                        await _unitOfWork.CommitAsync();
                     }
                 }
                 var patientCode = patient?.PatientCode ?? "UNK";
