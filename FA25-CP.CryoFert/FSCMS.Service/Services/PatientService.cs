@@ -192,7 +192,7 @@ namespace FSCMS.Service.Services
                 return BaseResponse<PatientResponse>.CreateError($"An error occurred while retrieving patient: {ex.Message}", StatusCodes.Status500InternalServerError, "PATIENT_500");
             }
         }
-        
+
         /// <summary>
         /// Gets detailed patient information by ID including related data
         /// </summary>
@@ -922,7 +922,7 @@ namespace FSCMS.Service.Services
 
                 existingPatient.IsActive = request.IsActive;
                 existingPatient.UpdatedAt = DateTime.UtcNow;
-                    
+
                 if (!string.IsNullOrWhiteSpace(request.Reason))
                 {
                     existingPatient.Notes = string.IsNullOrWhiteSpace(existingPatient.Notes)
@@ -1078,7 +1078,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse<RelationshipResponse>.CreateError("Patient account information is missing", StatusCodes.Status404NotFound, "RELATIONSHIP_003_ACCOUNT");
                 }
 
-                // 4. Business rules validation
+                // 4. Business rules validation - Patient genders and relationship type
                 var validationResult = await ValidateRelationshipBusinessRulesAsync(patient1, patient2, request.RelationshipType);
                 if (!validationResult.IsValid)
                 {
@@ -1111,7 +1111,7 @@ namespace FSCMS.Service.Services
                 // 6. Create relationship with Pending status
                 // Generate secure approval token for email-based verification
                 var approvalToken = GenerateSecureToken();
-                
+
                 var relationship = new Relationship(
                     Guid.NewGuid(),
                     request.Patient1Id,
@@ -2481,7 +2481,8 @@ namespace FSCMS.Service.Services
                 return (false, "Patient2 does not have gender information. Gender is required for relationship creation.", "RELATIONSHIP_VALIDATION_GENDER_002");
             }
 
-            var patient1Gender = patient1.Account.Gender.Value; // true = male, false = female
+            // true = male, false = female
+            var patient1Gender = patient1.Account.Gender.Value;
             var patient2Gender = patient2.Account.Gender.Value;
 
             // Check that genders are different
@@ -2491,31 +2492,31 @@ namespace FSCMS.Service.Services
             }
 
             // Validate gender compatibility with RelationshipType
-            if (relationshipType == RelationshipType.Wife)
+            if (relationshipType == RelationshipType.Married)
             {
-                // Wife relationship: Patient1 should be female (false), Patient2 should be male (true)
-                if (patient1Gender != false || patient2Gender != true)
+                // Married relationship validation - both patients must have different
+                if (patient1Gender == patient2Gender)
                 {
-                    return (false, "Invalid gender combination for Wife relationship. Patient1 must be female and Patient2 must be male.", "RELATIONSHIP_VALIDATION_GENDER_004");
+                    return (false, "Invalid gender combination for Married relationship. Patients must have different genders.", "RELATIONSHIP_VALIDATION_GENDER_004");
                 }
             }
-            else if (relationshipType == RelationshipType.Husband)
+            else if (relationshipType == RelationshipType.Unmarried)
             {
-                // Husband relationship: Patient1 should be male (true), Patient2 should be female (false)
-                if (patient1Gender != true || patient2Gender != false)
+                // Unmarried relationship validation - both patients must have different
+                if (patient1Gender == patient2Gender)
                 {
-                    return (false, "Invalid gender combination for Husband relationship. Patient1 must be male and Patient2 must be female.", "RELATIONSHIP_VALIDATION_GENDER_005");
+                    return (false, "Invalid gender combination for Unmarried relationship. Patients must have different genders .", "RELATIONSHIP_VALIDATION_GENDER_005");
                 }
             }
 
             // Spouse relationship validation (1-1 rule)
-            if (relationshipType == RelationshipType.Wife || relationshipType == RelationshipType.Husband)
+            if (relationshipType == RelationshipType.Married || relationshipType == RelationshipType.Unmarried)
             {
                 // Check if Patient1 already has an approved spouse
                 var existingSpouse1 = await _unitOfWork.Repository<Relationship>()
                     .AsQueryable()
                     .Where(r => (r.Patient1Id == patient1.Id || r.Patient2Id == patient1.Id) &&
-                               (r.RelationshipType == RelationshipType.Wife || r.RelationshipType == RelationshipType.Husband) &&
+                               (r.RelationshipType == RelationshipType.Married || r.RelationshipType == RelationshipType.Unmarried) &&
                                r.Status == RelationshipStatus.Approved &&
                                !r.IsDeleted)
                     .FirstOrDefaultAsync();
@@ -2529,7 +2530,7 @@ namespace FSCMS.Service.Services
                 var existingSpouse2 = await _unitOfWork.Repository<Relationship>()
                     .AsQueryable()
                     .Where(r => (r.Patient1Id == patient2.Id || r.Patient2Id == patient2.Id) &&
-                               (r.RelationshipType == RelationshipType.Wife || r.RelationshipType == RelationshipType.Husband) &&
+                               (r.RelationshipType == RelationshipType.Married || r.RelationshipType == RelationshipType.Unmarried) &&
                                r.Status == RelationshipStatus.Approved &&
                                !r.IsDeleted)
                     .FirstOrDefaultAsync();
