@@ -8,19 +8,14 @@ namespace FSCMS.Core.Enum
         Pending = 0,
 
         /// <summary>
-        /// Thỏa thuận đang có hiệu lực.
-        /// </summary>
-        Active = 1,
-
-        /// <summary>
         /// Thỏa thuận đã hoàn tất (hết hiệu lực theo đúng tiến trình).
         /// </summary>
-        Completed = 2,
+        Completed = 1,
 
         /// <summary>
         /// Thỏa thuận bị hủy trước khi hoàn tất.
         /// </summary>
-        Canceled = 3
+        Canceled = 2
     }
 }
 
