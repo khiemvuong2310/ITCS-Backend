@@ -428,23 +428,24 @@ namespace FSCMS.Core
             var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010008");
             
             modelBuilder.Entity<Account>().HasData(
-                new Account(adminAccountId, "System", "Admin", null, "admin@cryo.com", "admin", defaultPwdHash, "0901234567", null, true, true, true, null, null) { RoleId = roleAdminId },
-                new Account(labAccountId, "Lab", "Technician", null, "lab@cryo.com", "lab", defaultPwdHash, "0901234568", null, false, true, true, null, null) { RoleId = roleLabId },
-                new Account(receptionistAccountId, "Front", "Receptionist", null, "receptionist@cryo.com", "receptionist", defaultPwdHash, "0901234569", null, false, true, true, null, null) { RoleId = roleReceptionistId },
+                // Giữ lại các tài khoản hệ thống quan trọng: Admin, Staff (Receptionist), Lab
+                new Account(adminAccountId, "System", "Admin", new DateOnly(1985, 1, 1), "admin@cryo.com", "admin", defaultPwdHash, "+84901234567", "192.168.1.10", true, true, true, "123 Lê Lợi, Quận 1, TP.HCM", null) { RoleId = roleAdminId },
+                new Account(labAccountId, "Lab", "Technician", new DateOnly(1991, 3, 12), "lab@cryo.com", "lab", defaultPwdHash, "+84901234568", "192.168.1.20", false, true, true, "456 Nguyễn Văn Cừ, Quận 5, TP.HCM", null) { RoleId = roleLabId },
+                new Account(receptionistAccountId, "Front", "Receptionist", new DateOnly(1996, 7, 9), "staff@cryo.com", "receptionist", defaultPwdHash, "+84901234569", "192.168.1.30", false, true, true, "89 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleReceptionistId },
 
                 // Doctor accounts
-                new Account(doctor1AccountId, "Nguyen", "Van A", new DateOnly(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor2AccountId, "Tran", "Thi B", new DateOnly(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", null, false, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor3AccountId, "Le", "Minh C", new DateOnly(1978, 2, 14), "doctor3@cryo.com", "doctor3", defaultPwdHash, "+84900000012", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor4AccountId, "Pham", "Thi D", new DateOnly(1982, 11, 30), "doctor4@cryo.com", "doctor4", defaultPwdHash, "+84900000013", null, false, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor5AccountId, "Vo", "Hoang E", new DateOnly(1975, 6, 8), "doctor5@cryo.com", "doctor5", defaultPwdHash, "+84900000014", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor6AccountId, "Dang", "Thi F", new DateOnly(1988, 9, 22), "doctor6@cryo.com", "doctor6", defaultPwdHash, "+84900000015", null, false, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor7AccountId, "Bui", "Quoc G", new DateOnly(1983, 4, 5), "doctor7@cryo.com", "doctor7", defaultPwdHash, "+84900000016", null, true, true, true, null, null) { RoleId = roleDoctorId },
-                new Account(doctor8AccountId, "Ho", "Thi H", new DateOnly(1979, 12, 18), "doctor8@cryo.com", "doctor8", defaultPwdHash, "+84900000017", null, false, true, true, null, null) { RoleId = roleDoctorId },
+                new Account(doctor1AccountId, "Nguyễn", "Văn An", new DateOnly(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", "10.0.0.11", true, true, true, "12 Phan Đăng Lưu, Phú Nhuận, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor2AccountId, "Trần", "Thị Bình", new DateOnly(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", "10.0.0.12", false, true, true, "34 Cách Mạng Tháng Tám, Quận 3, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor3AccountId, "Lê", "Minh Cường", new DateOnly(1978, 2, 14), "doctor3@cryo.com", "doctor3", defaultPwdHash, "+84900000012", "10.0.0.13", true, true, true, "56 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor4AccountId, "Phạm", "Thị Dung", new DateOnly(1982, 11, 30), "doctor4@cryo.com", "doctor4", defaultPwdHash, "+84900000013", "10.0.0.14", false, true, true, "78 Lý Thường Kiệt, Quận 10, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor5AccountId, "Võ", "Hoàng Em", new DateOnly(1975, 6, 8), "doctor5@cryo.com", "doctor5", defaultPwdHash, "+84900000014", "10.0.0.15", true, true, true, "90 Nguyễn Huệ, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor6AccountId, "Đặng", "Thị Phương", new DateOnly(1988, 9, 22), "doctor6@cryo.com", "doctor6", defaultPwdHash, "+84900000015", "10.0.0.16", false, true, true, "145 Trường Chinh, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor7AccountId, "Bùi", "Quốc Gia", new DateOnly(1983, 4, 5), "doctor7@cryo.com", "doctor7", defaultPwdHash, "+84900000016", "10.0.0.17", true, true, true, "210 Hoàng Văn Thụ, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor8AccountId, "Hồ", "Thị Hạnh", new DateOnly(1979, 12, 18), "doctor8@cryo.com", "doctor8", defaultPwdHash, "+84900000017", "10.0.0.18", false, true, true, "315 Trần Hưng Đạo, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
                 // Patient accounts
-                new Account(patient1AccountId, "Le", "Van C", new DateOnly(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", null, true, true, true, null, null) { RoleId = rolePatientId },
-                new Account(patient2AccountId, "Pham", "Thi D", new DateOnly(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", null, false, true, true, null, null) { RoleId = rolePatientId },
-                new Account(patient3AccountId, "Hoang", "Van E", new DateOnly(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", null, true, true, true, null, null) { RoleId = rolePatientId }
+                new Account(patient1AccountId, "Lê", "Văn Cảnh", new DateOnly(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", "10.0.1.11", true, true, true, "25 Điện Biên Phủ, Bình Thạnh, TP.HCM", null) { RoleId = rolePatientId },
+                new Account(patient2AccountId, "Phạm", "Thị Duyên", new DateOnly(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", "10.0.1.12", false, true, true, "68 Nguyễn Trãi, Quận 5, TP.HCM", null) { RoleId = rolePatientId },
+                new Account(patient3AccountId, "Hoàng", "Văn Êm", new DateOnly(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", "10.0.1.13", true, true, true, "12 Võ Văn Kiệt, Quận 1, TP.HCM", null) { RoleId = rolePatientId }
             );
 
             // Seed Doctors
@@ -536,96 +537,92 @@ namespace FSCMS.Core
 
             // ========================================
             // Seed Data: Service Categories & Services
+            // (điều chỉnh theo file "Các service.docx")
             // ========================================
-            var catConsultation = new Guid("10000000-0000-0000-0000-000000000001");
-            var catDiagnostics = new Guid("10000000-0000-0000-0000-000000000002");
-            var catLabProcedures = new Guid("10000000-0000-0000-0000-000000000003");
-            var catCryoStorage = new Guid("10000000-0000-0000-0000-000000000004");
-            var catTreatment = new Guid("10000000-0000-0000-0000-000000000005");
-            var catMedication = new Guid("10000000-0000-0000-0000-000000000006");
-            var catAdministrative = new Guid("10000000-0000-0000-0000-000000000007");
+            var catLabTests = new Guid("10000000-0000-0000-0000-000000000011"); // Lab tests (xét nghiệm)
+            var catImaging = new Guid("10000000-0000-0000-0000-000000000012"); // Imaging (siêu âm, HSG, HSC)
+            var catGenetic = new Guid("10000000-0000-0000-0000-000000000013"); // Genetic testing (Karyotype, PGT, CFTR...)
+            var catLabProcedures = new Guid("10000000-0000-0000-0000-000000000003"); // Lab procedures (IUI, OPU, ICSI, etc.)
 
-            //Danh mục dịch vụ cốt lõi của hệ thống (phân nhóm: khám, cận lâm sàng, lab, cryo, thủ thuật, thuốc, hành chính)
             modelBuilder.Entity<ServiceCategory>().HasData(
-                new ServiceCategory(catConsultation, "Consultation") { Code = "CONS", Description = "Clinical consultations", DisplayOrder = 1 },
-                new ServiceCategory(catDiagnostics, "Diagnostics & Imaging") { Code = "DIAG", Description = "Diagnostic tests and imaging", DisplayOrder = 2 },
-                new ServiceCategory(catLabProcedures, "Laboratory Procedures") { Code = "LAB", Description = "Embryology and andrology procedures", DisplayOrder = 3 },
-                new ServiceCategory(catCryoStorage, "Cryostorage & Logistics") { Code = "CRYO", Description = "Cryopreservation and storage services", DisplayOrder = 4 },
-                new ServiceCategory(catTreatment, "Treatment Procedures") { Code = "TRMT", Description = "IUI/IVF related procedures", DisplayOrder = 5 },
-                new ServiceCategory(catMedication, "Medications") { Code = "MED", Description = "Medications and injections", DisplayOrder = 6 },
-                new ServiceCategory(catAdministrative, "Administrative & Others") { Code = "ADMIN", Description = "Administrative fees", DisplayOrder = 7 }
+                new ServiceCategory(catLabTests, "Laboratory Tests") { Code = "LAB", Description = "Clinical laboratory tests (female/male/post-IVF)", DisplayOrder = 1 },
+                new ServiceCategory(catImaging, "Imaging & Diagnostic Procedures") { Code = "IMG", Description = "Ultrasound, HSG, hysteroscopy, other imaging", DisplayOrder = 2 },
+                new ServiceCategory(catGenetic, "Genetic Testing") { Code = "GEN", Description = "Karyotype, Thalassemia, CFTR, PGT", DisplayOrder = 3 },
+                new ServiceCategory(catLabProcedures, "Laboratory Procedures / IVF-IUI") { Code = "PROC", Description = "IUI, OPU, ICSI, sperm prep, embryo culture", DisplayOrder = 4 }
             );
 
-            // Seed fixed Slots (4 slots in a day)
+            // --- Slots giữ nguyên (nếu cần) ---
             modelBuilder.Entity<Slot>().HasData(
-				new Slot(new Guid("00000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)) { Notes = "Morning Slot 1" },
-				new Slot(new Guid("00000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)) { Notes = "Morning Slot 2" },
-				new Slot(new Guid("00000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0)) { Notes = "Afternoon Slot 1" },
-				new Slot(new Guid("00000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0)) { Notes = "Afternoon Slot 2" }
+                new Slot(new Guid("00000000-0000-0000-0000-000000000001"), new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)) { Notes = "Morning Slot 1" },
+                new Slot(new Guid("00000000-0000-0000-0000-000000000002"), new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)) { Notes = "Morning Slot 2" },
+                new Slot(new Guid("00000000-0000-0000-0000-000000000003"), new TimeSpan(13, 0, 0), new TimeSpan(15, 0, 0)) { Notes = "Afternoon Slot 1" },
+                new Slot(new Guid("00000000-0000-0000-0000-000000000004"), new TimeSpan(15, 0, 0), new TimeSpan(17, 0, 0)) { Notes = "Afternoon Slot 2" }
             );
 
-            //Các dịch vụ tiêu biểu cho lĩnh vực hỗ trợ sinh sản & cryobank (kèm giá, đơn vị, thời lượng nếu có)
+            // --- Services (category assignments updated) ---
             modelBuilder.Entity<Service>().HasData(
-                // A. Lab test – Nữ: Bộ nội tiết
-                new Service(new Guid("20000000-0000-0000-0000-000000000101"), "FSH (female)", 200000m, catDiagnostics) { Code = "LAB-FSH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000102"), "LH (female)", 200000m, catDiagnostics) { Code = "LAB-LH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000103"), "Estradiol (E2) (female)", 200000m, catDiagnostics) { Code = "LAB-E2-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000104"), "AMH (female)", 775000m, catDiagnostics) { Code = "LAB-AMH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000105"), "TSH (female)", 200000m, catDiagnostics) { Code = "LAB-TSH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000106"), "FT4/FT3 (female)", 200000m, catDiagnostics) { Code = "LAB-FT-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000107"), "Prolactin (female)", 185000m, catDiagnostics) { Code = "LAB-PRL-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000108"), "Progesterone (female)", 200000m, catDiagnostics) { Code = "LAB-P4-F", Unit = "test" },
+                // A. Lab test – Nữ: Bộ nội tiết (điền vào LAB)
+                new Service(new Guid("20000000-0000-0000-0000-000000000101"), "FSH (female)", 200000m, catLabTests) { Code = "LAB-FSH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000102"), "LH (female)", 200000m, catLabTests) { Code = "LAB-LH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000103"), "Estradiol (E2) (female)", 200000m, catLabTests) { Code = "LAB-E2-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000104"), "AMH (female)", 775000m, catLabTests) { Code = "LAB-AMH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000105"), "TSH (female)", 200000m, catLabTests) { Code = "LAB-TSH-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000106"), "FT4/FT3 (female)", 200000m, catLabTests) { Code = "LAB-FT-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000107"), "Prolactin (female)", 185000m, catLabTests) { Code = "LAB-PRL-F", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000108"), "Progesterone (female)", 200000m, catLabTests) { Code = "LAB-P4-F", Unit = "test" },
 
-                // A. Lab test – Nữ: Miễn dịch – bệnh truyền nhiễm
-                new Service(new Guid("20000000-0000-0000-0000-000000000109"), "HIV screening", 150000m, catDiagnostics) { Code = "LAB-HIV", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000110"), "HBsAg", 125000m, catDiagnostics) { Code = "LAB-HBSAG", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000111"), "Anti-HCV", 185000m, catDiagnostics) { Code = "LAB-HCV", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000112"), "RPR/VDRL (syphilis)", 160000m, catDiagnostics) { Code = "LAB-RPR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000113"), "Rubella IgG/IgM", 400000m, catDiagnostics) { Code = "LAB-RUB", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000114"), "CMV IgG/IgM", 400000m, catDiagnostics) { Code = "LAB-CMV", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000115"), "Chlamydia PCR", 575000m, catDiagnostics) { Code = "LAB-CHLA-PCR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000116"), "Gonorrhea PCR", 575000m, catDiagnostics) { Code = "LAB-GONO-PCR", Unit = "test" },
+                // A. Miễn dịch – bệnh truyền nhiễm -> LAB
+                new Service(new Guid("20000000-0000-0000-0000-000000000109"), "HIV screening", 150000m, catLabTests) { Code = "LAB-HIV", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000110"), "HBsAg", 125000m, catLabTests) { Code = "LAB-HBSAG", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000111"), "Anti-HCV", 185000m, catLabTests) { Code = "LAB-HCV", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000112"), "RPR/VDRL (syphilis)", 160000m, catLabTests) { Code = "LAB-RPR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000113"), "Rubella IgG/IgM", 400000m, catLabTests) { Code = "LAB-RUB", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000114"), "CMV IgG/IgM", 400000m, catLabTests) { Code = "LAB-CMV", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000115"), "Chlamydia PCR", 575000m, catLabTests) { Code = "LAB-CHLA-PCR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000116"), "Gonorrhea PCR", 575000m, catLabTests) { Code = "LAB-GONO-PCR", Unit = "test" },
 
-                // A. Lab test – Nữ: Sinh hóa – huyết học
-                new Service(new Guid("20000000-0000-0000-0000-000000000117"), "Complete blood count (CBC)", 100000m, catDiagnostics) { Code = "LAB-CBC", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000118"), "Blood glucose", 65000m, catDiagnostics) { Code = "LAB-GLU", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000119"), "AST/ALT", 65000m, catDiagnostics) { Code = "LAB-LFT", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000120"), "Creatinine/Urea", 65000m, catDiagnostics) { Code = "LAB-KFT", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000121"), "Electrolyte panel", 160000m, catDiagnostics) { Code = "LAB-ELEC", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000122"), "ABO/Rh blood group", 115000m, catDiagnostics) { Code = "LAB-ABO", Unit = "test" },
+                // A. Sinh hóa – huyết học -> LAB
+                new Service(new Guid("20000000-0000-0000-0000-000000000117"), "Complete blood count (CBC)", 100000m, catLabTests) { Code = "LAB-CBC", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000118"), "Blood glucose", 65000m, catLabTests) { Code = "LAB-GLU", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000119"), "AST/ALT", 65000m, catLabTests) { Code = "LAB-LFT", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000120"), "Creatinine/Urea", 65000m, catLabTests) { Code = "LAB-KFT", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000121"), "Electrolyte panel", 160000m, catLabTests) { Code = "LAB-ELEC", Unit = "panel" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000122"), "ABO/Rh blood group", 115000m, catLabTests) { Code = "LAB-ABO", Unit = "test" },
 
-                // B. Lab test – Nam: Tinh dịch đồ
-                new Service(new Guid("20000000-0000-0000-0000-000000000123"), "Semen analysis (SA)", 350000m, catDiagnostics) { Code = "LAB-SA", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000124"), "Semen analysis repeat", 250000m, catDiagnostics) { Code = "LAB-SA-REP", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000125"), "MAR test", 525000m, catDiagnostics) { Code = "LAB-MAR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000126"), "DNA Fragmentation (DFI)", 2500000m, catDiagnostics) { Code = "LAB-DFI", Unit = "test" },
+                // B. Nam: Tinh dịch đồ -> LAB
+                new Service(new Guid("20000000-0000-0000-0000-000000000123"), "Semen analysis (SA)", 350000m, catLabTests) { Code = "LAB-SA", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000124"), "Semen analysis repeat", 250000m, catLabTests) { Code = "LAB-SA-REP", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000125"), "MAR test", 525000m, catLabTests) { Code = "LAB-MAR", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000126"), "DNA Fragmentation (DFI)", 2500000m, catLabTests) { Code = "LAB-DFI", Unit = "test" },
 
-                // B. Lab test – Nam: Nội tiết nam
-                new Service(new Guid("20000000-0000-0000-0000-000000000127"), "FSH (male)", 200000m, catDiagnostics) { Code = "LAB-FSH-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000128"), "LH (male)", 200000m, catDiagnostics) { Code = "LAB-LH-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000129"), "Testosterone (male)", 200000m, catDiagnostics) { Code = "LAB-TESTO-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000130"), "Prolactin (male)", 185000m, catDiagnostics) { Code = "LAB-PRL-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000131"), "TSH (male)", 200000m, catDiagnostics) { Code = "LAB-TSH-M", Unit = "test" },
+                // B. Nam: Nội tiết nam -> LAB
+                new Service(new Guid("20000000-0000-0000-0000-000000000127"), "FSH (male)", 200000m, catLabTests) { Code = "LAB-FSH-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000128"), "LH (male)", 200000m, catLabTests) { Code = "LAB-LH-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000129"), "Testosterone (male)", 200000m, catLabTests) { Code = "LAB-TESTO-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000130"), "Prolactin (male)", 185000m, catLabTests) { Code = "LAB-PRL-M", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000131"), "TSH (male)", 200000m, catLabTests) { Code = "LAB-TSH-M", Unit = "test" },
 
-                // C. Xét nghiệm di truyền
-                new Service(new Guid("20000000-0000-0000-0000-000000000132"), "Karyotype", 1350000m, catDiagnostics) { Code = "LAB-KARYO", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000133"), "Thalassemia test", 950000m, catDiagnostics) { Code = "LAB-THALA", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000134"), "CFTR (cystic fibrosis)", 3000000m, catDiagnostics) { Code = "LAB-CFTR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000135"), "PGT-A/M per embryo", 19000000m, catLabProcedures) { Code = "LAB-PGT", Unit = "embryo" },
+                // C. Xét nghiệm di truyền -> chuyển vào GEN
+                new Service(new Guid("20000000-0000-0000-0000-000000000132"), "Karyotype", 1350000m, catGenetic) { Code = "LAB-KARYO", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000133"), "Thalassemia test", 950000m, catGenetic) { Code = "LAB-THALA", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000134"), "CFTR (cystic fibrosis)", 3000000m, catGenetic) { Code = "LAB-CFTR", Unit = "test" },
 
-                // D. Lab test sau IVF/IUI
-                new Service(new Guid("20000000-0000-0000-0000-000000000136"), "β-hCG", 150000m, catDiagnostics) { Code = "LAB-BHCG", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000137"), "Progesterone follow-up", 200000m, catDiagnostics) { Code = "LAB-P4-FU", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000138"), "Estradiol follow-up", 200000m, catDiagnostics) { Code = "LAB-E2-FU", Unit = "test" },
+                // PGT-A/M per embryo -> đặt vào Genetic (file liệt kê PGT như xét nghiệm di truyền)
+                new Service(new Guid("20000000-0000-0000-0000-000000000135"), "PGT-A/M per embryo", 19000000m, catGenetic) { Code = "LAB-PGT", Unit = "embryo" },
 
-                // Dịch vụ chẩn đoán hình ảnh bổ sung (không thuộc lab test)
-                new Service(new Guid("20000000-0000-0000-0000-000000000139"), "Transvaginal ultrasound", 225000m, catDiagnostics) { Code = "US-TVS", Unit = "scan" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000140"), "Abdominal ultrasound", 200000m, catDiagnostics) { Code = "US-ABD", Unit = "scan" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000141"), "Follicular ultrasound", 225000m, catDiagnostics) { Code = "US-FOLL", Unit = "scan" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000142"), "HSG (hysterosalpingogram)", 1500000m, catDiagnostics) { Code = "IMG-HSG", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000143"), "Diagnostic hysteroscopy", 4500000m, catDiagnostics) { Code = "IMG-HSC", Unit = "procedure" },
+                // D. Lab tests sau IVF/IUI -> LAB
+                new Service(new Guid("20000000-0000-0000-0000-000000000136"), "β-hCG", 150000m, catLabTests) { Code = "LAB-BHCG", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000137"), "Progesterone follow-up", 200000m, catLabTests) { Code = "LAB-P4-FU", Unit = "test" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000138"), "Estradiol follow-up", 200000m, catLabTests) { Code = "LAB-E2-FU", Unit = "test" },
 
-                // Thủ thuật IVF/IUI (lab procedures)
+                // Dịch vụ chẩn đoán hình ảnh -> chuyển sang IMAGING
+                new Service(new Guid("20000000-0000-0000-0000-000000000139"), "Transvaginal ultrasound", 225000m, catImaging) { Code = "US-TVS", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000140"), "Abdominal ultrasound", 200000m, catImaging) { Code = "US-ABD", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000141"), "Follicular ultrasound", 225000m, catImaging) { Code = "US-FOLL", Unit = "scan" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000142"), "HSG (hysterosalpingogram)", 1500000m, catImaging) { Code = "IMG-HSG", Unit = "procedure" },
+                new Service(new Guid("20000000-0000-0000-0000-000000000143"), "Diagnostic hysteroscopy", 4500000m, catImaging) { Code = "IMG-HSC", Unit = "procedure" },
+
+                // Thủ thuật / procedures (IUI/OPU/ICSI/...) -> giữ ở LAB PROCEDURES
                 new Service(new Guid("20000000-0000-0000-0000-000000000144"), "Sperm collection", 150000m, catLabProcedures) { Code = "LAB-SP-COLL", Unit = "procedure" },
                 new Service(new Guid("20000000-0000-0000-0000-000000000145"), "Sperm wash", 650000m, catLabProcedures) { Code = "LAB-SP-WASH", Unit = "procedure" },
                 new Service(new Guid("20000000-0000-0000-0000-000000000146"), "IUI procedure", 3500000m, catLabProcedures) { Code = "LAB-IUI", Unit = "procedure" },
@@ -633,6 +630,7 @@ namespace FSCMS.Core
                 new Service(new Guid("20000000-0000-0000-0000-000000000148"), "ICSI", 9000000m, catLabProcedures) { Code = "LAB-ICSI", Unit = "procedure" },
                 new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" }
             );
+
 
             // Seed Medicines (updated list mapped from clinical regimen table)
             modelBuilder.Entity<Medicine>().HasData(
