@@ -1017,12 +1017,12 @@ namespace FSCMS.Service.Services
             var stepPlan = new List<(int CycleNumber, string CycleName, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
             {
                 (1, "Pre-Cycle Preparation", TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase begins at baseline."),
-                (2, "Day 2-3 Assessment", TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
-                (3, "Day 7-10 Follicle Monitoring", TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 1, "Mid-cycle follicle monitoring."),
-                (4, "Day 10-12 Trigger", TreatmentStepType.IUI_Day10_12_Trigger, 1, "Ovulation trigger planning."),
+                (2, "Assessment", TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
+                (3, "Follicle Monitoring", TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 1, "Mid-cycle follicle monitoring (Day 7-10 )."),
+                (4, "Trigger", TreatmentStepType.IUI_Day10_12_Trigger, 1, "Ovulation trigger planning (Day 10-12)."),
                 (5, "IUI Procedure", TreatmentStepType.IUI_Procedure, 1, "Intrauterine insemination procedure."),
                 (6, "Post-IUI Monitoring", TreatmentStepType.IUI_PostIUI, 1, "Immediate post-procedure care."),
-                (7, "Beta HCG (14 days)", TreatmentStepType.IUI_BetaHCGTest, 1, "Pregnancy test 14 days after procedure.")
+                (7, "Beta HCG", TreatmentStepType.IUI_BetaHCGTest, 1, "Pregnancy test 14 days after procedure (14 days).")
             };
 
             // Calculate sequential ScheduledDate based on ExpectedDurationDays
