@@ -32,7 +32,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get all medicines with pagination
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(Medicine))]
         public async Task<IActionResult> GetAll([FromQuery] PagingModel request)
         {
@@ -44,7 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get medicine by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(Medicine), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
