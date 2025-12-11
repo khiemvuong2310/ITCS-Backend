@@ -17,6 +17,11 @@ namespace FSCMS.Service.RequestModel
         public Guid? AppointmentId { get; set; }
 
         /// <summary>
+        /// Filter by patient ID 
+        /// </summary>
+        public Guid? PatientId { get; set; }
+
+        /// <summary>
         /// Filter by request date from
         /// </summary>
         public DateTime? RequestDateFrom { get; set; }

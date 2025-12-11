@@ -89,6 +89,7 @@ namespace FSCMS.Service.Services
                 var query = _unitOfWork.Repository<ServiceRequest>()
                     .GetQueryable()
                     .AsNoTracking()
+                    .Include(sr => sr.Appointment)
                     .Include(sr => sr.ServiceRequestDetails)
                         .ThenInclude(srd => srd.Service)
                     .Where(sr => !sr.IsDeleted);
@@ -102,6 +103,11 @@ namespace FSCMS.Service.Services
                 if (request.AppointmentId.HasValue)
                 {
                     query = query.Where(sr => sr.AppointmentId == request.AppointmentId.Value);
+                }
+
+                if (request.PatientId.HasValue)
+                {
+                    query = query.Where(sr => sr.Appointment != null && sr.Appointment.PatientId == request.PatientId.Value);
                 }
 
                 if (request.RequestDateFrom.HasValue)
