@@ -37,7 +37,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Appointment information</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentById(Guid id)
         {
@@ -51,7 +51,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Detailed appointment information</returns>
         [HttpGet("{id:guid}/details")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentDetails(Guid id)
         {
@@ -65,7 +65,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of appointments</returns>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAllAppointments([FromQuery] GetAppointmentsRequest request)
         {
@@ -80,7 +80,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of appointments</returns>
         [HttpGet("treatment-cycle/{treatmentCycleId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsByTreatmentCycleId(Guid treatmentCycleId, [FromQuery] GetAppointmentsRequest request)
         {
@@ -95,7 +95,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of appointments</returns>
         [HttpGet("doctor/{doctorId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsByDoctorId(Guid doctorId, [FromQuery] GetAppointmentsRequest request)
         {
@@ -110,7 +110,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of Type appointments</returns>
         [HttpGet("patient/{patientId:guid}/history")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsHistory(Guid patientId, [FromQuery] GetAppointmentsRequest request)
         {
@@ -124,7 +124,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="slotId">Slot ID</param>
         /// <returns>Appointment information</returns>
         [HttpGet("slot/{slotId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentBySlotId(Guid slotId)
         {
@@ -138,7 +138,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Appointment creation request</param>
         /// <returns>Created appointment information</returns>
         [HttpPost]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentRequest request)
         {
@@ -163,7 +163,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Appointment update request</param>
         /// <returns>Updated appointment information</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateAppointment(Guid id, [FromBody] UpdateAppointmentRequest request)
         {
@@ -187,7 +187,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Success or error response</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> DeleteAppointment(Guid id)
         {
@@ -206,7 +206,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="status">New appointment status</param>
         /// <returns>Success or error response</returns>
         [HttpPut("{id:guid}/status")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateAppointmentStatus(Guid id, [FromBody] UpdateAppointmentStatusRequest request)
         {
@@ -230,7 +230,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Success or error response</returns>
         [HttpPost("{id:guid}/check-in")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> CheckInAppointment(Guid id)
         {
@@ -244,7 +244,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Success or error response</returns>
         [HttpPost("{id:guid}/check-out")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> CheckOutAppointment(Guid id)
         {
@@ -259,7 +259,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Cancellation request with optional reason</param>
         /// <returns>Success or error response</returns>
         [HttpPost("{id:guid}/cancel")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> CancelAppointment(Guid id, [FromBody] CancelAppointmentRequest? request = null)
         {
@@ -279,7 +279,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Request containing doctor ID, role, and notes</param>
         /// <returns>Success or error response</returns>
         [HttpPost("{id:guid}/doctors")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> AddDoctorToAppointment(Guid id, [FromBody] AddDoctorToAppointmentRequest request)
         {
@@ -304,7 +304,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="doctorId">Doctor ID</param>
         /// <returns>Success or error response</returns>
         [HttpDelete("{id:guid}/doctors/{doctorId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> RemoveDoctorFromAppointment(Guid id, Guid doctorId)
         {
@@ -320,7 +320,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Request containing new role and notes</param>
         /// <returns>Success or error response</returns>
         [HttpPut("{id:guid}/doctors/{doctorId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateDoctorRoleInAppointment(Guid id, Guid doctorId, [FromBody] UpdateDoctorRoleRequest request)
         {

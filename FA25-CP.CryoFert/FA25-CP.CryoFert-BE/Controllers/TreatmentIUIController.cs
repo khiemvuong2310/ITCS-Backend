@@ -28,7 +28,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{treatmentId:guid}")]
-        [Authorize(Roles = "Doctor,Patient")]
+        [Authorize(Roles = "Doctor,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentIUIResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByTreatment(Guid treatmentId)
         {
@@ -80,7 +80,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{treatmentId:guid}/current-step")]
-        [Authorize(Roles = "Doctor,Patient")]
+        [Authorize(Roles = "Doctor,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(int), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetCurrentStep(Guid treatmentId)
         {
@@ -129,7 +129,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("patient/{patientId:guid}")]
-        [Authorize(Roles = "Doctor,Patient")]
+        [Authorize(Roles = "Doctor,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<TreatmentIUIResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByPatientId(Guid patientId)
         {
@@ -165,7 +165,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentIUIResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] TreatmentIUICreateUpdateRequest request)
         {
@@ -178,7 +178,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentIUIResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentIUIUpdateRequest request)
         {
@@ -191,7 +191,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {

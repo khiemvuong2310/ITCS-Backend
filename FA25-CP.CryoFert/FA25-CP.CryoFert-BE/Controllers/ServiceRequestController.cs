@@ -28,7 +28,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering request</param>
         /// <returns>Paginated service requests</returns>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServiceRequestsRequest request)
         {
@@ -45,7 +45,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Service request response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -59,7 +59,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="status">Service request status</param>
         /// <returns>List of service requests with the specified status</returns>
         [HttpGet("status/{status}")]
-        [Authorize]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceRequestResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByStatus(ServiceRequestStatus status)
         {
@@ -73,7 +73,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="appointmentId">Appointment ID</param>
         /// <returns>List of service requests for the appointment</returns>
         [HttpGet("appointment/{appointmentId:guid}")]
-        [Authorize]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(List<ServiceRequestResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByAppointment(Guid appointmentId)
         {
@@ -148,7 +148,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/approve")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Approve(Guid id)
         {
@@ -162,7 +162,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/reject")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Reject(Guid id)
         {
@@ -176,7 +176,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/complete")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Complete(Guid id)
         {
@@ -190,7 +190,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Updated service request response</returns>
         [HttpPost("{id:guid}/cancel")]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Cancel(Guid id)
         {
