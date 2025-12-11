@@ -68,7 +68,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create new medical record
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Doctor,Admin")]
+        [Authorize(Roles = "Doctor,Admin,Laboratory Technician")]
         [ApiDefaultResponse(typeof(MedicalRecordResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromQuery] CreateMedicalRecordRequest request)
         {
@@ -92,7 +92,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update medical record
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        [Authorize(Roles = "Doctor,Admin,Laboratory Technician")]
         [ApiDefaultResponse(typeof(MedicalRecordResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMedicalRecordRequest request)
         {
@@ -116,7 +116,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Soft delete a medical record
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        [Authorize(Roles = "Doctor,Admin,Laboratory Technician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {

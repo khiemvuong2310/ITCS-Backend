@@ -134,6 +134,8 @@ namespace FA25_CP.CryoFert_BE.Controllers
             string border = isSuccess ? "#c3e6cb" : "#f5c6cb";
             string icon = isSuccess ? "✓" : "✕";
             string title = isSuccess ? "Payment Successful" : "Payment Failed";
+            var amount = Convert.ToInt64(q["vnp_Amount"]) / 100;
+            var amountStr = string.Format("{0:N0} VND", amount);
 
             return $@"
         <!DOCTYPE html>
@@ -215,7 +217,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             <h1>{title}</h1>
 
             <div class='alert'>
-                <b>Amount:</b> @(string.Format(""{{0:N0}} VND"", Convert.ToInt64(q[""vnp_Amount""]) / 100))<br>
+                <b>Amount:</b> {amountStr}<br>
                 <b>Bank Code:</b> {q["vnp_BankCode"]}<br>
                 <b>Bank Tran No:</b> {q["vnp_BankTranNo"]}<br>
                 <b>Card Type:</b> {q["vnp_CardType"]}<br>
