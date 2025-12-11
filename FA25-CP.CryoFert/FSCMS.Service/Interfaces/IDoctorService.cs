@@ -108,10 +108,9 @@ namespace FSCMS.Service.Interfaces
         /// <summary>
         /// Get schedules for a specific doctor
         /// </summary>
-        /// <param name="doctorId">The unique identifier of the doctor</param>
-        /// <param name="request">Request parameters for filtering and pagination</param>
+        /// <param name="request">Request parameters for filtering and pagination (must include DoctorId)</param>
         /// <returns>DynamicResponse containing paginated schedule list</returns>
-        Task<DynamicResponse<DoctorScheduleResponse>> GetDoctorSchedulesByDoctorIdAsync(Guid doctorId, GetDoctorSchedulesRequest request);
+        Task<DynamicResponse<DoctorScheduleResponse>> GetDoctorSchedulesByDoctorIdAsync(GetDoctorSchedulesRequest request);
 
         /// <summary>
         /// Create new doctor schedule

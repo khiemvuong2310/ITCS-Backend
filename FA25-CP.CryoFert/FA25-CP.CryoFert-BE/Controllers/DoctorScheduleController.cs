@@ -71,15 +71,24 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get schedules for a specific doctor
         /// </summary>
-        /// <param name="doctorId">Doctor ID</param>
-        /// <param name="request">Filter and pagination parameters</param>
+        /// <param name="request">Filter and pagination parameters (must include DoctorId)</param>
         /// <returns>Paginated list of doctor schedules</returns>
-        [HttpGet("doctor/{doctorId}")]
+        [HttpGet("doctor")]
         [Authorize]
         [ApiDefaultResponse(typeof(DoctorScheduleResponse))]
-        public async Task<IActionResult> GetDoctorSchedulesByDoctorId(Guid doctorId, [FromQuery] GetDoctorSchedulesRequest request)
+        public async Task<IActionResult> GetDoctorSchedulesByDoctorId([FromQuery] GetDoctorSchedulesRequest request)
         {
-            var result = await _doctorService.GetDoctorSchedulesByDoctorIdAsync(doctorId, request);
+            if (request == null || !request.DoctorId.HasValue || request.DoctorId.Value == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse<DoctorScheduleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    SystemCode = "INVALID_DOCTOR_ID",
+                    Message = "Doctor ID is required"
+                });
+            }
+
+            var result = await _doctorService.GetDoctorSchedulesByDoctorIdAsync(request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
