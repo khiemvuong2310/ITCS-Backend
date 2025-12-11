@@ -108,7 +108,7 @@ namespace FA25_CP.CryoFert_BE
                             "https://fscms.pages.dev",
                             "https://cryo.devnguyen.xyz",
                             "https://cryofert.runasp.net",
-                            "http://localhost:5174/"
+                            "http://localhost:5174"
                           )
                           .AllowAnyHeader()
                           .AllowAnyMethod()
