@@ -1339,25 +1339,40 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Get schedules for a specific doctor
         /// </summary>
-        public async Task<DynamicResponse<DoctorScheduleResponse>> GetDoctorSchedulesByDoctorIdAsync(Guid doctorId, GetDoctorSchedulesRequest request)
+        public async Task<DynamicResponse<DoctorScheduleResponse>> GetDoctorSchedulesByDoctorIdAsync(GetDoctorSchedulesRequest request)
         {
             const string methodName = nameof(GetDoctorSchedulesByDoctorIdAsync);
-            _logger.LogInformation("{MethodName} called with doctorId: {DoctorId}, request: {@Request}", methodName, doctorId, request);
+            _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
 
             try
             {
-                if (doctorId == Guid.Empty)
+                if (request == null)
                 {
-                    _logger.LogWarning("{MethodName}: Invalid doctor ID provided - {DoctorId}", methodName, doctorId);
+                    _logger.LogWarning("{MethodName}: Request cannot be null", methodName);
                     return new DynamicResponse<DoctorScheduleResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        SystemCode = "INVALID_DOCTOR_ID",
-                        Message = "Doctor ID cannot be empty",
+                        SystemCode = "INVALID_REQUEST",
+                        Message = "Request cannot be null",
                         MetaData = new PagingMetaData(),
                         Data = new List<DoctorScheduleResponse>()
                     };
                 }
+
+                if (!request.DoctorId.HasValue || request.DoctorId.Value == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Doctor ID is required", methodName);
+                    return new DynamicResponse<DoctorScheduleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "INVALID_DOCTOR_ID",
+                        Message = "Doctor ID is required",
+                        MetaData = new PagingMetaData(),
+                        Data = new List<DoctorScheduleResponse>()
+                    };
+                }
+
+                var doctorId = request.DoctorId.Value;
 
                 // Verify doctor exists
                 var doctorExists = await DoctorExistsAsync(doctorId);
@@ -1374,17 +1389,13 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                if (request == null)
-                    request = new GetDoctorSchedulesRequest();
-
                 request.Normalize();
-                request.DoctorId = doctorId; // Override to ensure filtering by doctor
 
                 return await GetAllDoctorSchedulesAsync(request);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error retrieving schedules for doctor {DoctorId}", methodName, doctorId);
+                _logger.LogError(ex, "{MethodName}: Error retrieving schedules for doctor", methodName);
                 return new DynamicResponse<DoctorScheduleResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
