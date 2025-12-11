@@ -108,7 +108,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service creation request</param>
         /// <returns>Created service response</returns>
         [HttpPost]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] ServiceCreateUpdateRequestModel request)
         {
@@ -132,7 +132,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service update request</param>
         /// <returns>Updated service response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceCreateUpdateRequestModel request)
         {
@@ -155,7 +155,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Receptionist")]
+        [Authorize(Roles = "Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {

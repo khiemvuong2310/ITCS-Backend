@@ -24,7 +24,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor,Patient")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentsRequest request)
         {
@@ -67,7 +67,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor,Patient")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -108,7 +108,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Receptionist,Doctor")]
+        [Authorize(Roles = "Receptionist,Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] TreatmentCreateUpdateRequest request)
         {
@@ -142,7 +142,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] TreatmentUpdateRequest request)
         {
@@ -161,7 +161,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Request containing the new status</param>
         /// <returns>Success or error response</returns>
         [HttpPut("{id:guid}/status")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTreatmentStatusRequest request)
         {
@@ -180,7 +180,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(bool), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -189,7 +189,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpPut("{treatmentId:guid}/cancel-remaining-cycles")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,LaboratoryTechnician")]
         [ApiDefaultResponse(typeof(int), UseDynamicWrapper = false)]
         public async Task<IActionResult> CancelRemainingPlannedCycles(Guid treatmentId, Guid? excludeCycleId = null)
         {
