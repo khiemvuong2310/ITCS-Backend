@@ -58,7 +58,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Relationship ID</param>
         /// <returns>Relationship response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize]
         [ApiDefaultResponse(typeof(RelationshipResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetRelationshipById(Guid id)
         {
@@ -72,7 +72,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Get relationships request</param>
         /// <returns>Paginated relationship responses</returns>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Doctor,Receptionist.Laboratory Technician,Admin")]
         [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetAllRelationships([FromQuery] GetRelationshipsRequest request)
         {
@@ -87,7 +87,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination request</param>
         /// <returns>Paginated relationship responses</returns>
         [HttpGet("patient/{patientId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient")]
+        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(RelationshipResponse))]
         public async Task<IActionResult> GetPatientRelationships(Guid patientId, [FromQuery] GetRelationshipsRequest request)
         {
