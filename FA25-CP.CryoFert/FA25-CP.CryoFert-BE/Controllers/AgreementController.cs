@@ -33,7 +33,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter, pagination, and sorting parameters</param>
         /// <returns>Paginated list of agreements</returns>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician,Patient")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(AgreementResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetAgreementsRequest request)
         {
@@ -47,7 +47,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Agreement ID</param>
         /// <returns>Agreement details</returns>
         [HttpGet("{id}")]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician,Patient")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(AgreementDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -61,7 +61,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="code">Agreement code</param>
         /// <returns>Agreement details</returns>
         [HttpGet("code/{code}")]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician,Patient")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(AgreementDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByCode(string code)
         {
@@ -80,7 +80,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Agreement creation data</param>
         /// <returns>Created agreement information</returns>
         [HttpPost]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateAgreementRequest request)
         {
@@ -100,7 +100,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Updated agreement data</param>
         /// <returns>Updated agreement information</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAgreementRequest request)
         {
@@ -120,7 +120,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Signing information</param>
         /// <returns>Updated agreement information</returns>
         [HttpPost("{id}/sign")]
-        [Authorize(Roles = "Doctor,Patient,Staff,LaboratoryTechnician")]
+        [Authorize(Roles = "Doctor,Patient,Staff,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> Sign(Guid id, [FromBody] SignAgreementRequest request)
         {
@@ -140,7 +140,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="status">New status</param>
         /// <returns>Updated agreement information</returns>
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AgreementResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] AgreementStatus status)
         {
@@ -154,7 +154,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Agreement ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,LaboratoryTechnician")]
+        [Authorize(Roles = "Admin,Laboratory Technician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -168,7 +168,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Agreement ID</param>
         /// <returns>Result of OTP request</returns>
         [HttpPost("{id}/request-signature")]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician,Patient")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> RequestSignature(Guid id)
         {
@@ -202,7 +202,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Agreement ID</param>
         /// <returns>List of media files associated with the agreement</returns>
         [HttpGet("{id}/file")]
-        [Authorize(Roles = "Doctor,Staff,LaboratoryTechnician,Patient")]
+        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAgreementFile(Guid id)
         {
