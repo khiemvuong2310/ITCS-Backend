@@ -375,7 +375,7 @@ namespace FSCMS.Service.Services
                             var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
                                 .AsQueryable()
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
-                            serviceRequest.Status = ServiceRequestStatus.Completed;
+                            serviceRequest.Status = ServiceRequestStatus.InProcess;
                             await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
                             await _unitOfWork.CommitAsync();
                             break;
