@@ -112,7 +112,6 @@ namespace FSCMS.Service.RequestModel
     /// </summary>
     public class CreateLabSampleOocyteRequest : CreateLabSampleBaseRequest
     {
-        [Required(ErrorMessage = "Maturity stage is required.")]
         [StringLength(100)]
         public string MaturityStage { get; set; } = default!;
 
