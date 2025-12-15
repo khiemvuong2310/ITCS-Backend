@@ -218,7 +218,8 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                if(request.Quality != null)
+                labSample.CollectionDate = DateTime.UtcNow;
+                if (request.Quality != null)
                 {
                     labSample.Quality = request.Quality;
                 }

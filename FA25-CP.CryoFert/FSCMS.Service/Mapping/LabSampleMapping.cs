@@ -51,6 +51,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.SampleType, opt => opt.MapFrom(_ => SampleType.Sperm))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => SpecimenStatus.Collected))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.CollectionDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.LabSampleSperm, opt => opt.MapFrom(src => src))
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
@@ -61,6 +62,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.SampleType, opt => opt.MapFrom(_ => SampleType.Oocyte))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => SpecimenStatus.Collected))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.CollectionDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.LabSampleOocyte, opt => opt.MapFrom(src => src))
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
@@ -71,6 +73,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.SampleType, opt => opt.MapFrom(_ => SampleType.Embryo))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => SpecimenStatus.Collected))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.CollectionDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.LabSampleEmbryo, opt => opt.MapFrom(src => src))
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
