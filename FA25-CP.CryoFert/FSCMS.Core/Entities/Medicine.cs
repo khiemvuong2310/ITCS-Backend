@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using FSCMS.Core.Models.Bases;
 
 namespace FSCMS.Core.Entities
@@ -26,6 +27,7 @@ namespace FSCMS.Core.Entities
         public string? SideEffects { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Notes { get; set; }
+        [JsonIgnore]
         public virtual ICollection<PrescriptionDetail> PrescriptionDetails { get; set; } = new List<PrescriptionDetail>();
     }
 }
