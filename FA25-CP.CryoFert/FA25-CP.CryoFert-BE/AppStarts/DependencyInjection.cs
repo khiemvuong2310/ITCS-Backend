@@ -80,6 +80,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IAppointmentDoctorService, AppointmentDoctorService>();
             services.AddScoped<IAgreementService, AgreementService>();
             services.AddScoped<IPrescriptionService, PrescriptionService>();
+            services.AddScoped<IPrescriptionDetailService, PrescriptionDetailService>();
+            services.AddScoped<IMedicineService, MedicineService>();
             services.AddScoped<IMedicalRecordService, MedicalRecordService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
