@@ -33,6 +33,9 @@ namespace FA25_CP.CryoFert_BE
             });
 
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddControllersWithViews();
+            builder.Services.AddRazorPages();
+
 
             // Memory Cache for performance optimization
             builder.Services.AddMemoryCache();
@@ -44,10 +47,6 @@ namespace FA25_CP.CryoFert_BE
             {
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
-
-            // using DinkToPdf; using DinkToPdf.Contracts;
-            var pdfTools = new PdfTools();
-            builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(pdfTools));
 
             // 3. DbContext config (MySQL)
             builder.Services.AddDbContext<AppDbContext>(options =>

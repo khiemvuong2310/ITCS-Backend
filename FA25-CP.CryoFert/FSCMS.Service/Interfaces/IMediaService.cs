@@ -16,12 +16,13 @@ namespace FSCMS.Service.Interfaces
         Task<DynamicResponse<MediaResponse>> GetAllMediasAsync(GetMediasRequest request);
         Task<BaseResponse<MediaResponse>> UpdateMediaAsync(Guid mediaId, UpdateMediaRequest request);
         Task<BaseResponse> DeleteMediaAsync(Guid mediaId);
-        Task<BaseResponse<MediaResponse>> GetTemplateAsync(GetTemplateRequest request);
-        Task<BaseResponse<MediaResponse>> UploadTemplateAsync(UploadTemplateRequest request, Guid accountId);
-        Task<string> GetEtaTemplateFromCloudAsync(EntityTypeMedia type);
+        //Task<BaseResponse<MediaResponse>> GetTemplateAsync(GetTemplateRequest request);
+        //Task<BaseResponse<MediaResponse>> UploadTemplateAsync(UploadTemplateRequest request, Guid accountId);
+        //Task<string> GetEtaTemplateFromCloudAsync(EntityTypeMedia type);
         Task<BaseResponse<MediaResponse>> UploadPdfFromHtmlAsync(
             Guid relatedEntityId,
             EntityTypeMedia relatedEntityType);
-        Task<BaseResponse<RenderHtmlResponse>> RenderHtmlAsync(GetHtmlRequest request);
+        //Task<BaseResponse<RenderHtmlResponse>> RenderHtmlAsync(GetHtmlRequest request);
+        Task<BaseResponse<byte[]>> GenerateFilledPdfAsync(GetHtmlRequest request);
     }
 }
