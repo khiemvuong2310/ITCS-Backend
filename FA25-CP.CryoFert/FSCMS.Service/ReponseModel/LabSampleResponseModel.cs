@@ -45,6 +45,9 @@ namespace FSCMS.Service.ReponseModel
 
         [JsonPropertyName("notes")]
         public string? Notes { get; set; }
+
+        [JsonPropertyName("canFrozen")]
+        public bool CanFrozen { get; set; }
     }
 
     /// <summary>

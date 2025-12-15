@@ -1,0 +1,173 @@
+﻿@using System.Globalization
+<div style="font-family: Arial, sans-serif; font-size: 12pt; color: #333; line-height:1.5;">
+
+    @{
+        if (Model.CryoStorageContract.Status.ToString() == "Active")
+        {
+            <div style="position: fixed; top: 40%; left: 50%;
+                            transform: translate(-50%, -50%) rotate(-30deg);
+                            font-size: 48px; color: rgba(200,0,0,0.2);
+                            pointer-events: none; z-index: 9999;">
+                OFFICIAL COPY
+            </div>
+        }
+    }
+    <!-- Title -->
+    <h2 style="text-align:center; margin-bottom:5px;">CRYO STORAGE CONTRACT</h2>
+    <p style="text-align:center; font-size:10pt; margin-top:0;">
+        Contract No: <strong>@Model.CryoStorageContract.ContractNumber</strong>
+    </p>
+
+    <hr style="margin:15px 0;" />
+
+    <!-- Patient Information -->
+    <h3 style="margin-bottom:5px;">Patient Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Full Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Patient.Account.FirstName @Model.Patient.Account.LastName</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Date of Birth</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.Patient.Account.BirthDate != null ? Model.Patient.Account.BirthDate.ToString("dd/MM/yyyy") : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Email</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.Patient.Account.Email) ? Model.Patient.Account.Email : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Phone</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.Patient.Account.Phone) ? Model.Patient.Account.Phone : "N/A")</td>
+        </tr>
+    </table>
+
+    <!-- Package Information -->
+    <h3 style="margin-bottom:5px;">Cryo Storage Package</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Package Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.CryoPackage.PackageName) ? Model.CryoPackage.PackageName : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Sample Type</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.CryoPackage.SampleType.ToString())</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Duration (months)</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.CryoPackage.DurationMonths</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Max Samples</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.CryoPackage.MaxSamples</td>
+        </tr>
+        @if (Model.CryoPackage.Benefits != null)
+        {
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Benefits</th>
+                <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.CryoPackage.Benefits) ? Model.CryoPackage.Benefits : "N/A")</td>
+            </tr>
+        }
+    </table>
+
+    <!-- Contract Information -->
+    <h3 style="margin-bottom:5px;">Contract Details</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Start Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.CryoStorageContract.StartDate != null ? Model.CryoStorageContract.StartDate.ToString("dd/MM/yyyy") : "Pending")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">End Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.CryoStorageContract.EndDate != null ? Model.CryoStorageContract.EndDate.ToString("dd/MM/yyyy") : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Total Amount</th>
+            
+            <td style="border:1px solid #ccc; padding:8px;">@Model.CryoStorageContract.TotalAmount.ToString("C0", new CultureInfo("vi-VN"))</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Paid</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.CryoStorageContract.PaidAmount != null ? Model.CryoStorageContract.PaidAmount.ToString("C0", new CultureInfo("vi-VN")) : "0VND")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Status</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.CryoStorageContract.Status.ToString()</td>
+        </tr>
+    </table>
+
+    <!-- Samples -->
+    <h3 style="margin-bottom:5px;">Stored Samples</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <thead>
+            <tr>
+                <th style="border:1px solid #ccc; padding:8px;">Sample Code</th>
+                <th style="border:1px solid #ccc; padding:8px;">Type</th>
+                <th style="border:1px solid #ccc; padding:8px;">Collection Date</th>
+                <th style="border:1px solid #ccc; padding:8px;">Storage Start</th>
+                <th style="border:1px solid #ccc; padding:8px;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (dynamic s in Model.CryoStorageContract.CPSDetails)
+            {
+                <tr>
+                    <td style="border:1px solid #ccc; padding:8px;">@s.LabSample.SampleCode</td>
+                    <td style="border:1px solid #ccc; padding:8px;">@s.LabSample.SampleType.ToString()</td>
+                    <td style="border:1px solid #ccc; padding:8px;">@s.LabSample.CollectionDate.ToString("dd/MM/yyyy")</td>
+                    <td style="border:1px solid #ccc; padding:8px;">@(s.StorageStartDate != null ? s.StorageStartDate?.ToString("dd/MM/yyyy") : "Pending")</td>
+                    <td style="border:1px solid #ccc; padding:8px;">@s.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Terms & Policies -->
+    <h3 style="margin-bottom:5px;">Terms & Policies</h3>
+    <ol style="margin-bottom:15px; padding-left:25px;">
+        <li>Patient agrees to store their biological samples in accordance with the selected cryo storage package.</li>
+        <li>The clinic is responsible for maintaining storage conditions but is not liable for loss or damage caused by unforeseen events or force majeure.</li>
+        <li>Samples will be released only to the patient or authorized persons upon written consent.</li>
+        <li>Patient must provide accurate information and notify the clinic of any changes.</li>
+        <li>Fees are payable as per the contract. Late payments may result in suspension of storage services.</li>
+        <li>The clinic reserves the right to adjust storage protocols and notify patients in advance.</li>
+        <li>Renewal and termination follow the terms specified in the contract.</li>
+        <li>Patient has read and understood all terms before signing.</li>
+        <li>Patient agrees to store their biological samples in accordance with the selected cryo storage package.</li>
+        @if (Model.CryoPackage.SampleType.ToString() == "Oocyte")
+        {
+            <li>Oocyte-specific clause: Patient acknowledges proper handling and timely retrieval.</li>
+        }
+        else if (Model.CryoPackage.SampleType.ToString() == "Sperm")
+        {
+            <li>Sperm-specific clause: Storage duration may extend per clinic policy.</li>
+        }
+        else if (Model.CryoPackage.SampleType.ToString() == "Embryo")
+        {
+            <li>Embryo-specific clause: Patient consents to usage and disposal per clinic guidelines.</li>
+        }
+    </ol>
+
+
+    <!-- Signatures -->
+    <h3 style="margin-bottom:5px;">Signature</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Signed By</th>
+            <th style="border:1px solid #ccc; padding:8px;">Signed Date</th>
+        </tr>
+        <tr style="height:80px;">
+            <td style="border:1px solid #ccc; padding:8px; text-align:center;">
+                @(Model.CryoStorageContract.SignedBy == null ? "Pending" : Model.CryoStorageContract.SignedBy)
+            </td>
+            <td style="border:1px solid #ccc; padding:8px; text-align:center;">
+                @(Model.CryoStorageContract.SignedDate != null ? Model.CryoStorageContract.SignedDate.ToString("dd/MM/yyyy") : "N/A")
+            </td>
+        </tr>
+    </table>
+
+    <!-- Footer Note -->
+    <p style="font-size:10pt; text-align:center; margin-top:20px; color:#666;">
+        Document last updated on @(Model.UpdatedAt != null ? Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm") : Model.GeneratedAt.ToString("dd/MM/yyyy HH:mm"))
+    </p>
+
+</div>

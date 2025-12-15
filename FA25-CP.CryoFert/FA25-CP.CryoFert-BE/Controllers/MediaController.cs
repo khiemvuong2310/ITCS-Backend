@@ -55,28 +55,28 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Upload template file
         /// </summary>
-        [HttpPost("upload-template")]
-        [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
-        public async Task<IActionResult> UploadTemplate([FromForm] UploadTemplateRequest request)
-        {
-            if (request.File == null)
-            {
-                return BadRequest(new BaseResponse<MediaResponse>
-                {
-                    Code = StatusCodes.Status400BadRequest,
-                    Message = "File is required"
-                });
-            }
+        //[HttpPost("upload-template")]
+        //[ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
+        //public async Task<IActionResult> UploadTemplate([FromForm] UploadTemplateRequest request)
+        //{
+        //    if (request.File == null)
+        //    {
+        //        return BadRequest(new BaseResponse<MediaResponse>
+        //        {
+        //            Code = StatusCodes.Status400BadRequest,
+        //            Message = "File is required"
+        //        });
+        //    }
 
-            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (accountId == null)
-            {
-                return Unauthorized(new { message = "Cannot detect user identity" });
-            }
+        //    var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //    if (accountId == null)
+        //    {
+        //        return Unauthorized(new { message = "Cannot detect user identity" });
+        //    }
 
-            var result = await _mediaService.UploadTemplateAsync(request, Guid.Parse(accountId));
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
-        }
+        //    var result = await _mediaService.UploadTemplateAsync(request, Guid.Parse(accountId));
+        //    return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        //}
 
         /// <summary>
         /// Get media by ID
@@ -125,18 +125,31 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get template
         /// </summary>
-        [HttpGet("template")]
-        [ApiDefaultResponse(typeof(MediaResponse))]
-        public async Task<IActionResult> GetTemplate([FromQuery] GetTemplateRequest request)
-        {
-            var result = await _mediaService.GetTemplateAsync(request);
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
-        }
+        //[HttpGet("template")]
+        //[ApiDefaultResponse(typeof(MediaResponse))]
+        //public async Task<IActionResult> GetTemplate([FromQuery] GetTemplateRequest request)
+        //{
+        //    var result = await _mediaService.GetTemplateAsync(request);
+        //    return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        //}
 
-        [HttpGet("html")]
-        public async Task<IActionResult> GenerateHtml([FromQuery] GetHtmlRequest request)
+        //[HttpGet("html")]
+        //public async Task<IActionResult> GenerateHtml([FromQuery] GetHtmlRequest request)
+        //{
+        //    var result = await _mediaService.RenderHtmlAsync(request);
+        //    return StatusCode(result.Code ?? 500, result);
+        //}
+
+        [HttpPost("generate-pdf")]
+        [ApiDefaultResponse(typeof(byte[]))]
+        public async Task<IActionResult> GeneratePdf([FromQuery] GetHtmlRequest request)
         {
-            var result = await _mediaService.RenderHtmlAsync(request);
+            var result = await _mediaService.GenerateFilledPdfAsync(request);
+            if (result.Code == 200 && result.Data != null)
+            {
+                // Return file directly
+                return File(result.Data, "application/pdf", $"Document_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
+            }
             return StatusCode(result.Code ?? 500, result);
         }
     }

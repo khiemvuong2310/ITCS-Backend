@@ -116,6 +116,24 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPut("frozen/{id}")]
+        [Authorize(Roles = "Doctor")]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> UpdateFrozen(Guid id, [FromBody] UpdateLabSampleFrozenRequest request)
+        {
+            if (!ModelState.IsValid || id == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data or sample ID."
+                });
+            }
+
+            var result = await _labSampleService.UpdateFrozenAsync(id, request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         /// <summary>
         /// Update existing sperm sample
         /// </summary>

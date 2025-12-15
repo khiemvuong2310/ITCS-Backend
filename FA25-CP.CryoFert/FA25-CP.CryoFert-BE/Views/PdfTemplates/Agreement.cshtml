@@ -1,0 +1,138 @@
+﻿@using System.Globalization
+<!-- Agreement Template HTML -->
+<div style="font-family: Arial, sans-serif; font-size: 12pt; color: #333; line-height:1.5;">
+
+    @{
+        if(Model.Agreement.Status.ToString() == "Completed")
+        {
+            <div style="position: fixed; top: 40%; left: 50%;
+                    transform: translate(-50%, -50%) rotate(-30deg);
+                    font-size: 48px; color: rgba(200,0,0,0.2);
+                    pointer-events: none; z-index: 9999;">
+                OFFICIAL COPY
+            </div>
+        }
+    }
+
+    <!-- Title -->
+    <h2 style="text-align:center; margin-bottom:5px;">TREATMENT AGREEMENT</h2>
+    <p style="text-align:center; font-size:10pt; margin-top:0;">
+        Agreement Code: <strong>@Model.Agreement.AgreementCode</strong>
+    </p>
+
+    <hr style="margin:15px 0;" />
+
+    <!-- Patient Information -->
+    <h3 style="margin-bottom:5px;">Patient Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Full Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Patient.Account.FirstName @Model.Patient.Account.LastName</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Date of Birth</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.Patient.Account?.BirthDate != null ? Model.Patient.Account.BirthDate.ToString("dd/MM/yyyy") : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Email</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.Patient.Account?.Email) ? Model.Patient.Account.Email : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Phone</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.Patient.Account?.Phone) ? Model.Patient.Account.Phone : "N/A")</td>
+        </tr>
+    </table>
+
+    <!-- Doctor Information -->
+    <h3 style="margin-bottom:5px;">Doctor Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Full Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Doctor.Account?.FirstName @Model.Doctor.Account?.LastName</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Date of Birth</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(Model.Doctor.Account?.BirthDate != null ? Model.Doctor.Account.BirthDate.ToString("dd/MM/yyyy") : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Email</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.Doctor.Account?.Email) ? Model.Doctor.Account.Email : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Phone</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(Model.Doctor.Account?.Phone) ? Model.Doctor.Account.Phone : "N/A")</td>
+        </tr>
+    </table>
+
+    <!-- Treatment Information -->
+    <h3 style="margin-bottom:5px;">Treatment Information</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Treatment Name</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(@Model.Treatment.TreatmentName) ? @Model.Treatment.TreatmentName : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Diagnosis</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(@Model.Treatment.Diagnosis) ? @Model.Treatment.Diagnosis : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Goals</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(@Model.Treatment.Goals) ? @Model.Treatment.Goals : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Notes</th>
+            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(@Model.Treatment.Notes) ? @Model.Treatment.Notes : "N/A")</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Start Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @(Model.Agreement.StartDate != null ? Model.Treatment.StartDate.ToString("dd/MM/yyyy") : "Pending")
+            </td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">End Date</th>
+            <td style="border:1px solid #ccc; padding:8px;">
+                @(Model.Agreement.EndDate != null ? Model.Treatment.EndDate.ToString("dd/MM/yyyy") : "N/A")
+            </td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Total Amount</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.TotalAmount.ToString("C0", new CultureInfo("vi-VN"))</td>
+        </tr>
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Status</th>
+            <td style="border:1px solid #ccc; padding:8px;">@Model.Agreement.Status.ToString()</td>
+        </tr>
+    </table>
+
+    <h3>Terms & Policies</h3>
+    <ol style="margin-bottom:15px; padding-left:25px;">
+        <li>Patient agrees to comply with all treatment protocols.</li>
+        <li>Clinic is responsible for maintaining confidentiality and proper treatment.</li>
+        <li>Fees must be paid as per contract terms; late payments may suspend services.</li>
+        <li>Patient may cancel or reschedule treatment with advance notice.</li>
+        <li>Patient acknowledges risks and consents to treatment.</li>
+    </ol>
+
+    <!-- Signatures -->
+    <h3 style="margin-bottom:5px;">Signatures</h3>
+    <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+        <tr>
+            <th style="border:1px solid #ccc; padding:8px;">Patient</th>
+            <th style="border:1px solid #ccc; padding:8px;">Doctor</th>
+        </tr>
+        <tr style="height:80px;">
+            <td style="border:1px solid #ccc; padding:8px; vertical-align:bottom; text-align:center;">
+                @(Model.Agreement.SignedByPatient ? "Signed on " + Model.Agreement.SignedDate?.ToString("dd/MM/yyyy") : "Pending")
+            </td>
+            <td style="border:1px solid #ccc; padding:8px; vertical-align:bottom; text-align:center;">
+                @(Model.Agreement.SignedByDoctor ? "Signed on " + Model.Agreement.SignedDate?.ToString("dd/MM/yyyy") : "Pending")
+            </td>
+        </tr>
+    </table>
+
+    <!-- Footer Note -->
+    <p style="font-size:10pt; text-align:center; margin-top:20px; color:#666;">
+        Document last updated on @(Model.UpdatedAt != null ? Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm") : Model.GeneratedAt.ToString("dd/MM/yyyy HH:mm"))
+    </p>
+</div>
