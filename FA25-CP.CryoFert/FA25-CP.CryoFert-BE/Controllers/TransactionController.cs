@@ -121,6 +121,23 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPost("cash-payment")]
+        [Authorize(Roles = "Receptionist, Admin")]
+        public async Task<IActionResult> CashPayment([FromQuery] CashPaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data"
+                });
+            }
+
+            var result = await _transactionService.CashPaymentAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         [HttpGet("payment/result")]
         [AllowAnonymous]
         public IActionResult PaymentResult()
