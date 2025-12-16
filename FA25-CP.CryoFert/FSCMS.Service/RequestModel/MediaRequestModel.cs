@@ -84,7 +84,15 @@ namespace FSCMS.Service.RequestModel
         CryoImport = 5,
         CryoExport = 6,
         ServiceRequest = 7,
+        ServiceRequestDetails = 8
     }
+
+    //public enum EntityTypeTemplate
+
+    //{
+    //    Agreement = 1,
+    //    CryoStorageContract = 2,
+    //}
 
     public class TemplateDataModel
     {

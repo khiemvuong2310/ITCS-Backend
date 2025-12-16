@@ -167,6 +167,12 @@ namespace FSCMS.Service.Services
                                     .Include(m => m.Appointment)
                                     .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
                                     .FirstOrDefaultAsync(),
+                    EntityTypeMedia.ServiceRequestDetails => await _unitOfWork.Repository<ServiceRequestDetails>()
+                                    .AsQueryable()
+                                    .Include(m => m.ServiceRequest)
+                                        .ThenInclude(m => m.Appointment)
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
                     _ => null
                 };
 
@@ -191,6 +197,7 @@ namespace FSCMS.Service.Services
                     CryoImport ci => ci.LabSample?.PatientId,
                     CryoExport ce => ce.LabSample?.PatientId,
                     ServiceRequest sr => sr.Appointment?.PatientId,
+                    ServiceRequestDetails srd => srd.ServiceRequest?.Appointment?.PatientId,
                     _ => null
                 };
 
