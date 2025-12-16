@@ -97,37 +97,58 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IConnectionMultiplexer>>();
-                var connectionString = redisOptions.ConnectionString;
 
-                // Ưu tiên biến môi trường nếu có
-                var envConn = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING");
-                if (!string.IsNullOrEmpty(envConn)) connectionString = envConn;
+                // 1. Lấy Connection String (Ưu tiên biến môi trường)
+                var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") ?? redisOptions.ConnectionString;
 
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    logger.LogWarning("⚠️ Không tìm thấy Redis Connection String.");
+                    logger.LogWarning("⚠️ Không tìm thấy Redis Connection String. Bỏ qua Cache.");
                     return null;
                 }
 
                 try
                 {
-                    // Parse config từ chuỗi kết nối
+                    // 2. Parse cấu hình từ chuỗi
                     var config = ConfigurationOptions.Parse(connectionString, true);
 
-                    // Fix lỗi SSL cho Redis Cloud
+                    // 3. 🔥 CẤU HÌNH BẮT BUỘC CHO REDIS CLOUD (Ghi đè cấu hình cũ) 🔥
+                    config.Ssl = true;
+                    config.SslProtocols = SslProtocols.Tls12; // Ép dùng TLS 1.2
+                    config.AbortOnConnectFail = false;        // Giữ app sống
+                    config.ConnectTimeout = 10000;            // 10 giây timeout
+
+                    // Bỏ qua lỗi chứng chỉ (Fix lỗi Self-signed certificate)
                     config.CertificateValidation += (sender, cert, chain, errors) => true;
 
                     var multiplexer = ConnectionMultiplexer.Connect(config);
-                    logger.LogInformation("✅ Kết nối Redis thành công!");
+
+                    // 4. Đăng ký sự kiện để bắt LỖI NGẦM (Quan trọng)
+                    multiplexer.ConnectionFailed += (sender, e) =>
+                        logger.LogError($"❌ REDIS KẾT NỐI THẤT BẠI: {e.FailureType} - {e.Exception?.Message}");
+
+                    multiplexer.ErrorMessage += (sender, e) =>
+                        logger.LogError($"❌ REDIS LỖI SERVER: {e.Message}");
+
+                    multiplexer.ConnectionRestored += (sender, e) =>
+                        logger.LogInformation("✅ REDIS ĐÃ KẾT NỐI LẠI!");
+
+                    // 5. Kiểm tra trạng thái thực tế ngay lúc này
+                    if (multiplexer.IsConnected)
+                    {
+                        logger.LogInformation("✅ [REDIS ALIVE] Kết nối thành công & Sẵn sàng!");
+                    }
+                    else
+                    {
+                        logger.LogWarning("⚠️ [REDIS WAITING] Object đã tạo nhưng chưa thông mạng. Đang chờ handshake...");
+                    }
+
                     return multiplexer;
                 }
                 catch (Exception ex)
                 {
-                    // In lỗi chi tiết ra console để bạn đọc
-                    logger.LogError($"❌ Lỗi kết nối Redis: {ex.Message}");
-                    // Quan trọng: Ném lỗi ra để app dừng lại -> Bạn mới nhìn thấy lỗi.
-                    // Khi chạy thật thì comment dòng throw này lại.
-                    throw;
+                    logger.LogError(ex, "🔥 Lỗi crash khi khởi tạo Redis.");
+                    return null;
                 }
             });
 
