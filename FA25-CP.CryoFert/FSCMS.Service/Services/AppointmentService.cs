@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -149,7 +149,7 @@ namespace FSCMS.Service.Services
                     // Patient and Account share the same ID, so PatientId == AccountId
                     if (appointment.PatientId != currentAccountId.Value)
                     {
-                        _logger.LogWarning("{MethodName}: Patient {AccountId} attempted to access appointment {AppointmentId} belonging to patient {PatientId}", 
+                        _logger.LogWarning("{MethodName}: Patient {AccountId} attempted to access appointment {AppointmentId} belonging to patient {PatientId}",
                             methodName, currentAccountId.Value, appointmentId, appointment.PatientId);
                         return BaseResponse<AppointmentDetailResponse>.CreateError("You do not have permission to access this appointment", StatusCodes.Status403Forbidden, "FORBIDDEN");
                     }
@@ -542,7 +542,7 @@ namespace FSCMS.Service.Services
                         && a.PatientId == patientId);
 
                 // Apply additional filters from request
-                if(request.Type.HasValue)
+                if (request.Type.HasValue)
                 {
                     query = query.Where(a => a.Type == request.Type.Value);
                 }
@@ -550,7 +550,7 @@ namespace FSCMS.Service.Services
                 {
                     query = query.Where(a => a.Status == request.Status.Value);
                 }
-                
+
                 if (request.AppointmentDateFrom.HasValue)
                 {
                     query = query.Where(a => a.AppointmentDate >= request.AppointmentDateFrom.Value);
@@ -757,11 +757,11 @@ namespace FSCMS.Service.Services
                             var isAvailable = await IsDoctorAvailableForSlotAsync(doctorId, request.SlotId.Value, request.AppointmentDate);
                             if (!isAvailable)
                             {
-                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} is busy for slot {SlotId} on date {AppointmentDate}", 
+                                _logger.LogWarning("{MethodName}: Doctor {DoctorId} is busy for slot {SlotId} on date {AppointmentDate}",
                                     methodName, doctorId, request.SlotId.Value, request.AppointmentDate);
                                 return BaseResponse<AppointmentResponse>.CreateError(
-                                    $"Doctor is busy for the selected slot/date", 
-                                    StatusCodes.Status400BadRequest, 
+                                    $"Doctor is busy for the selected slot/date",
+                                    StatusCodes.Status400BadRequest,
                                     "DOCTOR_NOT_AVAILABLE");
                             }
                         }
@@ -1091,6 +1091,13 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
+                //New Chẹck Ensure status update is only allowed if appointment is today
+                //if (appointment.AppointmentDate != DateOnly.FromDateTime(DateTime.UtcNow))
+                //{
+                //    _logger.LogWarning("{MethodName}: Cannot update status for non-today appointment: {AppointmentId}", methodName, appointmentId);
+                //    return BaseResponse.CreateError("Can only update status for today's appointments", StatusCodes.Status400BadRequest, "INVALID_APPOINTMENT_DATE");
+                //}
+
                 appointment.Status = status;
                 appointment.UpdatedAt = DateTime.UtcNow;
 
@@ -1132,6 +1139,14 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Appointment not found with ID: {AppointmentId}", methodName, appointmentId);
                     return BaseResponse.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
+                }
+
+
+                // New Check: Ensure the CheckIn is only allowed on the same day as AppointmentDate
+                if (appointment.AppointmentDate != DateOnly.FromDateTime(DateTime.UtcNow))
+                {
+                    _logger.LogWarning("{MethodName}: Cannot check in for appointment. Date does not match today's date: {AppointmentId}", methodName, appointmentId);
+                    return BaseResponse.CreateError("Check-in can only occur on the appointment date", StatusCodes.Status400BadRequest, "INVALID_CHECK_IN_DATE");
                 }
 
                 appointment.CheckInTime = DateTime.UtcNow;
@@ -1184,6 +1199,13 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Cannot check out without checking in first", StatusCodes.Status400BadRequest, "NOT_CHECKED_IN");
                 }
 
+                // New Check: Ensure the CheckOut is only allowed on the same day as AppointmentDate
+                if (appointment.AppointmentDate != DateOnly.FromDateTime(DateTime.UtcNow))
+                {
+                    _logger.LogWarning("{MethodName}: Cannot check out for appointment. Date does not match today's date: {AppointmentId}", methodName, appointmentId);
+                    return BaseResponse.CreateError("Check-out can only occur on the appointment date", StatusCodes.Status400BadRequest, "INVALID_CHECK_OUT_DATE");
+                }
+
                 appointment.CheckOutTime = DateTime.UtcNow;
                 appointment.Status = AppointmentStatus.Completed;
                 appointment.UpdatedAt = DateTime.UtcNow;
@@ -1234,7 +1256,7 @@ namespace FSCMS.Service.Services
                     _logger.LogWarning("{MethodName}: Cannot cancel completed appointment: {AppointmentId}", methodName, appointmentId);
                     return BaseResponse.CreateError("Cannot cancel completed appointment", StatusCodes.Status400BadRequest, "CANNOT_CANCEL_COMPLETED");
                 }
-                
+
                 if (appointment.Status == AppointmentStatus.Cancelled)
                 {
                     _logger.LogWarning("{MethodName}: Appointment is already cancelled: {AppointmentId}", methodName, appointmentId);
