@@ -1,193 +1,268 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using FSCMS.Core.Interfaces;
-using FSCMS.Core.Models.Options;
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using FSCMS.Core.Interfaces;
+using FSCMS.Core.Models;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using ServiceStack;
 using StackExchange.Redis;
+using System.Collections.Concurrent;
+using System.Text.Json;
+
 
 namespace FSCMS.Core.Services
 {
+    /// <summary>
+    /// RedisService rewritten to follow the CacheRedis pattern:
+    /// - Uses IDistributedCache
+    /// - Tracks metrics (Hits, Misses, Sets, Clears, Errors) via static ConcurrentDictionary
+    /// - Exposes GetCacheStatistics()
+    /// </summary>
     public class RedisService : IRedisService
     {
-        private readonly IConnectionMultiplexer? _connectionMultiplexer;
-        private readonly StackExchange.Redis.IDatabase? _database;
-        private readonly IHostEnvironment _environment;
+        private readonly IDistributedCache _distributedCache;
         private readonly ILogger<RedisService> _logger;
-        private readonly bool _isConnected;
 
-        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        private static readonly ConcurrentDictionary<string, long> CacheHits = new();
+        private static readonly ConcurrentDictionary<string, long> CacheMisses = new();
+        private static readonly ConcurrentDictionary<string, long> CacheSets = new();
+        private static readonly ConcurrentDictionary<string, long> CacheClears = new();
+        private static readonly ConcurrentDictionary<string, long> CacheErrors = new();
+
+        public RedisService(IDistributedCache distributedCache, ILogger<RedisService> logger)
         {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+            _distributedCache = distributedCache;
+            _logger = logger;
+        }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RedisService"/> class.
+        /// Return aggregated cache statistics for monitoring.
         /// </summary>
-        /// <param name="connectionMultiplexer">The Redis connection multiplexer.</param>
-        /// <param name="environment">The hosting environment.</param>
-        /// <param name="logger">The logger.</param>
-        public RedisService(IConnectionMultiplexer? connectionMultiplexer, IHostEnvironment environment, ILogger<RedisService> logger)
+        public static CacheStatistics GetCacheStatistics()
         {
-            _connectionMultiplexer = connectionMultiplexer;
-            _database = _connectionMultiplexer?.GetDatabase();
-            _environment = environment;
-            _logger = logger;
-
-            // Check if Redis is connected
-            // Note: Connection might not be established immediately, so we check on first use
-            _isConnected = _connectionMultiplexer?.IsConnected ?? false;
-            
-            // Only log warning if connection multiplexer is null (not configured)
-            // If it exists but not connected yet, it might be connecting asynchronously
-            if (_connectionMultiplexer == null)
+            return new CacheStatistics
             {
-                _logger.LogWarning("Redis connection multiplexer is not configured. Caching will be disabled.");
-            }
-            else if (!_isConnected)
-            {
-                _logger.LogInformation("Redis connection is initializing. Caching will be available once connected.");
-            }
-            else
-            {
-                _logger.LogInformation("Redis connection is available. Caching is enabled.");
-            }
+                Hits = CacheHits.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Misses = CacheMisses.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Sets = CacheSets.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Clears = CacheClears.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Errors = CacheErrors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            };
         }
 
-        /// <inheritdoc/>
-        public async Task<bool> KeyExistsAsync(string key)
+        private static string ExtractKeyPrefix(string cacheKey)
         {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return false;
-            }
-
-            try
-            {
-                return await _database.KeyExistsAsync(GetEnvironmentKey(key));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error checking if key exists in Redis: {Key}", key);
-                return false;
-            }
+            var colonIndex = cacheKey?.IndexOf(':') ?? -1;
+            return (colonIndex > 0 && cacheKey != null) ? cacheKey[..colonIndex] : cacheKey ?? "unknown";
         }
 
-        /// <inheritdoc/>
-        public async Task<bool> DeleteKeyAsync(string key)
-        {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return false;
-            }
+        // ------------------ Async API ------------------
 
+        public async Task<string?> GetAsync(string cacheKey)
+        {
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
             try
             {
-                return await _database.KeyDeleteAsync(GetEnvironmentKey(key));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error deleting key from Redis: {Key}", key);
-                return false;
-            }
-        }
-
-        /// <inheritdoc/>
-        public async Task<bool> SetAsync<T>(string key, T value, TimeSpan? expiry = null)
-        {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return false;
-            }
-
-            try
-            {
-                string jsonString = JsonSerializer.Serialize(value, _jsonOptions);
-                return await _database.StringSetAsync(GetEnvironmentKey(key), jsonString, expiry);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error setting value in Redis: {Key}", key);
-                return false;
-            }
-        }
-
-        /// <inheritdoc/>
-        public async Task<T?> GetAsync<T>(string key)
-        {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return default;
-            }
-
-            try
-            {
-                string? jsonString = await GetStringAsync(key);
-
-                if (string.IsNullOrEmpty(jsonString))
+                var json = await _distributedCache.GetStringAsync(cacheKey);
+                if (string.IsNullOrEmpty(json))
                 {
-                    return default;
+                    CacheMisses.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                    return null;
                 }
 
-                return JsonSerializer.Deserialize<T>(jsonString, _jsonOptions);
+                CacheHits.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                return json;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error getting value from Redis: {Key}", key);
+                CacheErrors.AddOrUpdate($"get:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis GET failed for key {CacheKey}. Returning null.", cacheKey);
+                return null;
+            }
+        }
+
+        public async Task<T?> GetAsync<T>(string cacheKey)
+        {
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
+
+            try
+            {
+                var json = await _distributedCache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    try
+                    {
+                        CacheHits.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                        return json.FromJson<T>(); // ServiceStack
+                        // If you prefer System.Text.Json:
+                        // return System.Text.Json.JsonSerializer.Deserialize<T>(json);
+                    }
+                    catch (Exception ex)
+                    {
+                        CacheErrors.AddOrUpdate($"deserialize:{keyPrefix}", 1, (_, count) => count + 1);
+                        _logger.LogWarning(ex, "Failed to deserialize cached value for key {CacheKey}", cacheKey);
+                        return default;
+                    }
+                }
+
+                CacheMisses.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                return default;
+            }
+            catch (Exception ex)
+            {
+                CacheErrors.AddOrUpdate($"get:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis GET failed for key {CacheKey}. Returning default.", cacheKey);
                 return default;
             }
         }
 
-        #region Private Methods
-        private string GetEnvironmentKey(string key)
+        public async Task SetAsync(string cacheKey, object response, TimeSpan timeLive)
         {
-            return $"{_environment.EnvironmentName}-{key}";
-        }
+            if (response == null) return;
 
-        private async Task SetStringAsync(string key, string value, TimeSpan? expiry = null)
-        {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return;
-            }
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
 
             try
             {
-                var actualKey = GetEnvironmentKey(key);
-                await _database.StringSetAsync(actualKey, value, expiry);
+                var json = response.ToJson(); // ServiceStack
+                // If prefer System.Text.Json:
+                // var json = System.Text.Json.JsonSerializer.Serialize(response);
+
+                await _distributedCache.SetStringAsync(
+                    cacheKey,
+                    json,
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = timeLive }
+                );
+
+                CacheSets.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error setting string in Redis: {Key}", key);
+                CacheErrors.AddOrUpdate($"set:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis SET failed for key {CacheKey}. Continuing without cache.", cacheKey);
             }
         }
 
-        private async Task<string?> GetStringAsync(string key)
+        public async Task IncreaseIntAsync(string cacheKey, TimeSpan timeLive)
         {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
+            try
             {
+                var json = await _distributedCache.GetStringAsync(cacheKey);
+                if (string.IsNullOrEmpty(json))
+                {
+                    await SetAsync(cacheKey, 1, timeLive);
+                    return;
+                }
+                if (int.TryParse(json, out var totalCount))
+                {
+                    await SetAsync(cacheKey, totalCount + 1, timeLive);
+                }
+                else
+                {
+                    // If stored as JSON number/other, attempt deserialize
+                    try
+                    {
+                        var val = json.FromJson<int>();
+                        await SetAsync(cacheKey, val + 1, timeLive);
+                    }
+                    catch
+                    {
+                        _logger.LogWarning("IncreaseIntAsync: cannot parse value for key {CacheKey}", cacheKey);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis INCREASE failed for key {CacheKey}. Skipping operation.", cacheKey);
+            }
+        }
+
+        public async Task ClearAsync(string cacheKey)
+        {
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
+            try
+            {
+                await _distributedCache.RemoveAsync(cacheKey);
+                CacheClears.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+            }
+            catch (Exception ex)
+            {
+                CacheErrors.AddOrUpdate($"clear:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis CLEAR failed for key {CacheKey}. Skipping operation.", cacheKey);
+            }
+        }
+
+        // ------------------ Sync API (convenience) ------------------
+
+        public string? Get(string cacheKey)
+        {
+            try
+            {
+                var json = _distributedCache.GetString(cacheKey);
+                return string.IsNullOrEmpty(json) ? null : json;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis GET (sync) failed for key {CacheKey}. Returning null.", cacheKey);
                 return null;
             }
+        }
+
+        public T? Get<T>(string cacheKey)
+        {
+            try
+            {
+                var json = _distributedCache.GetString(cacheKey);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    try
+                    {
+                        return json.FromJson<T>();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to deserialize cached value for key {CacheKey}", cacheKey);
+                        return default;
+                    }
+                }
+
+                return default;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis GET (sync) failed for key {CacheKey}. Returning default.", cacheKey);
+                return default;
+            }
+        }
+
+        public void Set(string cacheKey, object response, TimeSpan timeLive)
+        {
+            if (response == null) return;
 
             try
             {
-                var actualKey = GetEnvironmentKey(key);
-                return await _database.StringGetAsync(actualKey);
+                var json = response.ToJson();
+                _distributedCache.SetString(
+                    cacheKey,
+                    json,
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = timeLive }
+                );
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error getting string from Redis: {Key}", key);
-                return null;
+                _logger.LogWarning(ex, "Redis SET (sync) failed for key {CacheKey}. Continuing without cache.", cacheKey);
             }
         }
 
-        #endregion
+        public void Clear(string cacheKey)
+        {
+            try
+            {
+                _distributedCache.Remove(cacheKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis CLEAR (sync) failed for key {CacheKey}. Skipping operation.", cacheKey);
+            }
+        }
     }
 }

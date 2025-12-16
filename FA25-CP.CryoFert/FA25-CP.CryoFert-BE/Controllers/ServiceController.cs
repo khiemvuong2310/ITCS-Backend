@@ -29,6 +29,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [HttpGet]
         [Authorize(Roles = "Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel))]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetAll([FromQuery] GetServicesRequest request)
         {
             if (request == null)

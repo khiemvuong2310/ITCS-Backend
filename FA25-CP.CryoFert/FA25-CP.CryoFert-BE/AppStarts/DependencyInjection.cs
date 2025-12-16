@@ -16,6 +16,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.Mapping;
 using FSCMS.Service.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -90,143 +91,60 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
 
-            services.Configure<RedisOptions>(options =>
-            {
-                configuration.GetSection(RedisOptions.KeyName).Bind(options);
-
-                var envConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING");
-                var envHost = Environment.GetEnvironmentVariable("REDIS_HOST");
-                var envPort = Environment.GetEnvironmentVariable("REDIS_PORT");
-                var envUser = Environment.GetEnvironmentVariable("REDIS_USER");
-                var envPassword = Environment.GetEnvironmentVariable("REDIS_PASSWORD");
-                var envSsl = Environment.GetEnvironmentVariable("REDIS_SSL");
-
-                if (!string.IsNullOrWhiteSpace(envConnectionString))
-                {
-                    options.ConnectionString = envConnectionString;
-                }
-
-                if (!string.IsNullOrWhiteSpace(envHost))
-                {
-                    options.Host = envHost;
-                }
-
-                if (int.TryParse(envPort, out var parsedPort))
-                {
-                    options.Port = parsedPort;
-                }
-
-                if (!string.IsNullOrWhiteSpace(envUser))
-                {
-                    options.User = envUser;
-                }
-
-                if (!string.IsNullOrWhiteSpace(envPassword))
-                {
-                    options.Password = envPassword;
-                }
-
-                if (bool.TryParse(envSsl, out var parsedSsl))
-                {
-                    options.UseSsl = parsedSsl;
-                }
-
-                options.ConnectionString ??= configuration.GetConnectionString("RedisConnection");
-
-                if (string.IsNullOrWhiteSpace(options.ConnectionString) &&
-                    (string.IsNullOrWhiteSpace(options.Host) || !options.Port.HasValue))
-                {
-                    throw new InvalidOperationException("Redis is not configured. Provide REDIS_CONNECTION_STRING or REDIS_HOST/REDIS_PORT in environment variables or appsettings.");
-                }
-            });
+            services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.KeyName));
+            var redisOptions = configuration.GetSection(RedisOptions.KeyName).Get<RedisOptions>();
 
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
-                var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
                 var logger = sp.GetRequiredService<ILogger<IConnectionMultiplexer>>();
-
-                ConfigurationOptions configurationOptions;
-
-                if (!string.IsNullOrWhiteSpace(redisOptions.ConnectionString))
+                var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") ?? redisOptions.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString))
                 {
-                    configurationOptions = ConfigurationOptions.Parse(redisOptions.ConnectionString, true);
+                    logger.LogWarning("⚠️ Không tìm thấy Redis Connection String. Bỏ qua Cache.");
+                    return null;
                 }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(redisOptions.Host) || !redisOptions.Port.HasValue)
-                    {
-                        logger.LogWarning("Redis host/port configuration is missing. Redis caching will be disabled.");
-                        // Return a dummy connection multiplexer that will fail gracefully
-                        return CreateDummyConnectionMultiplexer();
-                    }
-
-                    configurationOptions = new ConfigurationOptions();
-                    configurationOptions.EndPoints.Add(redisOptions.Host, redisOptions.Port.Value);
-                    
-                    if (!string.IsNullOrWhiteSpace(redisOptions.User))
-                    {
-                        configurationOptions.User = redisOptions.User;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(redisOptions.Password))
-                    {
-                        configurationOptions.Password = redisOptions.Password;
-                    }
-
-                    configurationOptions.Ssl = redisOptions.UseSsl;
-                    
-                    // Configure SSL for Redis Cloud
-                    if (redisOptions.UseSsl)
-                    {
-                        configurationOptions.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                        // For Redis Cloud, disable certificate validation
-                        // This is required for Redis Cloud as they use self-signed certificates
-                        configurationOptions.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
-                        {
-                            // Accept all certificates for Redis Cloud
-                            // In production, you should validate certificates properly
-                            return true;
-                        };
-                    }
-                }
-
-                configurationOptions.AbortOnConnectFail = redisOptions.AbortOnConnectFail;
-                configurationOptions.ConnectRetry = redisOptions.ConnectRetry;
-                // Increase timeout for SSL connections, especially for Redis Cloud
-                configurationOptions.ConnectTimeout = Math.Max(redisOptions.ConnectTimeout, 10000);
-                configurationOptions.AsyncTimeout = configurationOptions.ConnectTimeout;
-                configurationOptions.SyncTimeout = configurationOptions.ConnectTimeout;
-                
-                // Additional settings for better connection handling
-                configurationOptions.ReconnectRetryPolicy = new ExponentialRetry(100);
-
                 try
                 {
-                    var multiplexer = ConnectionMultiplexer.Connect(configurationOptions);
-                    
-                    // Subscribe to connection events
-                    multiplexer.ConnectionFailed += (sender, e) =>
-                    {
-                        logger.LogWarning("Redis connection failed: {FailureType}, {Exception}", e.FailureType, e.Exception?.Message);
-                    };
-                    
-                    multiplexer.ConnectionRestored += (sender, e) =>
-                    {
-                        logger.LogInformation("Redis connection restored");
-                    };
+                    var config = ConfigurationOptions.Parse(connectionString, true);
 
-                    logger.LogInformation("Redis connection established successfully");
+                    config.Ssl = true;
+                    config.SslProtocols = SslProtocols.Tls12; // Ép dùng TLS 1.2
+                    config.AbortOnConnectFail = false;        // Giữ app sống
+                    config.ConnectTimeout = 10000;            // 10 giây timeout
+
+                    // Bỏ qua lỗi chứng chỉ (Fix lỗi Self-signed certificate)
+                    config.CertificateValidation += (sender, cert, chain, errors) => true;
+
+                    var multiplexer = ConnectionMultiplexer.Connect(config);
+
+                    multiplexer.ConnectionFailed += (sender, e) =>
+                        logger.LogError($"❌ REDIS KẾT NỐI THẤT BẠI: {e.FailureType} - {e.Exception?.Message}");
+
+                    multiplexer.ErrorMessage += (sender, e) =>
+                        logger.LogError($"❌ REDIS LỖI SERVER: {e.Message}");
+
+                    multiplexer.ConnectionRestored += (sender, e) =>
+                        logger.LogInformation("✅ REDIS ĐÃ KẾT NỐI LẠI!");
+
+                    if (multiplexer.IsConnected)
+                    {
+                        logger.LogInformation("✅ [REDIS ALIVE] Kết nối thành công & Sẵn sàng!");
+                    }
+                    else
+                    {
+                        logger.LogWarning("⚠️ [REDIS WAITING] Object đã tạo nhưng chưa thông mạng. Đang chờ handshake...");
+                    }
+
                     return multiplexer;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to connect to Redis. Application will continue without caching.");
-                    // Return a dummy connection that will fail gracefully
-                    return CreateDummyConnectionMultiplexer();
+                    logger.LogError(ex, "🔥 Lỗi crash khi khởi tạo Redis.");
+                    return null;
                 }
             });
 
-            services.AddScoped<IRedisService, RedisService>();
+            services.AddSingleton<IRedisService,RedisService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
@@ -256,7 +174,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 ConnectRetry = 0,
                 ConnectTimeout = 1
             };
-            
+
             try
             {
                 return ConnectionMultiplexer.Connect(config);
