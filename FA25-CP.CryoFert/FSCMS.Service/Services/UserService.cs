@@ -508,7 +508,7 @@ namespace FSCMS.Service.Services
                 {
                     // Invalidate cache for email (if exists)
                     var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-                    await InvalidateUserCacheAsync(createdAccount.Id, normalizedEmail);
+                    //await InvalidateUserCacheAsync(createdAccount.Id, normalizedEmail);
                 }
 
                 var createdUser = createdAccount != null ? _mapper.Map<UserResponse>(createdAccount) : null;
@@ -643,7 +643,7 @@ namespace FSCMS.Service.Services
 
                 // Invalidate cache
                 var normalizedEmail = account.Email.Trim().ToLowerInvariant();
-                await InvalidateUserCacheAsync(userId, normalizedEmail);
+                //await InvalidateUserCacheAsync(userId, normalizedEmail);
 
                 // Reload with role information
                 var updatedAccount = await _unitOfWork.Repository<Account>()
@@ -718,7 +718,7 @@ namespace FSCMS.Service.Services
 
                 // Invalidate cache
                 var normalizedEmail = account.Email.Trim().ToLowerInvariant();
-                await InvalidateUserCacheAsync(userId, normalizedEmail);
+                //await InvalidateUserCacheAsync(userId, normalizedEmail);
 
                 return new BaseResponse
                 {
@@ -803,7 +803,7 @@ namespace FSCMS.Service.Services
 
                 // Invalidate cache
                 var normalizedEmail = account.Email.Trim().ToLowerInvariant();
-                await InvalidateUserCacheAsync(userId, normalizedEmail);
+                //await InvalidateUserCacheAsync(userId, normalizedEmail);
 
                 return new BaseResponse
                 {
@@ -859,7 +859,7 @@ namespace FSCMS.Service.Services
 
                 // Invalidate cache
                 var normalizedEmail = account.Email.Trim().ToLowerInvariant();
-                await InvalidateUserCacheAsync(userId, normalizedEmail);
+                //await InvalidateUserCacheAsync(userId, normalizedEmail);
 
                 return new BaseResponse
                 {
@@ -952,26 +952,26 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Invalidates all cache entries for a user
         /// </summary>
-        private async Task InvalidateUserCacheAsync(Guid userId, string normalizedEmail)
-        {
-            try
-            {
-                var tasks = new List<Task>
-                {
-                    _redisService.DeleteKeyAsync($"{CACHE_KEY_PREFIX}:{userId}"),
-                    _redisService.DeleteKeyAsync($"{CACHE_KEY_EMAIL_PREFIX}:{normalizedEmail}"),
-                    _redisService.DeleteKeyAsync($"{CACHE_KEY_DETAIL_PREFIX}:{userId}")
-                };
+        //private async Task InvalidateUserCacheAsync(Guid userId, string normalizedEmail)
+        //{
+        //    try
+        //    {
+        //        var tasks = new List<Task>
+        //        {
+        //            _redisService.DeleteKeyAsync($"{CACHE_KEY_PREFIX}:{userId}"),
+        //            _redisService.DeleteKeyAsync($"{CACHE_KEY_EMAIL_PREFIX}:{normalizedEmail}"),
+        //            _redisService.DeleteKeyAsync($"{CACHE_KEY_DETAIL_PREFIX}:{userId}")
+        //        };
 
-                await Task.WhenAll(tasks);
-                _logger.LogInformation("Cache invalidated for user {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to invalidate cache for user {UserId}", userId);
-                // Don't throw - cache invalidation failure shouldn't break the operation
-            }
-        }
+        //        await Task.WhenAll(tasks);
+        //        _logger.LogInformation("Cache invalidated for user {UserId}", userId);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogWarning(ex, "Failed to invalidate cache for user {UserId}", userId);
+        //        // Don't throw - cache invalidation failure shouldn't break the operation
+        //    }
+        //}
 
         #endregion
     }

@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 using FSCMS.Core.Interfaces;
-using FSCMS.Core.Models.Options;
-using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace FSCMS.Core.Services
@@ -17,174 +10,147 @@ namespace FSCMS.Core.Services
     public class RedisService : IRedisService
     {
         private readonly IConnectionMultiplexer? _connectionMultiplexer;
-        private readonly StackExchange.Redis.IDatabase? _database;
         private readonly IHostEnvironment _environment;
         private readonly ILogger<RedisService> _logger;
-        private readonly bool _isConnected;
 
+        // Cấu hình JSON để đảm bảo format camelCase chuẩn API
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RedisService"/> class.
-        /// </summary>
-        /// <param name="connectionMultiplexer">The Redis connection multiplexer.</param>
-        /// <param name="environment">The hosting environment.</param>
-        /// <param name="logger">The logger.</param>
-        public RedisService(IConnectionMultiplexer? connectionMultiplexer, IHostEnvironment environment, ILogger<RedisService> logger)
+        public RedisService(
+            IConnectionMultiplexer? connectionMultiplexer,
+            IHostEnvironment environment,
+            ILogger<RedisService> logger)
         {
             _connectionMultiplexer = connectionMultiplexer;
-            _database = _connectionMultiplexer?.GetDatabase();
             _environment = environment;
             _logger = logger;
-
-            // Check if Redis is connected
-            // Note: Connection might not be established immediately, so we check on first use
-            _isConnected = _connectionMultiplexer?.IsConnected ?? false;
-            
-            // Only log warning if connection multiplexer is null (not configured)
-            // If it exists but not connected yet, it might be connecting asynchronously
-            if (_connectionMultiplexer == null)
-            {
-                _logger.LogWarning("Redis connection multiplexer is not configured. Caching will be disabled.");
-            }
-            else if (!_isConnected)
-            {
-                _logger.LogInformation("Redis connection is initializing. Caching will be available once connected.");
-            }
-            else
-            {
-                _logger.LogInformation("Redis connection is available. Caching is enabled.");
-            }
         }
 
-        /// <inheritdoc/>
-        public async Task<bool> KeyExistsAsync(string key)
+        #region Helper Methods
+
+        // Kiểm tra kết nối trực tiếp tại thời điểm gọi lệnh (Real-time check)
+        private bool IsRedisReady()
         {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return false;
-            }
-
-            try
-            {
-                return await _database.KeyExistsAsync(GetEnvironmentKey(key));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error checking if key exists in Redis: {Key}", key);
-                return false;
-            }
+            return _connectionMultiplexer != null && _connectionMultiplexer.IsConnected;
         }
 
-        /// <inheritdoc/>
-        public async Task<bool> DeleteKeyAsync(string key)
+        // Lấy Database an toàn
+        private IDatabase? GetDatabase()
         {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return false;
-            }
-
-            try
-            {
-                return await _database.KeyDeleteAsync(GetEnvironmentKey(key));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error deleting key from Redis: {Key}", key);
-                return false;
-            }
+            if (!IsRedisReady()) return null;
+            return _connectionMultiplexer!.GetDatabase();
         }
 
-        /// <inheritdoc/>
-        public async Task<bool> SetAsync<T>(string key, T value, TimeSpan? expiry = null)
-        {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return false;
-            }
-
-            try
-            {
-                string jsonString = JsonSerializer.Serialize(value, _jsonOptions);
-                return await _database.StringSetAsync(GetEnvironmentKey(key), jsonString, expiry);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error setting value in Redis: {Key}", key);
-                return false;
-            }
-        }
-
-        /// <inheritdoc/>
-        public async Task<T?> GetAsync<T>(string key)
-        {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return default;
-            }
-
-            try
-            {
-                string? jsonString = await GetStringAsync(key);
-
-                if (string.IsNullOrEmpty(jsonString))
-                {
-                    return default;
-                }
-
-                return JsonSerializer.Deserialize<T>(jsonString, _jsonOptions);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error getting value from Redis: {Key}", key);
-                return default;
-            }
-        }
-
-        #region Private Methods
+        // Tạo Key có prefix môi trường (Development/Production)
         private string GetEnvironmentKey(string key)
         {
             return $"{_environment.EnvironmentName}-{key}";
         }
 
-        private async Task SetStringAsync(string key, string value, TimeSpan? expiry = null)
+        #endregion
+
+        #region Public Methods
+
+        public async Task<T?> GetAsync<T>(string key)
         {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
+            if (!IsRedisReady()) return default;
+
+            try
             {
+                var db = GetDatabase();
+                if (db == null) return default;
+
+                var actualKey = GetEnvironmentKey(key);
+                var value = await db.StringGetAsync(actualKey);
+
+                if (!value.HasValue)
+                {
+                    return default;
+                }
+
+                return JsonSerializer.Deserialize<T>(value.ToString(), _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                // Log lỗi nhưng không làm crash app, chỉ trả về null để app gọi xuống DB lấy
+                _logger.LogError(ex, "❌ [REDIS GET ERROR] Không thể đọc Key: {Key}", key);
+                return default;
+            }
+        }
+
+        public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null)
+        {
+            // QUAN TRỌNG: Kiểm tra kết nối trước khi lưu
+            if (!IsRedisReady())
+            {
+                _logger.LogWarning("⚠️ [REDIS SKIP] Bỏ qua việc lưu Cache vì Redis chưa kết nối.");
                 return;
             }
 
             try
             {
+                var db = GetDatabase();
+                if (db == null) return;
+
                 var actualKey = GetEnvironmentKey(key);
-                await _database.StringSetAsync(actualKey, value, expiry);
+                var jsonValue = JsonSerializer.Serialize(value, _jsonOptions);
+
+                // Log để bạn biết chính xác Key nào đang được lưu
+                _logger.LogInformation("⚡ [REDIS SET] Đang lưu Key: {ActualKey} | Expiry: {Expiry}", actualKey, expiry);
+
+                await db.StringSetAsync(actualKey, jsonValue, expiry);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error setting string in Redis: {Key}", key);
+                _logger.LogError(ex, "❌ [REDIS SET ERROR] Lỗi khi lưu Key: {Key}", key);
             }
         }
 
-        private async Task<string?> GetStringAsync(string key)
+        public async Task RemoveAsync(string key)
         {
-            if (!_isConnected || _connectionMultiplexer == null || _database == null || !_connectionMultiplexer.IsConnected)
-            {
-                return null;
-            }
+            if (!IsRedisReady()) return;
 
             try
             {
+                var db = GetDatabase();
+                if (db == null) return;
+
                 var actualKey = GetEnvironmentKey(key);
-                return await _database.StringGetAsync(actualKey);
+                await db.KeyDeleteAsync(actualKey);
+                _logger.LogInformation("🗑️ [REDIS DELETE] Đã xóa Key: {ActualKey}", actualKey);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error getting string from Redis: {Key}", key);
-                return null;
+                _logger.LogError(ex, "❌ [REDIS DELETE ERROR] Lỗi khi xóa Key: {Key}", key);
+            }
+        }
+
+        // Hàm xóa theo Pattern (Cẩn thận khi dùng trên Production vì hiệu năng)
+        public async Task RemoveByPatternAsync(string pattern)
+        {
+            if (!IsRedisReady()) return;
+
+            try
+            {
+                var server = _connectionMultiplexer!.GetServer(_connectionMultiplexer.GetEndPoints().First());
+                var actualPattern = GetEnvironmentKey(pattern);
+
+                var keys = server.Keys(pattern: actualPattern + "*");
+                var db = GetDatabase();
+
+                foreach (var key in keys)
+                {
+                    await db!.KeyDeleteAsync(key);
+                }
+                _logger.LogInformation("🗑️ [REDIS CLEAR PATTERN] Đã dọn dẹp các Key theo pattern: {Pattern}", actualPattern);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [REDIS PATTERN ERROR] Lỗi xóa pattern: {Pattern}", pattern);
             }
         }
 

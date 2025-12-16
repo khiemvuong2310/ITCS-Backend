@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using FSCMS.Data.UnitOfWork;
@@ -8,6 +8,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.Mapping;
 using FSCMS.Core.Models;
 using FSCMS.Core.Entities;
+using FSCMS.Core.Interfaces;
 
 namespace FSCMS.Service.Services
 {
@@ -17,15 +18,17 @@ namespace FSCMS.Service.Services
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ServiceService> _logger;
+        private readonly IRedisService _redisService;
 
         #endregion
 
         #region Constructor
 
-        public ServiceService(IUnitOfWork unitOfWork, ILogger<ServiceService> logger)
+        public ServiceService(IUnitOfWork unitOfWork, ILogger<ServiceService> logger, IRedisService redisService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         #endregion
@@ -39,7 +42,7 @@ namespace FSCMS.Service.Services
 
             try
             {
-                // Validate and normalize request
+                // 1. Validate và Normalize request trước để đảm bảo dữ liệu nhất quán
                 if (request == null)
                 {
                     _logger.LogWarning("{MethodName}: Request is null", methodName);
@@ -53,7 +56,40 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                request.Normalize();
+                request.Normalize(); // Normalize xong mới tạo Cache Key để tránh việc " A" và "A" ra 2 key khác nhau
+
+                // =========================================================================================
+                // [REDIS STEP 1]: TẠO CACHE KEY & KIỂM TRA CACHE
+                // =========================================================================================
+
+                // Tạo key đại diện cho toàn bộ tham số filter (Search, Sort, Page, Price...)
+                // Key format: services_p{Page}_s{Size}_{Search}_{Category}_{Active}_{Sort}_{Order}...
+                string cacheKey = $"services_list_p{request.Page}_s{request.Size}_q_{request.SearchTerm}_cat_{request.ServiceCategoryId}_act_{request.IsActive}_min_{request.MinPrice}_max_{request.MaxPrice}_sort_{request.Sort}_{request.Order}";
+
+                try
+                {
+                    // Gọi Redis lấy dữ liệu
+                    var cachedData = await _redisService.GetAsync<DynamicResponse<ServiceResponseModel>>(cacheKey);
+
+                    if (cachedData != null)
+                    {
+                        // [REDIS HIT]: Tìm thấy trong cache -> Trả về luôn
+                        _logger.LogInformation("🚀 [REDIS HIT] Found data in cache for key: {CacheKey}", cacheKey);
+                        return cachedData;
+                    }
+
+                    // [REDIS MISS]: Không tìm thấy -> Log và tiếp tục chạy xuống dưới để Query DB
+                    _logger.LogInformation("⏳ [REDIS MISS] Data not found in cache. Querying Database...");
+                }
+                catch (Exception ex)
+                {
+                    // Nếu Redis lỗi (mất kết nối), chỉ log warning và vẫn tiếp tục query DB bình thường
+                    _logger.LogWarning("⚠️ Redis Error (Read): {Message}. Continuing with Database flow.", ex.Message);
+                }
+
+                // =========================================================================================
+                // [DATABASE STEP]: LOGIC CŨ CỦA BẠN (GIỮ NGUYÊN)
+                // =========================================================================================
 
                 var query = _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
@@ -65,7 +101,7 @@ namespace FSCMS.Service.Services
                 if (!string.IsNullOrWhiteSpace(request.SearchTerm))
                 {
                     var searchTerm = request.SearchTerm.ToLowerInvariant();
-                    query = query.Where(s => 
+                    query = query.Where(s =>
                         s.Name.ToLower().Contains(searchTerm) ||
                         (s.Code != null && s.Code.ToLower().Contains(searchTerm)) ||
                         (s.Description != null && s.Description.ToLower().Contains(searchTerm)));
@@ -121,9 +157,10 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var responseItems = items.Select(s => s.ToResponseModel()).ToList();
-                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} services", methodName, responseItems.Count);
+                _logger.LogInformation("{MethodName}: Successfully retrieved {Count} services from Database", methodName, responseItems.Count);
 
-                return new DynamicResponse<ServiceResponseModel>
+                // Tạo object kết quả trả về
+                var finalResponse = new DynamicResponse<ServiceResponseModel>
                 {
                     Code = StatusCodes.Status200OK,
                     SystemCode = "SUCCESS",
@@ -137,6 +174,22 @@ namespace FSCMS.Service.Services
                     },
                     Data = responseItems
                 };
+
+                // =========================================================================================
+                // [REDIS STEP 2]: LƯU KẾT QUẢ VÀO CACHE
+                // =========================================================================================
+                try
+                {
+                    // Lưu vào Redis với thời gian hết hạn là 10 phút
+                    await _redisService.SetAsync(cacheKey, finalResponse, TimeSpan.FromMinutes(10));
+                    _logger.LogInformation("💾 [REDIS SAVE] Saved result to cache for key: {CacheKey}", cacheKey);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("⚠️ Redis Error (Write): {Message}", ex.Message);
+                }
+
+                return finalResponse;
             }
             catch (Exception ex)
             {
