@@ -15,6 +15,8 @@ namespace FSCMS.Service.RequestModel
     }
         public class CreateUrlPaymentRequest
     {
+        [Required(ErrorMessage = "PaymentGateway is required.")]
+        public PaymentGateway PaymentGateway { get; set; }
         [Required(ErrorMessage = "RelatedEntityType is required.")]
         public EntityTypeTransaction RelatedEntityType { get; set; }
         [Required(ErrorMessage = "RelatedEntityId is required.")]
@@ -70,4 +72,25 @@ namespace FSCMS.Service.RequestModel
         CryoStorageContract = 2,
         //Patient = 3
     }
+
+    public enum PaymentGateway
+
+    {
+        VnPay = 0,
+        PayOS = 1,
+    }
+
+    public class PayOSWebhookPayload
+    {
+        public PayOSWebhookData data { get; set; } = null!;
+    }
+
+    public class PayOSWebhookData
+    {
+        public long orderCode { get; set; }
+        public int amount { get; set; }
+        public string status { get; set; } = null!;
+        public string reference { get; set; } = null!;
+    }
+
 }

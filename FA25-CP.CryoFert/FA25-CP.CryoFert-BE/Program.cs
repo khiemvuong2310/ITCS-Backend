@@ -93,6 +93,18 @@ namespace FA25_CP.CryoFert_BE
                 //options.vnp_IpnUrl = Environment.GetEnvironmentVariable("VNPAY_IPNURL") ?? "";
             });
 
+            builder.Services.Configure<PayOSOptions>(options =>
+            {
+                options.pos_ClientId = Environment.GetEnvironmentVariable("PAYOS_CLIENT_ID") ?? "";
+                options.pos_ApiKey = Environment.GetEnvironmentVariable("PAYOS_API_KEY") ?? "";
+                options.pos_ChecksumKey = Environment.GetEnvironmentVariable("PAYOS_CHECKSUM_KEY") ?? "";
+
+                options.pos_ReturnUrl = Environment.GetEnvironmentVariable("PAYOS_RETURN_URL") ?? "";
+                options.pos_CancelUrl = Environment.GetEnvironmentVariable("PAYOS_CANCEL_URL") ?? "";
+                options.pos_WebhookUrl = Environment.GetEnvironmentVariable("PAYOS_WEBHOOK_URL") ?? "";
+            });
+
+
             // 4. CORS config
             builder.Services.AddCors(options =>
             {

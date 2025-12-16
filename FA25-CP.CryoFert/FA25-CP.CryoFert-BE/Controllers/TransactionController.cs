@@ -67,6 +67,16 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPost("payos-webhook")]
+        [AllowAnonymous]
+        [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
+        public async Task<IActionResult> PayOSWebhook()
+        {
+            var result = await _transactionService.HandlePayOSWebhookAsync(Request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+
         /// <summary>
         /// Get all transactions with filters, sorting, and pagination
         /// </summary>

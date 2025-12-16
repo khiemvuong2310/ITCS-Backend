@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using FSCMS.Core.Entities;
@@ -21,6 +22,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using PayOS;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace FSCMS.Service.Services
 {
@@ -116,7 +119,30 @@ namespace FSCMS.Service.Services
                     };
 
                 string paymentUrl = null;
-                paymentUrl = _paymentGateway.CreateVnPayUrl(transaction);
+
+                switch (request.PaymentGateway)
+                {
+                    case PaymentGateway.VnPay:
+                        transaction.PaymentGateway = "VNPay";
+                        transaction.PaymentMethod = "Online";
+                        await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                        paymentUrl = _paymentGateway.CreateVnPayUrl(transaction);
+                        break;
+                    case PaymentGateway.PayOS:
+                        transaction.PaymentGateway = "PayOS";
+                        transaction.PaymentMethod = "Online";
+                        transaction.PayOSOrderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                        paymentUrl = await _paymentGateway.CreatePayOSUrlAsync(transaction);
+                        break;
+                    default:
+                        return new BaseResponse<TransactionResponseModel>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "Unsupported payment gateway"
+                        };
+                }
+                
                 var response = _mapper.Map<TransactionResponseModel>(transaction);
                 response.PaymentUrl = paymentUrl;
 
@@ -218,8 +244,6 @@ namespace FSCMS.Service.Services
                     TransactionDate = DateTime.UtcNow,
                 };
 
-                transaction.PaymentGateway = "VNPay";
-                transaction.PaymentMethod = "Online";
                 transaction.ReferenceNumber = transaction.TransactionCode;
 
                 await _unitOfWork.Repository<Transaction>().InsertAsync(transaction);
@@ -480,6 +504,231 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        public async Task<BaseResponse<TransactionResponseModel>> HandlePayOSWebhookAsync(HttpRequest request)
+        {
+            using var transactionU = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // 1️⃣ Read raw body
+                request.EnableBuffering();
+                using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
+                var rawBody = await reader.ReadToEndAsync();
+                request.Body.Position = 0;
+
+                // 2️⃣ Read signature
+                if (!request.Headers.TryGetValue("x-payos-signature", out var signature))
+                {
+                    await transactionU.RollbackAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Missing PayOS signature",
+                        Data = null
+                    };
+                }
+
+                // 3️⃣ Verify signature using IsValidData
+                if (!_paymentGateway.IsValidData(rawBody, signature))
+                {
+                    await transactionU.RollbackAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid PayOS signature",
+                        Data = null
+                    };
+                }
+
+                // 4️⃣ Deserialize payload
+                var webhook = JsonSerializer.Deserialize<PayOSWebhookPayload>(rawBody, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                if (webhook == null)
+                {
+                    await transactionU.RollbackAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Invalid webhook payload",
+                        Data = null
+                    };
+                }
+
+                // 5️⃣ Find transaction
+                var transaction = await _unitOfWork.Repository<Transaction>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(t =>
+                        t.PayOSOrderCode == webhook.data.orderCode);
+
+                if (transaction == null)
+                {
+                    await transactionU.RollbackAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Transaction not found",
+                        Data = null
+                    };
+                }
+
+                // 6️⃣ Idempotency
+                if (transaction.Status == TransactionStatus.Completed)
+                {
+                    await transactionU.CommitAsync();
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status200OK,
+                        Message = "Transaction Already processed",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }
+
+                // 7️⃣ Validate amount
+                if (transaction.Amount != webhook.data.amount)
+                {
+                    transaction.Status = TransactionStatus.Failed;
+                    transaction.ProcessedDate = DateTime.UtcNow;
+                    transaction.BankTranNo = webhook.data.reference;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    await _unitOfWork.CommitAsync();
+                    await transactionU.CommitAsync();
+
+                    // Notify user/admin for manual reconciliation
+                    await _hubContext.Clients.User(transaction.PatientId.ToString())
+                        .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Amount mismatch",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }
+
+                // 8️⃣ Update status
+                transaction.ProcessedDate = DateTime.UtcNow;
+                transaction.ProcessedBy = "PayOS";
+                transaction.BankTranNo = webhook.data.reference;
+                await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                await _unitOfWork.CommitAsync();
+
+                if (webhook.data.status == "PAID")
+                {
+                    EntityTypeMedia? typeMedia = null;
+                    switch (transaction.RelatedEntityType)
+                    {
+                        case "ServiceRequest":
+                            var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                            serviceRequest.Status = ServiceRequestStatus.InProcess;
+                            await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
+                            await _unitOfWork.CommitAsync();
+                            break;
+                        case "Appointment":
+                            var appointment = await _unitOfWork.Repository<Appointment>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                            appointment.Status = AppointmentStatus.Confirmed;
+                            await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointment.Id);
+                            await _unitOfWork.CommitAsync();
+                            break;
+                        case "CryoStorageContract":
+                            typeMedia = EntityTypeMedia.CryoStorageContract;
+                            var cryoStorageContract = await _unitOfWork.Repository<CryoStorageContract>()
+                                .AsQueryable()
+                                .Include(p => p.CPSDetails)
+                                .Include(p => p.CryoPackage)
+                                .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                            cryoStorageContract.Status = ContractStatus.Active;
+                            cryoStorageContract.StartDate = DateTime.UtcNow;
+                            cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                            cryoStorageContract.PaidAmount = webhook.data.amount;
+                            foreach (var detail in cryoStorageContract.CPSDetails)
+                            {
+                                detail.StorageStartDate = DateTime.UtcNow;
+                                detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                                detail.Status = "Storage";
+                                await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                            }
+                            await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
+                            await _unitOfWork.CommitAsync();
+                            break;
+                        default:
+                            break;
+                    }
+                    transaction.Status = TransactionStatus.Completed;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    await _unitOfWork.CommitAsync();
+                    await transactionU.CommitAsync();
+                    if (typeMedia != null)
+                    {
+                        await _mediaService.UploadPdfFromHtmlAsync(transaction.RelatedEntityId, (EntityTypeMedia)typeMedia);
+                    }
+                    // Push SignalR AFTER commit
+                    await _hubContext.Clients.User(transaction.PatientId.ToString())
+                        .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status200OK,
+                        Message = "Transaction processed",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }    
+                else
+                {
+                    // non-success codes -> Failed/Cancelled/Timeout
+                    transaction.Status = TransactionStatus.Failed;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    var newTransaction = new Transaction
+                    {
+                        TransactionCode = $"TX-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 6)}",
+                        TransactionType = transaction.TransactionType,
+                        Amount = transaction.Amount,
+                        Currency = transaction.Currency,
+                        PatientId = transaction.PatientId,
+                        PatientName = transaction.PatientName,
+                        Description = transaction.Description,
+                        RelatedEntityType = transaction.RelatedEntityType,
+                        RelatedEntityId = transaction.RelatedEntityId,
+                        Status = TransactionStatus.Pending,
+                        TransactionDate = DateTime.UtcNow,
+                        PaymentGateway = transaction.PaymentGateway,
+                        PaymentMethod = transaction.PaymentMethod,
+                        ReferenceNumber = transaction.ReferenceNumber
+                    };
+                    newTransaction.ReferenceNumber = newTransaction.TransactionCode;
+
+                    await _unitOfWork.Repository<Transaction>().InsertAsync(newTransaction);
+                    await _unitOfWork.CommitAsync();
+                    await transactionU.CommitAsync();
+                    // Notify AFTER commit
+                    await _hubContext.Clients.User(transaction.PatientId.ToString())
+                        .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status200OK,
+                        Message = "Transaction processed (failed)",
+                        Data = _mapper.Map<TransactionResponseModel>(transaction)
+                    };
+                }    
+            }
+            catch (Exception ex)
+            {
+                await transactionU.RollbackAsync();
+                _logger.LogError(ex, "PayOS webhook error");
+                return new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing payment"
+                };
+            }
+        }
+
         #endregion
 
         #region Helper
