@@ -232,5 +232,15 @@ namespace FSCMS.Service.RequestModel
         public Guid? PatientId { get; set; }
     }
 
+    public class GetLabSamplesRequestDetail : PagingModel
+    {
+        [Required(ErrorMessage = "SampleType is required.")]
+        public SampleType SampleType { get; set; }
+        public SpecimenStatus? Status { get; set; }
+        public bool? CanFrozen { get; set; }
+        public string? SearchTerm { get; set; }
+        public Guid? PatientId { get; set; }
+    }
+
     #endregion
 }

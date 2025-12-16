@@ -178,6 +178,88 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        public async Task<DynamicResponse<LabSampleDetailResponse>> GetAllDetailAsync(GetLabSamplesRequestDetail request)
+        {
+            const string methodName = nameof(GetAllAsync);
+            _logger.LogInformation("{MethodName} called", methodName);
+
+            try
+            {
+                var query = _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .Include(x => x.Patient)
+                    .Include(x => x.LabSampleSperm)
+                    .Include(x => x.LabSampleOocyte)
+                    .Include(x => x.LabSampleEmbryo)
+                    .Where(x => !x.IsDeleted);
+
+                // --- Filtering ---
+                query = query.Where(x => x.SampleType == request.SampleType);
+
+                if (request.Status.HasValue)
+                    query = query.Where(x => x.Status == request.Status);
+
+                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                    query = query.Where(x => x.SampleCode.Contains(request.SearchTerm)
+                                          || (x.Notes != null && x.Notes.Contains(request.SearchTerm)));
+
+                if (request.PatientId.HasValue)
+                    query = query.Where(x => x.PatientId == request.PatientId.Value);
+
+                if (request.CanFrozen.HasValue)
+                    query = query.Where(x => x.CanFrozen == request.CanFrozen);
+
+                var totalCount = await query.CountAsync();
+
+                // Apply sorting
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    var isDescending = request.Order?.ToLower() == "desc";
+
+                    query = request.Sort.ToLower() switch
+                    {
+                        "collectiondate" => isDescending ? query.OrderByDescending(x => x.CollectionDate) : query.OrderBy(x => x.CollectionDate),
+                        "samplecode" => isDescending ? query.OrderByDescending(x => x.SampleCode) : query.OrderBy(x => x.SampleCode),
+                        _ => query.OrderByDescending(x => x.CreatedAt)
+                    };
+                }
+                else
+                {
+                    query = query.OrderByDescending(u => u.CreatedAt);
+                }
+
+                // Apply pagination
+                var items = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var data = _mapper.Map<List<LabSampleDetailResponse>>(items);
+
+                return new DynamicResponse<LabSampleDetailResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Lab samples retrieved successfully.",
+                    Data = data,
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error getting all lab samples", methodName);
+                return new DynamicResponse<LabSampleDetailResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
         #endregion
 
         #region CREATE

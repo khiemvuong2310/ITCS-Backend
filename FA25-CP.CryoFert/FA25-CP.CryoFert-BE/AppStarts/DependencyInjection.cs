@@ -14,6 +14,7 @@ using FSCMS.Core.Services;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.Mapping;
+using FSCMS.Service.Payments;
 using FSCMS.Service.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -39,6 +40,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddSingleton<ITwilioRestClient>(new TwilioRestClient("ACCOUNT_SID", "AUTH_TOKEN"));
             // using DinkToPdf; using DinkToPdf.Contracts;
             services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
+            services.AddScoped<PayOSService>();
+
 
             // Add AutoMapper
             services.AddAutoMapper(typeof(UserMappingProfile), typeof(DoctorMappingProfile), typeof(PatientMappingProfile));
