@@ -1,159 +1,268 @@
-﻿using System.Text.Json;
-using FSCMS.Core.Interfaces;
+﻿using FSCMS.Core.Interfaces;
+using FSCMS.Core.Models;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ServiceStack;
 using StackExchange.Redis;
+using System.Collections.Concurrent;
+using System.Text.Json;
+
 
 namespace FSCMS.Core.Services
 {
+    /// <summary>
+    /// RedisService rewritten to follow the CacheRedis pattern:
+    /// - Uses IDistributedCache
+    /// - Tracks metrics (Hits, Misses, Sets, Clears, Errors) via static ConcurrentDictionary
+    /// - Exposes GetCacheStatistics()
+    /// </summary>
     public class RedisService : IRedisService
     {
-        private readonly IConnectionMultiplexer? _connectionMultiplexer;
-        private readonly IHostEnvironment _environment;
+        private readonly IDistributedCache _distributedCache;
         private readonly ILogger<RedisService> _logger;
 
-        // Cấu hình JSON để đảm bảo format camelCase chuẩn API
-        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        private static readonly ConcurrentDictionary<string, long> CacheHits = new();
+        private static readonly ConcurrentDictionary<string, long> CacheMisses = new();
+        private static readonly ConcurrentDictionary<string, long> CacheSets = new();
+        private static readonly ConcurrentDictionary<string, long> CacheClears = new();
+        private static readonly ConcurrentDictionary<string, long> CacheErrors = new();
 
-        public RedisService(
-            IConnectionMultiplexer? connectionMultiplexer,
-            IHostEnvironment environment,
-            ILogger<RedisService> logger)
+        public RedisService(IDistributedCache distributedCache, ILogger<RedisService> logger)
         {
-            _connectionMultiplexer = connectionMultiplexer;
-            _environment = environment;
+            _distributedCache = distributedCache;
             _logger = logger;
         }
 
-        #region Helper Methods
-
-        // Kiểm tra kết nối trực tiếp tại thời điểm gọi lệnh (Real-time check)
-        private bool IsRedisReady()
+        /// <summary>
+        /// Return aggregated cache statistics for monitoring.
+        /// </summary>
+        public static CacheStatistics GetCacheStatistics()
         {
-            return _connectionMultiplexer != null && _connectionMultiplexer.IsConnected;
+            return new CacheStatistics
+            {
+                Hits = CacheHits.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Misses = CacheMisses.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Sets = CacheSets.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Clears = CacheClears.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                Errors = CacheErrors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            };
         }
 
-        // Lấy Database an toàn
-        private IDatabase? GetDatabase()
+        private static string ExtractKeyPrefix(string cacheKey)
         {
-            if (!IsRedisReady()) return null;
-            return _connectionMultiplexer!.GetDatabase();
+            var colonIndex = cacheKey?.IndexOf(':') ?? -1;
+            return (colonIndex > 0 && cacheKey != null) ? cacheKey[..colonIndex] : cacheKey ?? "unknown";
         }
 
-        // Tạo Key có prefix môi trường (Development/Production)
-        private string GetEnvironmentKey(string key)
+        // ------------------ Async API ------------------
+
+        public async Task<string?> GetAsync(string cacheKey)
         {
-            return $"{_environment.EnvironmentName}-{key}";
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public async Task<T?> GetAsync<T>(string key)
-        {
-            if (!IsRedisReady()) return default;
-
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
             try
             {
-                var db = GetDatabase();
-                if (db == null) return default;
-
-                var actualKey = GetEnvironmentKey(key);
-                var value = await db.StringGetAsync(actualKey);
-
-                if (!value.HasValue)
+                var json = await _distributedCache.GetStringAsync(cacheKey);
+                if (string.IsNullOrEmpty(json))
                 {
-                    return default;
+                    CacheMisses.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                    return null;
                 }
 
-                return JsonSerializer.Deserialize<T>(value.ToString(), _jsonOptions);
+                CacheHits.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                return json;
             }
             catch (Exception ex)
             {
-                // Log lỗi nhưng không làm crash app, chỉ trả về null để app gọi xuống DB lấy
-                _logger.LogError(ex, "❌ [REDIS GET ERROR] Không thể đọc Key: {Key}", key);
+                CacheErrors.AddOrUpdate($"get:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis GET failed for key {CacheKey}. Returning null.", cacheKey);
+                return null;
+            }
+        }
+
+        public async Task<T?> GetAsync<T>(string cacheKey)
+        {
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
+
+            try
+            {
+                var json = await _distributedCache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    try
+                    {
+                        CacheHits.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                        return json.FromJson<T>(); // ServiceStack
+                        // If you prefer System.Text.Json:
+                        // return System.Text.Json.JsonSerializer.Deserialize<T>(json);
+                    }
+                    catch (Exception ex)
+                    {
+                        CacheErrors.AddOrUpdate($"deserialize:{keyPrefix}", 1, (_, count) => count + 1);
+                        _logger.LogWarning(ex, "Failed to deserialize cached value for key {CacheKey}", cacheKey);
+                        return default;
+                    }
+                }
+
+                CacheMisses.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+                return default;
+            }
+            catch (Exception ex)
+            {
+                CacheErrors.AddOrUpdate($"get:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis GET failed for key {CacheKey}. Returning default.", cacheKey);
                 return default;
             }
         }
 
-        public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null)
+        public async Task SetAsync(string cacheKey, object response, TimeSpan timeLive)
         {
-            // QUAN TRỌNG: Kiểm tra kết nối trước khi lưu
-            if (!IsRedisReady())
-            {
-                _logger.LogWarning("⚠️ [REDIS SKIP] Bỏ qua việc lưu Cache vì Redis chưa kết nối.");
-                return;
-            }
+            if (response == null) return;
+
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
 
             try
             {
-                var db = GetDatabase();
-                if (db == null) return;
+                var json = response.ToJson(); // ServiceStack
+                // If prefer System.Text.Json:
+                // var json = System.Text.Json.JsonSerializer.Serialize(response);
 
-                var actualKey = GetEnvironmentKey(key);
-                var jsonValue = JsonSerializer.Serialize(value, _jsonOptions);
+                await _distributedCache.SetStringAsync(
+                    cacheKey,
+                    json,
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = timeLive }
+                );
 
-                // Log để bạn biết chính xác Key nào đang được lưu
-                _logger.LogInformation("⚡ [REDIS SET] Đang lưu Key: {ActualKey} | Expiry: {Expiry}", actualKey, expiry);
-
-                await db.StringSetAsync(actualKey, jsonValue, expiry);
+                CacheSets.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ [REDIS SET ERROR] Lỗi khi lưu Key: {Key}", key);
+                CacheErrors.AddOrUpdate($"set:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis SET failed for key {CacheKey}. Continuing without cache.", cacheKey);
             }
         }
 
-        public async Task RemoveAsync(string key)
+        public async Task IncreaseIntAsync(string cacheKey, TimeSpan timeLive)
         {
-            if (!IsRedisReady()) return;
-
             try
             {
-                var db = GetDatabase();
-                if (db == null) return;
-
-                var actualKey = GetEnvironmentKey(key);
-                await db.KeyDeleteAsync(actualKey);
-                _logger.LogInformation("🗑️ [REDIS DELETE] Đã xóa Key: {ActualKey}", actualKey);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ [REDIS DELETE ERROR] Lỗi khi xóa Key: {Key}", key);
-            }
-        }
-
-        // Hàm xóa theo Pattern (Cẩn thận khi dùng trên Production vì hiệu năng)
-        public async Task RemoveByPatternAsync(string pattern)
-        {
-            if (!IsRedisReady()) return;
-
-            try
-            {
-                var server = _connectionMultiplexer!.GetServer(_connectionMultiplexer.GetEndPoints().First());
-                var actualPattern = GetEnvironmentKey(pattern);
-
-                var keys = server.Keys(pattern: actualPattern + "*");
-                var db = GetDatabase();
-
-                foreach (var key in keys)
+                var json = await _distributedCache.GetStringAsync(cacheKey);
+                if (string.IsNullOrEmpty(json))
                 {
-                    await db!.KeyDeleteAsync(key);
+                    await SetAsync(cacheKey, 1, timeLive);
+                    return;
                 }
-                _logger.LogInformation("🗑️ [REDIS CLEAR PATTERN] Đã dọn dẹp các Key theo pattern: {Pattern}", actualPattern);
+                if (int.TryParse(json, out var totalCount))
+                {
+                    await SetAsync(cacheKey, totalCount + 1, timeLive);
+                }
+                else
+                {
+                    // If stored as JSON number/other, attempt deserialize
+                    try
+                    {
+                        var val = json.FromJson<int>();
+                        await SetAsync(cacheKey, val + 1, timeLive);
+                    }
+                    catch
+                    {
+                        _logger.LogWarning("IncreaseIntAsync: cannot parse value for key {CacheKey}", cacheKey);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ [REDIS PATTERN ERROR] Lỗi xóa pattern: {Pattern}", pattern);
+                _logger.LogWarning(ex, "Redis INCREASE failed for key {CacheKey}. Skipping operation.", cacheKey);
             }
         }
 
-        #endregion
+        public async Task ClearAsync(string cacheKey)
+        {
+            var keyPrefix = ExtractKeyPrefix(cacheKey);
+            try
+            {
+                await _distributedCache.RemoveAsync(cacheKey);
+                CacheClears.AddOrUpdate(keyPrefix, 1, (_, count) => count + 1);
+            }
+            catch (Exception ex)
+            {
+                CacheErrors.AddOrUpdate($"clear:{keyPrefix}", 1, (_, count) => count + 1);
+                _logger.LogWarning(ex, "Redis CLEAR failed for key {CacheKey}. Skipping operation.", cacheKey);
+            }
+        }
+
+        // ------------------ Sync API (convenience) ------------------
+
+        public string? Get(string cacheKey)
+        {
+            try
+            {
+                var json = _distributedCache.GetString(cacheKey);
+                return string.IsNullOrEmpty(json) ? null : json;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis GET (sync) failed for key {CacheKey}. Returning null.", cacheKey);
+                return null;
+            }
+        }
+
+        public T? Get<T>(string cacheKey)
+        {
+            try
+            {
+                var json = _distributedCache.GetString(cacheKey);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    try
+                    {
+                        return json.FromJson<T>();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to deserialize cached value for key {CacheKey}", cacheKey);
+                        return default;
+                    }
+                }
+
+                return default;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis GET (sync) failed for key {CacheKey}. Returning default.", cacheKey);
+                return default;
+            }
+        }
+
+        public void Set(string cacheKey, object response, TimeSpan timeLive)
+        {
+            if (response == null) return;
+
+            try
+            {
+                var json = response.ToJson();
+                _distributedCache.SetString(
+                    cacheKey,
+                    json,
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = timeLive }
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis SET (sync) failed for key {CacheKey}. Continuing without cache.", cacheKey);
+            }
+        }
+
+        public void Clear(string cacheKey)
+        {
+            try
+            {
+                _distributedCache.Remove(cacheKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis CLEAR (sync) failed for key {CacheKey}. Skipping operation.", cacheKey);
+            }
+        }
     }
 }

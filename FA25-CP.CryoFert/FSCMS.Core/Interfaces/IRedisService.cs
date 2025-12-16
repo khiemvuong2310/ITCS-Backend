@@ -1,10 +1,17 @@
-﻿namespace FSCMS.Core.Interfaces
+﻿using FSCMS.Core.Models;
+
+namespace FSCMS.Core.Interfaces
 {
     public interface IRedisService
     {
-        Task<T?> GetAsync<T>(string key);
-        Task RemoveAsync(string key);
-        Task RemoveByPatternAsync(string pattern);
-        Task SetAsync<T>(string key, T value, TimeSpan? expiry = null);
+        void Clear(string cacheKey);
+        Task ClearAsync(string cacheKey);
+        string? Get(string cacheKey);
+        T? Get<T>(string cacheKey);
+        Task<string?> GetAsync(string cacheKey);
+        Task<T?> GetAsync<T>(string cacheKey);
+        Task IncreaseIntAsync(string cacheKey, TimeSpan timeLive);
+        void Set(string cacheKey, object response, TimeSpan timeLive);
+        Task SetAsync(string cacheKey, object response, TimeSpan timeLive);
     }
 }

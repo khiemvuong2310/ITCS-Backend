@@ -87,10 +87,6 @@ namespace FSCMS.Service.Services
                     _logger.LogWarning("⚠️ Redis Error (Read): {Message}. Continuing with Database flow.", ex.Message);
                 }
 
-                // =========================================================================================
-                // [DATABASE STEP]: LOGIC CŨ CỦA BẠN (GIỮ NGUYÊN)
-                // =========================================================================================
-
                 var query = _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .AsNoTracking()
@@ -175,9 +171,7 @@ namespace FSCMS.Service.Services
                     Data = responseItems
                 };
 
-                // =========================================================================================
-                // [REDIS STEP 2]: LƯU KẾT QUẢ VÀO CACHE
-                // =========================================================================================
+                // [REDIS STEP 2]: LƯU KẾT QUẢ VÀO CACHE=
                 try
                 {
                     // Lưu vào Redis với thời gian hết hạn là 10 phút
@@ -511,7 +505,7 @@ namespace FSCMS.Service.Services
                     .AsNoTracking()
                     .Include(s => s.ServiceCategory)
                     .Where(s => s.IsActive && !s.IsDeleted &&
-                               (s.Name.Contains(searchTerm) || 
+                               (s.Name.Contains(searchTerm) ||
                                 (s.Code != null && s.Code.Contains(searchTerm)) ||
                                 (s.Description != null && s.Description.Contains(searchTerm))))
                     .OrderBy(s => s.Name)

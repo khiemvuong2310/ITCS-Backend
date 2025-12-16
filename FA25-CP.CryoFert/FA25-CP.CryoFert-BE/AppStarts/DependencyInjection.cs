@@ -97,22 +97,16 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IConnectionMultiplexer>>();
-
-                // 1. Lấy Connection String (Ưu tiên biến môi trường)
                 var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") ?? redisOptions.ConnectionString;
-
                 if (string.IsNullOrEmpty(connectionString))
                 {
                     logger.LogWarning("⚠️ Không tìm thấy Redis Connection String. Bỏ qua Cache.");
                     return null;
                 }
-
                 try
                 {
-                    // 2. Parse cấu hình từ chuỗi
                     var config = ConfigurationOptions.Parse(connectionString, true);
 
-                    // 3. 🔥 CẤU HÌNH BẮT BUỘC CHO REDIS CLOUD (Ghi đè cấu hình cũ) 🔥
                     config.Ssl = true;
                     config.SslProtocols = SslProtocols.Tls12; // Ép dùng TLS 1.2
                     config.AbortOnConnectFail = false;        // Giữ app sống
@@ -123,7 +117,6 @@ namespace FA25_CP.CryoFert_BE.AppStarts
 
                     var multiplexer = ConnectionMultiplexer.Connect(config);
 
-                    // 4. Đăng ký sự kiện để bắt LỖI NGẦM (Quan trọng)
                     multiplexer.ConnectionFailed += (sender, e) =>
                         logger.LogError($"❌ REDIS KẾT NỐI THẤT BẠI: {e.FailureType} - {e.Exception?.Message}");
 
@@ -133,7 +126,6 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                     multiplexer.ConnectionRestored += (sender, e) =>
                         logger.LogInformation("✅ REDIS ĐÃ KẾT NỐI LẠI!");
 
-                    // 5. Kiểm tra trạng thái thực tế ngay lúc này
                     if (multiplexer.IsConnected)
                     {
                         logger.LogInformation("✅ [REDIS ALIVE] Kết nối thành công & Sẵn sàng!");
@@ -152,7 +144,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 }
             });
 
-            services.AddSingleton<IRedisService, RedisService>();
+            services.AddSingleton<IRedisService,RedisService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
@@ -182,7 +174,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 ConnectRetry = 0,
                 ConnectTimeout = 1
             };
-            
+
             try
             {
                 return ConnectionMultiplexer.Connect(config);
