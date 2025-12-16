@@ -729,6 +729,149 @@ namespace FSCMS.Service.Services
             }
         }
 
+        public async Task<BaseResponse<TransactionResponseModel>> CashPaymentAsync(CashPaymentRequest request)
+        {
+            using var transactionU = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                object? entityExists = request.RelatedEntityType switch
+                {
+                    EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>()
+                                    .AsQueryable()
+                                    .Include(x => x.Appointment)
+                                    .Where(p => p.Id == request.RelatedEntityId && !p.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeTransaction.Appointment => await _unitOfWork.Repository<Appointment>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    EntityTypeTransaction.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()
+                                    .AsQueryable()
+                                    .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
+                                    .FirstOrDefaultAsync(),
+                    _ => null
+                };
+
+                if (entityExists == null)
+                {
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        SystemCode = "ENTITY_NOT_FOUND",
+                        Message = $"Related entity {request.RelatedEntityType} with ID {request.RelatedEntityId} not found",
+                        Data = null
+                    };
+                }
+
+                Guid? patientId = entityExists switch
+                {
+                    ServiceRequest mr => mr.Appointment?.PatientId,
+                    Appointment tc => tc.PatientId,
+                    Account acc => acc.Id,
+                    CryoStorageContract csc => csc.PatientId,
+                    _ => null
+                };
+
+                if (patientId == null)
+                {
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        SystemCode = "PATIENT_NOT_FOUND",
+                        Message = "Cannot determine PatientId from related entity"
+                    };
+                }
+
+                var transaction = await _unitOfWork.Repository<Transaction>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(p => p.RelatedEntityType == request.RelatedEntityType.ToString() && !p.IsDeleted && p.RelatedEntityId == request.RelatedEntityId && patientId == p.PatientId && p.Status == TransactionStatus.Pending);
+
+                if (transaction == null)
+                    return new BaseResponse<TransactionResponseModel>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Transaction not found"
+                    };
+
+                transaction.PaymentGateway = "Cash Payment";
+                transaction.PaymentMethod = "Offline";
+                transaction.ProcessedDate = DateTime.UtcNow;
+                transaction.ProcessedBy = "Cash Payment";
+
+                EntityTypeMedia? typeMedia = null;
+                switch (transaction.RelatedEntityType)
+                {
+                    case "ServiceRequest":
+                        var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
+                            .AsQueryable()
+                            .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                        serviceRequest.Status = ServiceRequestStatus.InProcess;
+                        await _unitOfWork.Repository<ServiceRequest>().UpdateGuid(serviceRequest, serviceRequest.Id);
+                        await _unitOfWork.CommitAsync();
+                        break;
+                    case "Appointment":
+                        var appointment = await _unitOfWork.Repository<Appointment>()
+                            .AsQueryable()
+                            .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                        appointment.Status = AppointmentStatus.Confirmed;
+                        await _unitOfWork.Repository<Appointment>().UpdateGuid(appointment, appointment.Id);
+                        await _unitOfWork.CommitAsync();
+                        break;
+                    case "CryoStorageContract":
+                        typeMedia = EntityTypeMedia.CryoStorageContract;
+                        var cryoStorageContract = await _unitOfWork.Repository<CryoStorageContract>()
+                            .AsQueryable()
+                            .Include(p => p.CPSDetails)
+                            .Include(p => p.CryoPackage)
+                            .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
+                        cryoStorageContract.Status = ContractStatus.Active;
+                        cryoStorageContract.StartDate = DateTime.UtcNow;
+                        cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                        cryoStorageContract.PaidAmount = transaction.Amount;
+                        foreach (var detail in cryoStorageContract.CPSDetails)
+                        {
+                            detail.StorageStartDate = DateTime.UtcNow;
+                            detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                            detail.Status = "Storage";
+                            await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                        }
+                        await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
+                        await _unitOfWork.CommitAsync();
+                        break;
+                    default:
+                        break;
+                }
+                transaction.Status = TransactionStatus.Completed;
+                await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                await _unitOfWork.CommitAsync();
+                await transactionU.CommitAsync();
+                if (typeMedia != null)
+                {
+                    await _mediaService.UploadPdfFromHtmlAsync(transaction.RelatedEntityId, (EntityTypeMedia)typeMedia);
+                }
+                // Push SignalR AFTER commit
+                await _hubContext.Clients.User(transaction.PatientId.ToString())
+                    .SendAsync("TransactionUpdated", transaction.TransactionCode, transaction.Status.ToString());
+
+                return new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Transaction processed",
+                    Data = _mapper.Map<TransactionResponseModel>(transaction)
+                };
+            }
+            catch (Exception ex)
+            {
+                await transactionU.RollbackAsync();
+                _logger.LogError(ex, "Server error");
+                return new BaseResponse<TransactionResponseModel>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing payment"
+                };
+            }
+        }
+
         #endregion
 
         #region Helper

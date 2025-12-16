@@ -29,5 +29,6 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<TransactionResponseModel>> CreateUrlPaymentAsync(CreateUrlPaymentRequest request);
         Task<BaseResponse> CancellTransactionAsync(CancelltransactionRequest request);
         Task<BaseResponse<TransactionResponseModel>> HandlePayOSWebhookAsync(HttpRequest request);
+        Task<BaseResponse<TransactionResponseModel>> CashPaymentAsync(CashPaymentRequest request);
     }
 }
