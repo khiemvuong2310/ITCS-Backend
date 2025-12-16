@@ -1,12 +1,13 @@
 ﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using System;
+using FSCMS.Core.Entities;
 using FSCMS.Service.ReponseModel;
+using Microsoft.AspNetCore.Http;
 
 namespace FSCMS.Service.RequestModel
 {
@@ -82,5 +83,22 @@ namespace FSCMS.Service.RequestModel
         CryoStorageContract = 4,
         CryoImport = 5,
         CryoExport = 6,
+        ServiceRequest = 7,
+    }
+
+    public class TemplateDataModel
+    {
+        public Patient? Patient { get; set; }
+        public MedicalRecord? MedicalRecord { get; set; }
+        public TreatmentCycle? TreatmentCycle { get; set; }
+        public Agreement? Agreement { get; set; }
+        public Appointment? Appointment { get; set; }
+        public Treatment? Treatment { get; set; }
+        public Doctor? Doctor { get; set; }
+        public CryoStorageContract? CryoStorageContract { get; set; }
+        public CryoPackage? CryoPackage { get; set; }
+
+        public DateTime GeneratedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

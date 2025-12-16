@@ -23,6 +23,12 @@ namespace FSCMS.Service.RequestModel
         public bool IsQualityCheck { get; set; } = false;
     }
 
+    public class UpdateLabSampleFrozenRequest
+    {
+        [Required(ErrorMessage = "CanFrozen is required.")]
+        public bool CanFrozen { get; set; }
+    }
+
     /// <summary>
     /// Base request for updating lab samples (common fields)
     /// </summary>
@@ -112,7 +118,6 @@ namespace FSCMS.Service.RequestModel
     /// </summary>
     public class CreateLabSampleOocyteRequest : CreateLabSampleBaseRequest
     {
-        [Required(ErrorMessage = "Maturity stage is required.")]
         [StringLength(100)]
         public string MaturityStage { get; set; } = default!;
 
@@ -222,6 +227,7 @@ namespace FSCMS.Service.RequestModel
     {
         public SampleType? SampleType { get; set; }
         public SpecimenStatus? Status { get; set; }
+        public bool? CanFrozen { get; set; }
         public string? SearchTerm { get; set; }
         public Guid? PatientId { get; set; }
     }

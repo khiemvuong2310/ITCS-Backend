@@ -125,6 +125,9 @@ namespace FSCMS.Service.Services
                 if (request.PatientId.HasValue)
                     query = query.Where(x => x.PatientId == request.PatientId.Value);
 
+                if (request.CanFrozen.HasValue)
+                    query = query.Where(x => x.CanFrozen == request.CanFrozen);
+
                 var totalCount = await query.CountAsync();
 
                 // Apply sorting
@@ -215,7 +218,8 @@ namespace FSCMS.Service.Services
                 labSample.SampleCode = GenerateSampleCode(SampleType.Sperm);
                 labSample.PatientId = patient.Id;
                 labSample.Patient = patient;
-                if(request.Quality != null)
+                labSample.CollectionDate = DateTime.UtcNow;
+                if (request.Quality != null)
                 {
                     labSample.Quality = request.Quality;
                 }
@@ -611,6 +615,62 @@ namespace FSCMS.Service.Services
 
 
         #region UPDATE
+
+        public async Task<BaseResponse<LabSampleResponse>> UpdateFrozenAsync(Guid id, UpdateLabSampleFrozenRequest request)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            const string methodName = nameof(UpdateSpermAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            if (id == Guid.Empty)
+            {
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid lab sample ID."
+                };
+            }
+            try
+            {
+                var entity = await _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted && x.Status == SpecimenStatus.QualityChecked);
+
+                if (entity == null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Invalid sample or already valid frozen."
+                    };
+                }
+
+                entity.UpdatedAt = DateTime.UtcNow;
+                entity.CanFrozen = request.CanFrozen;
+
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Sample updated successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "{MethodName}: Error updating sample {Id}", methodName, id);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
 
         public async Task<BaseResponse<LabSampleResponse>> UpdateSpermAsync(Guid id, UpdateLabSampleSpermRequest request)
         {

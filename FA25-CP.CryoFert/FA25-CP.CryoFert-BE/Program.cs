@@ -33,6 +33,9 @@ namespace FA25_CP.CryoFert_BE
             });
 
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddControllersWithViews();
+            builder.Services.AddRazorPages();
+
 
             // Memory Cache for performance optimization
             builder.Services.AddMemoryCache();
@@ -44,10 +47,6 @@ namespace FA25_CP.CryoFert_BE
             {
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
-
-            // using DinkToPdf; using DinkToPdf.Contracts;
-            var pdfTools = new PdfTools();
-            builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(pdfTools));
 
             // 3. DbContext config (MySQL)
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -108,7 +107,8 @@ namespace FA25_CP.CryoFert_BE
                             "https://fscms.pages.dev",
                             "https://cryo.devnguyen.xyz",
                             "https://cryofert.runasp.net",
-                            "http://localhost:5174"
+                            "http://localhost:5174",
+                            "https://cryofert-mobile-preview.pages.dev"
                           )
                           .AllowAnyHeader()
                           .AllowAnyMethod()

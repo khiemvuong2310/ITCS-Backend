@@ -293,8 +293,6 @@ namespace FSCMS.Service.Services
 
                 entity.TotalAmount = totalAmount;
 
-
-
                 await _unitOfWork.Repository<ServiceRequest>().InsertAsync(entity);
                 
                 foreach (var detail in details)

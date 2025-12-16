@@ -1,24 +1,26 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
-using Twilio.Clients;
-using FSCMS.Data.UnitOfWork;
-using FSCMS.Service.Services;
-using FSCMS.Service.Interfaces;
-using FSCMS.Core.Interfaces;
-using FSCMS.Core.Services;
-using FSCMS.Core.Models.Options;
 using AutoMapper;
+using DinkToPdf;
+using DinkToPdf.Contracts;
+using FSCMS.Core.Interfaces;
+using FSCMS.Core.Models.Options;
+using FSCMS.Core.Services;
+using FSCMS.Data.UnitOfWork;
+using FSCMS.Service.Interfaces;
 using FSCMS.Service.Mapping;
+using FSCMS.Service.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using Twilio.Clients;
 
 namespace FA25_CP.CryoFert_BE.AppStarts
 {
@@ -34,6 +36,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
 
             // Twilio Client (optional)
             services.AddSingleton<ITwilioRestClient>(new TwilioRestClient("ACCOUNT_SID", "AUTH_TOKEN"));
+            // using DinkToPdf; using DinkToPdf.Contracts;
+            services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
             // Add AutoMapper
             services.AddAutoMapper(typeof(UserMappingProfile), typeof(DoctorMappingProfile), typeof(PatientMappingProfile));
@@ -80,6 +84,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IAppointmentDoctorService, AppointmentDoctorService>();
             services.AddScoped<IAgreementService, AgreementService>();
             services.AddScoped<IPrescriptionService, PrescriptionService>();
+            services.AddScoped<IPrescriptionDetailService, PrescriptionDetailService>();
+            services.AddScoped<IMedicineService, MedicineService>();
             services.AddScoped<IMedicalRecordService, MedicalRecordService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();

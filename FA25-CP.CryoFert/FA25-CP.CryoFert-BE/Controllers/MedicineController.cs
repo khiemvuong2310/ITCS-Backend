@@ -5,6 +5,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Core.Entities;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using FA25_CP.CryoFert_BE.AppStarts;
@@ -36,8 +37,22 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ApiDefaultResponse(typeof(Medicine))]
         public async Task<IActionResult> GetAll([FromQuery] PagingModel request)
         {
-            var result = await _medicineService.GetAllAsync(request);
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+            try
+            {
+                var result = await _medicineService.GetAllAsync(request);
+                return StatusCode(result.Code ?? StatusCodes.Status200OK, result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new DynamicResponse<Medicine>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    SystemCode = "INTERNAL_ERROR",
+                    Message = $"An error occurred: {ex.Message}",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<Medicine>()
+                });
+            }
         }
 
         /// <summary>

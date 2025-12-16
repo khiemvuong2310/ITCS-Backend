@@ -43,6 +43,7 @@ namespace FSCMS.Core.Entities
         public string? Quality { get; set; }
         public string? Notes { get; set; }
         public bool IsAvailable { get; set; } = true;
+        public bool CanFrozen { get; set; } = false;
         public virtual Patient? Patient { get; set; }
         public virtual CryoLocation? CryoLocation { get; set; }
         public virtual LabSampleEmbryo? LabSampleEmbryo { get; set; }
