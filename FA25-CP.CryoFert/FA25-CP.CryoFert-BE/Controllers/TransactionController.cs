@@ -79,7 +79,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
             Request.Body.Position = 0;
 
             var result = await _transactionService.HandlePayOSWebhookAsync(rawBody);
-            return StatusCode(result.Code ?? StatusCodes.Status200OK, result);
+            return Ok();
         }
 
 
