@@ -127,6 +127,9 @@ namespace FSCMS.Service.Services
                 if (request.PatientId.HasValue)
                     query = query.Where(x => x.Appointment.PatientId == request.PatientId.Value);
 
+                if (request.AppointmentId.HasValue)
+                    query = query.Where(x => x.AppointmentId == request.AppointmentId.Value);
+
                 if (request.FromDate.HasValue)
                     query = query.Where(x => x.CreatedAt >= request.FromDate);
 
