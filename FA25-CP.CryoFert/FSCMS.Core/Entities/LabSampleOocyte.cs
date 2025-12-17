@@ -28,7 +28,7 @@ namespace FSCMS.Core.Entities
             Quality = quality;
         }
         public Guid LabSampleId { get; set; }
-        public string MaturityStage { get; set; } = default!;
+        public string? MaturityStage { get; set; }
         public string? Quality { get; set; }
         public bool IsMature { get; set; }
         public DateTime? RetrievalDate { get; set; }
