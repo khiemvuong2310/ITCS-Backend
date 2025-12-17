@@ -92,6 +92,66 @@ namespace FSCMS.Service.Services
                 };
             }
         }
+
+        public async Task<DynamicResponse<PrescriptionDetailResponse>> GetAllDetailAsync(GetPrescriptionsRequest request)
+        {
+            try
+            {
+                var query = _unitOfWork.Repository<Prescription>()
+                    .AsQueryable()
+                    .Include(x => x.MedicalRecord)
+                    .Include(x => x.PrescriptionDetails)
+                        .ThenInclude(d => d.Medicine)
+                    .Where(x => !x.IsDeleted);
+
+                // Filtering
+                query = query.Where(x => x.MedicalRecordId == request.MedicalRecordId);
+
+                // Count total
+                var total = await query.CountAsync();
+
+                // Sorting
+                query = request.Sort?.ToLower() switch
+                {
+                    "prescriptiondate" => (request.Order?.ToLower() == "desc")
+                        ? query.OrderByDescending(x => x.PrescriptionDate)
+                        : query.OrderBy(x => x.PrescriptionDate),
+                    _ => query.OrderByDescending(x => x.CreatedAt)
+                };
+
+                // Pagination
+                var items = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var data = _mapper.Map<List<PrescriptionDetailResponse>>(items);
+
+                return new DynamicResponse<PrescriptionDetailResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Prescriptions retrieved successfully",
+                    Data = data,
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = total
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving prescriptions");
+                return new DynamicResponse<PrescriptionDetailResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = new List<PrescriptionDetailResponse>(),
+                    MetaData = new PagingMetaData()
+                };
+            }
+        }
         #endregion
 
         #region Get By Id
