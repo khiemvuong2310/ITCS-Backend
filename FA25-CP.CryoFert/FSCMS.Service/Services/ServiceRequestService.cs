@@ -10,6 +10,7 @@ using FSCMS.Service.Mapping;
 using FSCMS.Core.Models;
 using FSCMS.Core.Enum;
 using System.Security.Claims;
+using AutoMapper;
 
 namespace FSCMS.Service.Services
 {
@@ -19,17 +20,23 @@ namespace FSCMS.Service.Services
         private readonly ILogger<ServiceRequestService> _logger;
         private readonly ITransactionService _transactionService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMapper _mapper;
+        private readonly IMediaService _mediaService;
 
         public ServiceRequestService(
             IUnitOfWork unitOfWork, 
             ILogger<ServiceRequestService> logger, 
             ITransactionService transactionService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IMapper mapper,
+            IMediaService mediaService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
         }
 
         #region Private Helper Methods
@@ -168,6 +175,36 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var responseItems = items.Select(sr => sr.ToResponseModel()).ToList();
+
+                // Attach related medias (avoid N+1)
+                var serviceRequestIds = items.Select(x => x.Id).ToList();
+                var detailIds = items
+                    .SelectMany(x => x.ServiceRequestDetails ?? new List<ServiceRequestDetails>())
+                    .Select(d => d.Id)
+                    .ToList();
+
+                var srMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(serviceRequestIds, EntityTypeMedia.ServiceRequest);
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(detailIds, EntityTypeMedia.ServiceRequestDetails);
+
+                foreach (var sr in responseItems)
+                {
+                    if (srMediaMap.TryGetValue(sr.Id, out var medias))
+                    {
+                        sr.MediaFiles = medias;
+                    }
+
+                    if (sr.ServiceDetails != null && sr.ServiceDetails.Count > 0)
+                    {
+                        foreach (var detail in sr.ServiceDetails)
+                        {
+                            if (detailMediaMap.TryGetValue(detail.Id, out var detailMedias))
+                            {
+                                detail.MediaFiles = detailMedias;
+                            }
+                        }
+                    }
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} service requests", methodName, responseItems.Count);
 
                 return new DynamicResponse<ServiceRequestResponseModel>
@@ -227,6 +264,27 @@ namespace FSCMS.Service.Services
                 }
 
                 var response = serviceRequest.ToResponseModel();
+
+                // Attach medias for service request and its details
+                var srMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(new[] { serviceRequest.Id }, EntityTypeMedia.ServiceRequest);
+                if (srMediaMap.TryGetValue(serviceRequest.Id, out var srMedias))
+                {
+                    response.MediaFiles = srMedias;
+                }
+
+                var detailIds = serviceRequest.ServiceRequestDetails?.Select(d => d.Id).ToList() ?? new List<Guid>();
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(detailIds, EntityTypeMedia.ServiceRequestDetails);
+                if (response.ServiceDetails != null && response.ServiceDetails.Count > 0)
+                {
+                    foreach (var detail in response.ServiceDetails)
+                    {
+                        if (detailMediaMap.TryGetValue(detail.Id, out var detailMedias))
+                        {
+                            detail.MediaFiles = detailMedias;
+                        }
+                    }
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved service request {Id}", methodName, id);
 
                 return BaseResponse<ServiceRequestResponseModel>.CreateSuccess(response, "Service request retrieved successfully", StatusCodes.Status200OK);
@@ -310,16 +368,34 @@ namespace FSCMS.Service.Services
                         .ThenInclude(srd => srd.Service)
                     .FirstOrDefaultAsync(sr => sr.Id == entity.Id);
 
+                if (createdServiceRequest == null)
+                {
+                    _logger.LogError("{MethodName}: Created service request could not be reloaded. Id: {Id}", methodName, entity.Id);
+                    return BaseResponse<ServiceRequestResponseModel>.CreateError(
+                        "Failed to reload created service request",
+                        StatusCodes.Status500InternalServerError,
+                        "INTERNAL_ERROR");
+                }
+
+                if (createdServiceRequest.Appointment == null)
+                {
+                    _logger.LogError("{MethodName}: Created service request has no appointment loaded. Id: {Id}", methodName, entity.Id);
+                    return BaseResponse<ServiceRequestResponseModel>.CreateError(
+                        "Appointment not found for created service request",
+                        StatusCodes.Status500InternalServerError,
+                        "APPOINTMENT_NOT_FOUND");
+                }
+
                 CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
                 {
-                    Amount = (decimal)createdServiceRequest.TotalAmount,
+                    Amount = createdServiceRequest.TotalAmount ?? 0m,
                     RelatedEntityType = EntityTypeTransaction.ServiceRequest,
                     RelatedEntityId = createdServiceRequest.Id
                 };
                 await _transactionService.CreateTransactionAsync(createTransactionRequest, createdServiceRequest.Appointment.PatientId);
                 await _unitOfWork.CommitAsync();
 
-                var response = createdServiceRequest!.ToResponseModel();
+                var response = createdServiceRequest.ToResponseModel();
                 _logger.LogInformation("{MethodName}: Successfully created service request {Id}", methodName, entity.Id);
 
                 return BaseResponse<ServiceRequestResponseModel>.CreateSuccess(response, "Service request created successfully", StatusCodes.Status201Created);
@@ -480,6 +556,36 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var response = serviceRequests.Select(sr => sr.ToResponseModel()).ToList();
+
+                // Attach related medias
+                var serviceRequestIds = serviceRequests.Select(x => x.Id).ToList();
+                var detailIds = serviceRequests
+                    .SelectMany(x => x.ServiceRequestDetails ?? new List<ServiceRequestDetails>())
+                    .Select(d => d.Id)
+                    .ToList();
+
+                var srMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(serviceRequestIds, EntityTypeMedia.ServiceRequest);
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(detailIds, EntityTypeMedia.ServiceRequestDetails);
+
+                foreach (var sr in response)
+                {
+                    if (srMediaMap.TryGetValue(sr.Id, out var medias))
+                    {
+                        sr.MediaFiles = medias;
+                    }
+
+                    if (sr.ServiceDetails != null && sr.ServiceDetails.Count > 0)
+                    {
+                        foreach (var detail in sr.ServiceDetails)
+                        {
+                            if (detailMediaMap.TryGetValue(detail.Id, out var detailMedias))
+                            {
+                                detail.MediaFiles = detailMedias;
+                            }
+                        }
+                    }
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} service requests", methodName, response.Count);
 
                 return BaseResponse<List<ServiceRequestResponseModel>>.CreateSuccess(response, "Service requests retrieved successfully", StatusCodes.Status200OK);
@@ -514,6 +620,36 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var response = serviceRequests.Select(sr => sr.ToResponseModel()).ToList();
+
+                // Attach related medias
+                var serviceRequestIds = serviceRequests.Select(x => x.Id).ToList();
+                var detailIds = serviceRequests
+                    .SelectMany(x => x.ServiceRequestDetails ?? new List<ServiceRequestDetails>())
+                    .Select(d => d.Id)
+                    .ToList();
+
+                var srMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(serviceRequestIds, EntityTypeMedia.ServiceRequest);
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(detailIds, EntityTypeMedia.ServiceRequestDetails);
+
+                foreach (var sr in response)
+                {
+                    if (srMediaMap.TryGetValue(sr.Id, out var medias))
+                    {
+                        sr.MediaFiles = medias;
+                    }
+
+                    if (sr.ServiceDetails != null && sr.ServiceDetails.Count > 0)
+                    {
+                        foreach (var detail in sr.ServiceDetails)
+                        {
+                            if (detailMediaMap.TryGetValue(detail.Id, out var detailMedias))
+                            {
+                                detail.MediaFiles = detailMedias;
+                            }
+                        }
+                    }
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} service requests", methodName, response.Count);
 
                 return BaseResponse<List<ServiceRequestResponseModel>>.CreateSuccess(response, "Service requests retrieved successfully", StatusCodes.Status200OK);
