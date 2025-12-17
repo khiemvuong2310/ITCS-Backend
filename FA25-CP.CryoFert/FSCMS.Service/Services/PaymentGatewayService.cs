@@ -93,51 +93,59 @@ namespace FSCMS.Service.Services
             return vnpay.CreateRequestUrl(_vnpOptions.vnp_Url, _vnpOptions.vnp_HashSecret);
         }
 
-        public string ComputeSignature(string payload)
+        //public string ComputeSignature(string payload)
+        //{
+        //    var keyBytes = Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey);
+        //    var payloadBytes = Encoding.UTF8.GetBytes(payload);
+
+        //    using var hmac = new HMACSHA256(keyBytes);
+        //    var hashBytes = hmac.ComputeHash(payloadBytes);
+        //    return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+        //}
+
+        //public bool IsValidData(string transactionJson, string transactionSignature)
+        //{
+        //    try
+        //    {
+        //        // 1️⃣ Parse JSON
+        //        var jsonObject = JsonNode.Parse(transactionJson).AsObject();
+
+        //        // 2️⃣ Sort keys alphabetically
+        //        var sortedKeys = jsonObject.Select(kvp => kvp.Key).OrderBy(k => k).ToList();
+
+        //        // 3️⃣ Build string key=value&key=value...
+        //        var sb = new StringBuilder();
+        //        for (int i = 0; i < sortedKeys.Count; i++)
+        //        {
+        //            string key = sortedKeys[i];
+        //            string value = jsonObject[key]?.ToString() ?? "";
+        //            sb.Append($"{key}={value}");
+        //            if (i < sortedKeys.Count - 1)
+        //                sb.Append("&");
+        //        }
+
+        //        var dataToSign = sb.ToString();
+
+        //        // 4️⃣ Compute HMAC-SHA256
+        //        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey));
+        //        byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(dataToSign));
+        //        string computedSignature = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+        //        // 5️⃣ Compare signature
+        //        return string.Equals(computedSignature, transactionSignature, StringComparison.Ordinal);
+        //    }
+        //    catch
+        //    {
+        //        return false;
+        //    }
+        //}
+        public bool VerifySignature(string rawBody, string receivedSignature)
         {
-            var keyBytes = Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey);
-            var payloadBytes = Encoding.UTF8.GetBytes(payload);
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawBody));
+            var computed = Convert.ToHexString(hash).ToLower();
 
-            using var hmac = new HMACSHA256(keyBytes);
-            var hashBytes = hmac.ComputeHash(payloadBytes);
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-        }
-
-        public bool IsValidData(string transactionJson, string transactionSignature)
-        {
-            try
-            {
-                // 1️⃣ Parse JSON
-                var jsonObject = JsonNode.Parse(transactionJson).AsObject();
-
-                // 2️⃣ Sort keys alphabetically
-                var sortedKeys = jsonObject.Select(kvp => kvp.Key).OrderBy(k => k).ToList();
-
-                // 3️⃣ Build string key=value&key=value...
-                var sb = new StringBuilder();
-                for (int i = 0; i < sortedKeys.Count; i++)
-                {
-                    string key = sortedKeys[i];
-                    string value = jsonObject[key]?.ToString() ?? "";
-                    sb.Append($"{key}={value}");
-                    if (i < sortedKeys.Count - 1)
-                        sb.Append("&");
-                }
-
-                var dataToSign = sb.ToString();
-
-                // 4️⃣ Compute HMAC-SHA256
-                using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey));
-                byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(dataToSign));
-                string computedSignature = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-
-                // 5️⃣ Compare signature
-                return string.Equals(computedSignature, transactionSignature, StringComparison.Ordinal);
-            }
-            catch
-            {
-                return false;
-            }
+            return computed == receivedSignature.ToLower();
         }
         #endregion
     }
