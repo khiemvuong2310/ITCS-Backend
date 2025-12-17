@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using FSCMS.Core.Interfaces;
 
 namespace FSCMS.Service.Services
 {
@@ -27,14 +28,16 @@ namespace FSCMS.Service.Services
         private readonly ILogger<AppointmentService> _logger;
         private readonly ITransactionService _transactionService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRedisService _redisService;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService, IHttpContextAccessor httpContextAccessor)
+        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService, IHttpContextAccessor httpContextAccessor, IRedisService redisService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         #region Appointment CRUD Operations
@@ -74,6 +77,15 @@ namespace FSCMS.Service.Services
                     .Where(a => a.Id == appointmentId && !a.IsDeleted)
                     .FirstOrDefaultAsync();
 
+                //[REDIS STEP 1] Try to get from cache first
+                string cacheKey = $"appointment:{appointmentId}";
+                var cachedAppointment = await _redisService.GetAsync<AppointmentResponse>(cacheKey);
+                if (cachedAppointment != null)
+                {
+                    _logger.LogInformation("{MethodName}: Retrieved appointment from Redis cache with ID: {AppointmentId}", methodName, appointmentId);
+                    return BaseResponse<AppointmentResponse>.CreateSuccess(cachedAppointment, "Appointment retrieved from cache");
+                }
+
                 if (appointment == null)
                 {
                     _logger.LogWarning("{MethodName}: Appointment not found with ID: {AppointmentId}", methodName, appointmentId);
@@ -81,7 +93,9 @@ namespace FSCMS.Service.Services
                 }
 
                 var appointmentResponse = appointment.ToAppointmentResponse();
-                await AttachTransactionsAsync(new[] { appointmentResponse });
+
+                //[REDIS STEP 2] Store in cache
+                await _redisService.SetAsync(cacheKey, appointmentResponse, TimeSpan.FromMinutes(10));
                 _logger.LogInformation("{MethodName}: Successfully retrieved appointment {AppointmentId}", methodName, appointmentId);
                 return BaseResponse<AppointmentResponse>.CreateSuccess(appointmentResponse, "Appointment retrieved successfully");
             }
@@ -107,6 +121,15 @@ namespace FSCMS.Service.Services
                     _logger.LogWarning("{MethodName}: Invalid appointment ID provided - {AppointmentId}", methodName, appointmentId);
                     return BaseResponse<AppointmentDetailResponse>.CreateError("Appointment ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_APPOINTMENT_ID");
                 }
+
+                //[Redis STEP 1] Try to get from cache first (skipped for brevity)
+                //string cacheKey = $"appointment_detail:{appointmentId}";
+                //var cachedAppointmentDetail = await _redisService.GetAsync<AppointmentDetailResponse>(cacheKey);
+                //if (cachedAppointmentDetail != null)
+                //{
+                //    _logger.LogInformation("{MethodName}: Retrieved appointment detail from Redis cache with ID: {AppointmentId}", methodName, appointmentId);
+                //    return BaseResponse<AppointmentDetailResponse>.CreateSuccess(cachedAppointmentDetail, "Appointment detail retrieved from cache");
+                //}
 
                 var appointment = await _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
@@ -207,6 +230,26 @@ namespace FSCMS.Service.Services
                     request = new GetAppointmentsRequest();
 
                 request.Normalize();
+
+                //[REDIS STEP 1] Try to get from cache first (skipped for brevity)
+                // Build base query
+                // Tạo key đại diện cho toàn bộ tham số filter để lưu cache
+                string cacheKey = $"appointments:{request.TreatmentCycleId}:{request.DoctorId}:{request.SlotId}:{request.Type}:{request.Status}:{request.AppointmentDateFrom}:{request.AppointmentDateTo}:{request.SearchTerm}:{request.Sort}:{request.Order}:{request.Page}:{request.Size}";
+                try
+                {
+                    var cachedData = await _redisService.GetAsync<DynamicResponse<AppointmentResponse>>(cacheKey);
+                    if (cachedData != null)
+                    {
+                        _logger.LogInformation("{MethodName}: Retrieved appointments from Redis cache with key {CacheKey}", methodName, cacheKey);
+                        return cachedData;
+                    }
+                    //[REDIS MISS]: Không tìm thấy trong cache, tiếp tục truy vấn DB
+                    _logger.LogInformation("{MethodName}: No cache found in Redis for key {CacheKey}", methodName, cacheKey);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{MethodName}: Error accessing Redis cache with key {CacheKey}", methodName, cacheKey);
+                }
 
                 var query = _unitOfWork.Repository<Appointment>()
                     .AsQueryable()
@@ -317,7 +360,7 @@ namespace FSCMS.Service.Services
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} appointments", methodName, appointmentResponses.Count);
 
-                return new DynamicResponse<AppointmentResponse>
+                var finalResponse = new DynamicResponse<AppointmentResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     SystemCode = "SUCCESS",
@@ -331,6 +374,19 @@ namespace FSCMS.Service.Services
                     },
                     Data = appointmentResponses
                 };
+
+                //[REDIS STEP 2] Store in cache
+                try
+                {
+                    await _redisService.SetAsync(cacheKey, finalResponse, TimeSpan.FromMinutes(10)); // Cache for 10 minutes
+                    _logger.LogInformation("{MethodName}: Stored appointments in Redis cache with key {CacheKey}", methodName, cacheKey);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{MethodName}: Error storing appointments in Redis cache with key {CacheKey}", methodName, cacheKey);
+                }
+
+                return finalResponse;
             }
             catch (Exception ex)
             {
