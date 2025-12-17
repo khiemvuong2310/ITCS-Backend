@@ -107,7 +107,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service request update request</param>
         /// <returns>Updated service request response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceRequestUpdateRequestModel request)
         {
@@ -130,7 +130,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
