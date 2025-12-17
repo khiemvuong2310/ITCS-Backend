@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
 
 namespace FSCMS.Service.ReponseModel
 {
@@ -29,11 +30,12 @@ namespace FSCMS.Service.ReponseModel
 
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<PrescriptionDetailResponse>? Prescriptions { get; set; }
+        public List<MediaResponse>? medias { get; set; }
     }
 
     public class MedicalRecordDetailResponse : MedicalRecordResponse
     {
-        public List<PrescriptionResponse>? Prescriptions { get; set; }
         public int TotalPrescriptions => Prescriptions?.Count ?? 0;
     }
 }
