@@ -123,7 +123,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering parameters</param>
         /// <returns>Paginated list of users</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin,Doctor")] // Only Admin and Doctor can view all users
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")] 
         [ApiDefaultResponse(typeof(UserResponse))]
         public async Task<IActionResult> GetAllUsers([FromQuery] GetUsersRequest request)
         {
@@ -137,7 +137,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="userName">Search term</param>
         /// <returns>List of matching users</returns>
         [HttpGet("search")]
-        [Authorize(Roles = "Admin,Doctor")] // Only Admin and Doctor can search users
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")] 
         [ApiDefaultResponse(typeof(List<UserResponse>), UseDynamicWrapper = false)]
         public async Task<IActionResult> SearchUsers([FromQuery] string userName)
         {

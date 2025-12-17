@@ -33,7 +33,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter, pagination, and sorting parameters</param>
         /// <returns>Paginated list of agreements</returns>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(AgreementResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetAgreementsRequest request)
         {
@@ -47,7 +46,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Agreement ID</param>
         /// <returns>Agreement details</returns>
         [HttpGet("{id}")]
-        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
+        [Authorize]
         [ApiDefaultResponse(typeof(AgreementDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -61,7 +60,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="code">Agreement code</param>
         /// <returns>Agreement details</returns>
         [HttpGet("code/{code}")]
-        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
         [ApiDefaultResponse(typeof(AgreementDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByCode(string code)
         {
@@ -202,7 +200,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Agreement ID</param>
         /// <returns>List of media files associated with the agreement</returns>
         [HttpGet("{id}/file")]
-        [Authorize(Roles = "Doctor,Staff,Laboratory Technician,Patient")]
+        [Authorize]
         [ApiDefaultResponse(typeof(MediaResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAgreementFile(Guid id)
         {

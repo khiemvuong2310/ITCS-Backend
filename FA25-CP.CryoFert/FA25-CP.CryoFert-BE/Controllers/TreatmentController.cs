@@ -24,7 +24,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(TreatmentResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentsRequest request)
         {
@@ -67,7 +66,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(TreatmentDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {

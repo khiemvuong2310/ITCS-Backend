@@ -27,7 +27,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering request</param>
         /// <returns>Paginated service categories</returns>
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceCategoryResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServiceCategoriesRequest request)
         {
@@ -44,7 +44,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service category ID</param>
         /// <returns>Service category response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceCategoryResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -57,7 +57,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// </summary>
         /// <returns>List of active service categories</returns>
         [HttpGet("active")]
-        [Authorize(Roles = "Receptionist,Doctor,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(List<ServiceCategoryResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetActive()
         {

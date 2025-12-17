@@ -28,7 +28,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{treatmentId:guid}")]
-        [Authorize(Roles = "Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(TreatmentIVFResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByTreatment(Guid treatmentId)
         {
@@ -80,7 +79,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{treatmentId:guid}/current-step")]
-        [Authorize(Roles = "Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(int), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetCurrentStep(Guid treatmentId)
         {
@@ -129,7 +127,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("patient/{patientId:guid}")]
-        [Authorize(Roles = "Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(List<TreatmentIVFResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByPatientId(Guid patientId)
         {
