@@ -37,7 +37,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Appointment information</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentById(Guid id)
         {
@@ -51,7 +50,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Appointment ID</param>
         /// <returns>Detailed appointment information</returns>
         [HttpGet("{id:guid}/details")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentDetails(Guid id)
         {
@@ -65,7 +63,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of appointments</returns>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAllAppointments([FromQuery] GetAppointmentsRequest request)
         {
@@ -80,7 +78,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of appointments</returns>
         [HttpGet("treatment-cycle/{treatmentCycleId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsByTreatmentCycleId(Guid treatmentCycleId, [FromQuery] GetAppointmentsRequest request)
         {
@@ -95,7 +92,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of appointments</returns>
         [HttpGet("doctor/{doctorId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsByDoctorId(Guid doctorId, [FromQuery] GetAppointmentsRequest request)
         {
@@ -110,7 +107,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of Type appointments</returns>
         [HttpGet("patient/{patientId:guid}/history")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsHistory(Guid patientId, [FromQuery] GetAppointmentsRequest request)
         {
@@ -124,7 +120,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="slotId">Slot ID</param>
         /// <returns>Appointment information</returns>
         [HttpGet("slot/{slotId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentBySlotId(Guid slotId)
         {

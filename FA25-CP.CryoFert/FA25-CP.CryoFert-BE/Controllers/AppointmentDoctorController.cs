@@ -31,7 +31,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get an AppointmentDoctor assignment by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentDoctorResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -43,7 +43,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get all AppointmentDoctor assignments with filters and pagination
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentDoctorResponse))]
         public async Task<IActionResult> GetAll([FromQuery] GetAppointmentDoctorsRequest request)
         {
@@ -55,7 +55,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get AppointmentDoctor assignments by Appointment ID
         /// </summary>
         [HttpGet("appointment/{appointmentId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentDoctorResponse))]
         public async Task<IActionResult> GetByAppointmentId(Guid appointmentId, [FromQuery] GetAppointmentDoctorsRequest request)
         {
@@ -67,7 +67,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Get AppointmentDoctor assignments by Doctor ID
         /// </summary>
         [HttpGet("doctor/{doctorId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentDoctorResponse))]
         public async Task<IActionResult> GetByDoctorId(Guid doctorId, [FromQuery] GetAppointmentDoctorsRequest request)
         {

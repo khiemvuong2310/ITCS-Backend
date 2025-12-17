@@ -27,7 +27,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request detail ID</param>
         /// <returns>Service request detail response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceRequestDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -41,7 +40,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="serviceRequestId">Service request ID</param>
         /// <returns>List of service request details</returns>
         [HttpGet("service-request/{serviceRequestId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(List<ServiceRequestDetailResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByServiceRequest(Guid serviceRequestId)
         {
@@ -55,7 +53,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="serviceId">Service ID</param>
         /// <returns>List of service request details</returns>
         [HttpGet("service/{serviceId:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(List<ServiceRequestDetailResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetByService(Guid serviceId)
         {

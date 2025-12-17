@@ -15,6 +15,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
     [ApiController]
     [Route("api/slots")]
     [Produces("application/json")]
+    [Authorize]
     public class SlotController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -32,7 +33,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Slot ID</param>
         /// <returns>Slot information</returns>
         [HttpGet("{id}")]
-        [Authorize]
         [ApiDefaultResponse(typeof(SlotResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSlotById(Guid id)
         {
@@ -46,7 +46,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Slot ID</param>
         /// <returns>Detailed slot information</returns>
         [HttpGet("{id}/details")]
-        [Authorize]
         [ApiDefaultResponse(typeof(SlotDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSlotDetails(Guid id)
         {
@@ -60,7 +59,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of slots</returns>
         [HttpGet]
-        [Authorize]
         [ApiDefaultResponse(typeof(SlotResponse))]
         public async Task<IActionResult> GetAllSlots([FromQuery] GetSlotsRequest request)
         {
@@ -75,7 +73,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Filter and pagination parameters</param>
         /// <returns>Paginated list of slots</returns>
         [HttpGet("schedule/{scheduleId}")]
-        [Authorize]
         [ApiDefaultResponse(typeof(SlotResponse))]
         public async Task<IActionResult> GetSlotsByScheduleId(Guid scheduleId, [FromQuery] GetSlotsRequest request)
         {
@@ -91,7 +88,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="dateTo">End date for search</param>
         /// <returns>Available slots</returns>
         [HttpGet("available/doctor/{doctorId}")]
-        [Authorize]
         [ApiDefaultResponse(typeof(SlotResponse))]
         public async Task<IActionResult> GetAvailableSlots(Guid doctorId, [FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo)
         {

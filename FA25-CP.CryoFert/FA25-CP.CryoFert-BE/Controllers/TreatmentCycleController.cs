@@ -30,7 +30,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         // Get Treatment Status for a Treatment
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor,Patient,Laboratory Technician")]
         [Route("get-status")]
         [ApiDefaultResponse(typeof(TreatmentStatus))]
         public async Task<IActionResult> GetTreatmentStatus([FromQuery] Guid treatmentId)
@@ -40,7 +39,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Receptionist,Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(TreatmentCycleResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetTreatmentCyclesRequest request)
         {
@@ -83,7 +81,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         }
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Receptionist,Doctor,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(TreatmentCycleDetailResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {

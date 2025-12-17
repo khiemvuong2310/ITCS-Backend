@@ -9,6 +9,7 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.Mapping;
 using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
+using FSCMS.Core.Interfaces;
 
 namespace FSCMS.Service.Services
 {
@@ -20,7 +21,7 @@ namespace FSCMS.Service.Services
         private readonly ILogger<TreatmentService> _logger;
         private readonly ITreatmentIUIService _treatmentIUIService;
         private readonly ITreatmentIVFService _treatmentIVFService;
-
+        private readonly IRedisService _redisService;
         #endregion
 
         #region Constructor
@@ -29,12 +30,14 @@ namespace FSCMS.Service.Services
             IUnitOfWork unitOfWork,
             ILogger<TreatmentService> logger,
             ITreatmentIUIService treatmentIUIService,
-            ITreatmentIVFService treatmentIVFService)
+            ITreatmentIVFService treatmentIVFService,
+            IRedisService redisService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _treatmentIUIService = treatmentIUIService ?? throw new ArgumentNullException(nameof(treatmentIUIService));
             _treatmentIVFService = treatmentIVFService ?? throw new ArgumentNullException(nameof(treatmentIVFService));
+            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         #endregion
