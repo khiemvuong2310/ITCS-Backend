@@ -81,6 +81,39 @@ namespace FSCMS.Service.Services
 
         #endregion
 
+        // Get media grouped by related entity IDs
+        public async Task<Dictionary<Guid, List<MediaResponse>>> GetMediaGroupedByRelatedEntityIdsAsync(
+            IEnumerable<Guid> relatedEntityIds,
+            EntityTypeMedia entityType)
+        {
+            var ids = relatedEntityIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return new Dictionary<Guid, List<MediaResponse>>();
+            }
+
+            var medias = await _unitOfWork.Repository<Media>()
+                .AsQueryable()
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted
+                    && !m.IsTemplate
+                    && m.RelatedEntityId.HasValue
+                    && ids.Contains(m.RelatedEntityId.Value)
+                    && m.RelatedEntityType == entityType.ToString())
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+            var mapped = _mapper.Map<List<MediaResponse>>(medias);
+            return mapped
+                .Where(m => m.RelatedEntityId.HasValue)
+                .GroupBy(m => m.RelatedEntityId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+
         #region CRUD Operations
 
         public async Task<BaseResponse<MediaResponse>> UploadMediaAsync(UploadMediaRequest request, Guid? accountId)
@@ -170,7 +203,7 @@ namespace FSCMS.Service.Services
                     EntityTypeMedia.ServiceRequestDetails => await _unitOfWork.Repository<ServiceRequestDetails>()
                                     .AsQueryable()
                                     .Include(m => m.ServiceRequest)
-                                        .ThenInclude(m => m.Appointment)
+                                        .ThenInclude(m => m!.Appointment)
                                     .Where(m => m.Id == request.RelatedEntityId && !m.IsDeleted)
                                     .FirstOrDefaultAsync(),
                     _ => null
@@ -246,6 +279,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error uploading media. RelatedEntityType: {RelatedEntityType}, RelatedEntityId: {RelatedEntityId}", request.RelatedEntityType, request.RelatedEntityId);
                 await transaction.RollbackAsync();
                 return new BaseResponse<MediaResponse>
                 {
@@ -382,6 +416,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting media {MediaId}", mediaId);
                 await transaction.RollbackAsync();
                 return new BaseResponse
                 {
@@ -494,6 +529,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving media list");
                 return new DynamicResponse<MediaResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -537,6 +573,7 @@ namespace FSCMS.Service.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving media by id {MediaId}", mediaId);
                 return new BaseResponse<MediaResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
@@ -1038,8 +1075,8 @@ namespace FSCMS.Service.Services
                     //    .FirstOrDefaultAsync(p => p.Id == request.RelatedEntityId && !p.IsDeleted),
                     EntityTypeMedia.Agreement => await _unitOfWork.Repository<Agreement>()
                         .AsQueryable()
-                        .Include(x => x.Treatment)
-                        .ThenInclude(x => x.Doctor)
+                        .Include(x => x.Treatment!)
+                        .ThenInclude(x => x.Doctor!)
                         .ThenInclude(x => x.Account)
                         .FirstOrDefaultAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
                     EntityTypeMedia.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()

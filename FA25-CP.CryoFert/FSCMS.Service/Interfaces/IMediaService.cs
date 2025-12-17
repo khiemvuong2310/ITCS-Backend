@@ -16,6 +16,11 @@ namespace FSCMS.Service.Interfaces
         Task<DynamicResponse<MediaResponse>> GetAllMediasAsync(GetMediasRequest request);
         Task<BaseResponse<MediaResponse>> UpdateMediaAsync(Guid mediaId, UpdateMediaRequest request);
         Task<BaseResponse> DeleteMediaAsync(Guid mediaId);
+
+        //Get media grouped by related entity ids
+        Task<Dictionary<Guid, List<MediaResponse>>> GetMediaGroupedByRelatedEntityIdsAsync(
+            IEnumerable<Guid> relatedEntityIds,
+            EntityTypeMedia entityType);
         //Task<BaseResponse<MediaResponse>> GetTemplateAsync(GetTemplateRequest request);
         //Task<BaseResponse<MediaResponse>> UploadTemplateAsync(UploadTemplateRequest request, Guid accountId);
         //Task<string> GetEtaTemplateFromCloudAsync(EntityTypeMedia type);

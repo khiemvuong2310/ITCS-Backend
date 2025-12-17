@@ -1,4 +1,5 @@
 using FSCMS.Core.Enum;
+using MediaResponse = FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel.MediaResponse;
 
 namespace FSCMS.Service.ReponseModel
 {
@@ -16,6 +17,7 @@ namespace FSCMS.Service.ReponseModel
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<ServiceRequestDetailResponseModel> ServiceDetails { get; set; } = new();
+        public List<MediaResponse> MediaFiles { get; set; } = new();
     }
 
     public class ServiceRequestDetailResponseModel
@@ -31,5 +33,6 @@ namespace FSCMS.Service.ReponseModel
         public decimal? Discount { get; set; }
         public decimal TotalPrice { get; set; }
         public string? Notes { get; set; }
+        public List<MediaResponse> MediaFiles { get; set; } = new();
     }
 }

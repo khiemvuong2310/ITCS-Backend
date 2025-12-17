@@ -9,6 +9,7 @@ using FSCMS.Service.RequestModel;
 using FSCMS.Service.Mapping;
 using FSCMS.Core.Models;
 using FSCMS.Core.Enum;
+using AutoMapper;
 
 namespace FSCMS.Service.Services
 {
@@ -16,11 +17,19 @@ namespace FSCMS.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ServiceRequestDetailsService> _logger;
+        private readonly IMapper _mapper;
+        private readonly IMediaService _mediaService;
 
-        public ServiceRequestDetailsService(IUnitOfWork unitOfWork, ILogger<ServiceRequestDetailsService> logger)
+        public ServiceRequestDetailsService(
+            IUnitOfWork unitOfWork,
+            ILogger<ServiceRequestDetailsService> logger,
+            IMapper mapper,
+            IMediaService mediaService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
         }
 
         public async Task<BaseResponse<List<ServiceRequestDetailResponseModel>>> GetByServiceRequestAsync(Guid serviceRequestId)
@@ -45,6 +54,18 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var response = details.Select(srd => srd.ToResponseModel()).ToList();
+
+                // Attach medias for each detail
+                var detailIds = details.Select(d => d.Id).ToList();
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(detailIds, EntityTypeMedia.ServiceRequestDetails);
+                foreach (var item in response)
+                {
+                    if (detailMediaMap.TryGetValue(item.Id, out var medias))
+                    {
+                        item.MediaFiles = medias;
+                    }
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} service request details", methodName, response.Count);
 
                 return BaseResponse<List<ServiceRequestDetailResponseModel>>.CreateSuccess(response, "Service request details retrieved successfully", StatusCodes.Status200OK);
@@ -84,6 +105,14 @@ namespace FSCMS.Service.Services
                 }
 
                 var response = detail.ToResponseModel();
+
+                // Attach medias for this detail
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(new[] { detail.Id }, EntityTypeMedia.ServiceRequestDetails);
+                if (detailMediaMap.TryGetValue(detail.Id, out var medias))
+                {
+                    response.MediaFiles = medias;
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved service request detail {Id}", methodName, id);
 
                 return BaseResponse<ServiceRequestDetailResponseModel>.CreateSuccess(response, "Service request detail retrieved successfully", StatusCodes.Status200OK);
@@ -342,6 +371,18 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var response = details.Select(srd => srd.ToResponseModel()).ToList();
+
+                // Attach medias for each detail
+                var detailIds = details.Select(d => d.Id).ToList();
+                var detailMediaMap = await _mediaService.GetMediaGroupedByRelatedEntityIdsAsync(detailIds, EntityTypeMedia.ServiceRequestDetails);
+                foreach (var item in response)
+                {
+                    if (detailMediaMap.TryGetValue(item.Id, out var medias))
+                    {
+                        item.MediaFiles = medias;
+                    }
+                }
+
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} service request details", methodName, response.Count);
 
                 return BaseResponse<List<ServiceRequestDetailResponseModel>>.CreateSuccess(response, "Service request details retrieved successfully", StatusCodes.Status200OK);
