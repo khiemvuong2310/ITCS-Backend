@@ -13,6 +13,7 @@ using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FSCMS.Service.Services
 {
@@ -21,12 +22,16 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<MedicalRecordService> _logger;
+        private readonly IPrescriptionService _prescriptionService;
+        private readonly IMediaService _mediaService;
 
-        public MedicalRecordService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<MedicalRecordService> logger)
+        public MedicalRecordService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<MedicalRecordService> logger, IPrescriptionService prescriptionService, IMediaService mediaService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _prescriptionService = prescriptionService ?? throw new ArgumentNullException(nameof(prescriptionService));
+            _mediaService = mediaService;
         }
 
         // =====================================================================
@@ -58,12 +63,31 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status404NotFound,
                         Message = "MedicalRecord not found"
                     };
-
+                var record = _mapper.Map<MedicalRecordDetailResponse>(entity);
+                GetPrescriptionsRequest rqp = new GetPrescriptionsRequest
+                {
+                    MedicalRecordId = id,
+                };
+                var prescriptionResponse = await _prescriptionService.GetAllDetailAsync(rqp);
+                if (prescriptionResponse != null && prescriptionResponse.Data != null)
+                {
+                    record.Prescriptions = prescriptionResponse.Data;
+                }
+                GetMediasRequest rqm = new GetMediasRequest
+                {
+                    RelatedEntityType = EntityTypeMedia.MedicalRecord,
+                    RelatedEntityId = record.Id,
+                };
+                var mediaResponse = await _mediaService.GetAllMediasAsync(rqm);
+                if (mediaResponse != null && mediaResponse.Data != null)
+                {
+                    record.medias = mediaResponse.Data;
+                }
                 return new BaseResponse<MedicalRecordDetailResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "MedicalRecord retrieved successfully",
-                    Data = _mapper.Map<MedicalRecordDetailResponse>(entity)
+                    Data = record
                 };
             }
             catch (Exception ex)
@@ -103,6 +127,9 @@ namespace FSCMS.Service.Services
                 if (request.PatientId.HasValue)
                     query = query.Where(x => x.Appointment.PatientId == request.PatientId.Value);
 
+                if (request.AppointmentId.HasValue)
+                    query = query.Where(x => x.AppointmentId == request.AppointmentId.Value);
+
                 if (request.FromDate.HasValue)
                     query = query.Where(x => x.CreatedAt >= request.FromDate);
 
@@ -126,16 +153,39 @@ namespace FSCMS.Service.Services
                 // Paging
                 var total = await query.CountAsync();
 
-                var data = await query
+                var result = await query
                     .Skip((request.Page - 1) * request.Size)
                     .Take(request.Size)
                     .ToListAsync();
+                var data = _mapper.Map<List<MedicalRecordResponse>>(result);
+                foreach (var record in data)
+                {
+                    GetPrescriptionsRequest rqp = new GetPrescriptionsRequest
+                    {
+                        MedicalRecordId = record.Id,
+                    };
+                    var prescriptionResponse = await _prescriptionService.GetAllDetailAsync(rqp);
+                    if (prescriptionResponse != null && prescriptionResponse.Data != null)
+                    {
+                        record.Prescriptions = prescriptionResponse.Data;
+                    }
+                    GetMediasRequest rqm = new GetMediasRequest
+                    {
+                        RelatedEntityType = EntityTypeMedia.MedicalRecord,
+                        RelatedEntityId = record.Id,
+                    };
+                    var mediaResponse = await _mediaService.GetAllMediasAsync(rqm);
+                    if (mediaResponse != null && mediaResponse.Data != null)
+                    {
+                        record.medias = mediaResponse.Data;
+                    }
+                }
 
                 return new DynamicResponse<MedicalRecordResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "MedicalRecords retrieved successfully",
-                    Data = _mapper.Map<List<MedicalRecordResponse>>(data),
+                    Data = data,
                     MetaData = new PagingMetaData
                     {
                         Page = request.Page,

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PayOS;
+using PayOS.Models.Webhooks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace FSCMS.Service.Services
@@ -505,31 +507,27 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<TransactionResponseModel>> HandlePayOSWebhookAsync(HttpRequest request)
+        public async Task<BaseResponse<TransactionResponseModel>> HandlePayOSWebhookAsync(string rawBody)
         {
             using var transactionU = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // 1️⃣ Read raw body
-                request.EnableBuffering();
-                using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
-                var rawBody = await reader.ReadToEndAsync();
-                request.Body.Position = 0;
+                var payload = JsonSerializer.Deserialize<PayOSWebhookData>(
+                rawBody,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                // 2️⃣ Read signature
-                if (!request.Headers.TryGetValue("x-payos-signature", out var signature))
+                if (payload == null)
                 {
                     await transactionU.RollbackAsync();
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "Missing PayOS signature",
+                        Message = "Invalid PayOS webhook payload",
                         Data = null
                     };
                 }
-
-                // 3️⃣ Verify signature using IsValidData
-                if (!_paymentGateway.IsValidData(rawBody, signature))
+                // 1️⃣ Verify signature
+                if (!_paymentGateway.VerifySignature(rawBody, payload.Signature))
                 {
                     await transactionU.RollbackAsync();
                     return new BaseResponse<TransactionResponseModel>
@@ -539,19 +537,14 @@ namespace FSCMS.Service.Services
                         Data = null
                     };
                 }
-
-                // 4️⃣ Deserialize payload
-                var webhook = JsonSerializer.Deserialize<PayOSWebhookPayload>(rawBody, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                if (webhook == null)
+                // 2️⃣ Check success
+                if (!payload.Success)
                 {
                     await transactionU.RollbackAsync();
                     return new BaseResponse<TransactionResponseModel>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "Invalid webhook payload",
+                        Message = "PayOS Payment failed",
                         Data = null
                     };
                 }
@@ -560,7 +553,7 @@ namespace FSCMS.Service.Services
                 var transaction = await _unitOfWork.Repository<Transaction>()
                     .AsQueryable()
                     .FirstOrDefaultAsync(t =>
-                        t.PayOSOrderCode == webhook.data.orderCode);
+                        t.PayOSOrderCode == payload.Data.OrderCode);
 
                 if (transaction == null)
                 {
@@ -572,7 +565,6 @@ namespace FSCMS.Service.Services
                         Data = null
                     };
                 }
-
                 // 6️⃣ Idempotency
                 if (transaction.Status == TransactionStatus.Completed)
                 {
@@ -584,13 +576,12 @@ namespace FSCMS.Service.Services
                         Data = _mapper.Map<TransactionResponseModel>(transaction)
                     };
                 }
-
                 // 7️⃣ Validate amount
-                if (transaction.Amount != webhook.data.amount)
+                if (transaction.Amount != payload.Data.Amount)
                 {
                     transaction.Status = TransactionStatus.Failed;
                     transaction.ProcessedDate = DateTime.UtcNow;
-                    transaction.BankTranNo = webhook.data.reference;
+                    transaction.BankTranNo = payload.Data.Reference;
                     await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                     await _unitOfWork.CommitAsync();
                     await transactionU.CommitAsync();
@@ -610,11 +601,13 @@ namespace FSCMS.Service.Services
                 // 8️⃣ Update status
                 transaction.ProcessedDate = DateTime.UtcNow;
                 transaction.ProcessedBy = "PayOS";
-                transaction.BankTranNo = webhook.data.reference;
+                transaction.BankTranNo = payload.Data.CounterAccountBankId;
+                transaction.BankName = payload.Data.CounterAccountBankName;
+                transaction.Currency = payload.Data.Currency;
                 await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                 await _unitOfWork.CommitAsync();
 
-                if (webhook.data.status == "PAID")
+                if (payload.Success)
                 {
                     EntityTypeMedia? typeMedia = null;
                     switch (transaction.RelatedEntityType)
@@ -645,7 +638,7 @@ namespace FSCMS.Service.Services
                             cryoStorageContract.Status = ContractStatus.Active;
                             cryoStorageContract.StartDate = DateTime.UtcNow;
                             cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
-                            cryoStorageContract.PaidAmount = webhook.data.amount;
+                            cryoStorageContract.PaidAmount = payload.Data.Amount;
                             foreach (var detail in cryoStorageContract.CPSDetails)
                             {
                                 detail.StorageStartDate = DateTime.UtcNow;
@@ -677,7 +670,7 @@ namespace FSCMS.Service.Services
                         Message = "Transaction processed",
                         Data = _mapper.Map<TransactionResponseModel>(transaction)
                     };
-                }    
+                }
                 else
                 {
                     // non-success codes -> Failed/Cancelled/Timeout
@@ -715,7 +708,7 @@ namespace FSCMS.Service.Services
                         Message = "Transaction processed (failed)",
                         Data = _mapper.Map<TransactionResponseModel>(transaction)
                     };
-                }    
+                }
             }
             catch (Exception ex)
             {

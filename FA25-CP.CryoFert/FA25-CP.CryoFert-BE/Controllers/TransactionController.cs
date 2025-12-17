@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Text;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
 using FSCMS.Service.Interfaces;
@@ -72,8 +73,13 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [ApiDefaultResponse(typeof(TransactionResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> PayOSWebhook()
         {
-            var result = await _transactionService.HandlePayOSWebhookAsync(Request);
-            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+            Request.EnableBuffering();
+            using var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true);
+            var rawBody = await reader.ReadToEndAsync();
+            Request.Body.Position = 0;
+
+            var result = await _transactionService.HandlePayOSWebhookAsync(rawBody);
+            return Ok();
         }
 
 

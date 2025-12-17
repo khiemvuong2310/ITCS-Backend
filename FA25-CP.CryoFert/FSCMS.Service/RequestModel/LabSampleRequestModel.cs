@@ -119,7 +119,7 @@ namespace FSCMS.Service.RequestModel
     public class CreateLabSampleOocyteRequest : CreateLabSampleBaseRequest
     {
         [StringLength(100)]
-        public string MaturityStage { get; set; } = default!;
+        public string? MaturityStage { get; set; }
 
         public bool IsMature { get; set; }
 

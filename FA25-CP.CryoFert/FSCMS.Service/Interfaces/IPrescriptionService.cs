@@ -12,5 +12,6 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<PrescriptionResponse>> CreateAsync(CreatePrescriptionRequest request);
         Task<BaseResponse<PrescriptionResponse>> UpdateAsync(Guid id, UpdatePrescriptionRequest request);
         Task<BaseResponse> DeleteAsync(Guid id);
+        Task<DynamicResponse<PrescriptionDetailResponse>> GetAllDetailAsync(GetPrescriptionsRequest request);
     }
 }
