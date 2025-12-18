@@ -1147,13 +1147,6 @@ namespace FSCMS.Service.Services
                     return BaseResponse.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
                 }
 
-                //New Chẹck Ensure status update is only allowed if appointment is today
-                //if (appointment.AppointmentDate != DateOnly.FromDateTime(DateTime.UtcNow))
-                //{
-                //    _logger.LogWarning("{MethodName}: Cannot update status for non-today appointment: {AppointmentId}", methodName, appointmentId);
-                //    return BaseResponse.CreateError("Can only update status for today's appointments", StatusCodes.Status400BadRequest, "INVALID_APPOINTMENT_DATE");
-                //}
-
                 appointment.Status = status;
                 appointment.UpdatedAt = DateTime.UtcNow;
 
@@ -1195,14 +1188,6 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Appointment not found with ID: {AppointmentId}", methodName, appointmentId);
                     return BaseResponse.CreateError("Appointment not found", StatusCodes.Status404NotFound, "APPOINTMENT_NOT_FOUND");
-                }
-
-
-                // New Check: Ensure the CheckIn is only allowed on the same day as AppointmentDate
-                if (appointment.AppointmentDate != DateOnly.FromDateTime(DateTime.UtcNow))
-                {
-                    _logger.LogWarning("{MethodName}: Cannot check in for appointment. Date does not match today's date: {AppointmentId}", methodName, appointmentId);
-                    return BaseResponse.CreateError("Check-in can only occur on the appointment date", StatusCodes.Status400BadRequest, "INVALID_CHECK_IN_DATE");
                 }
 
                 appointment.CheckInTime = DateTime.UtcNow;
@@ -1253,13 +1238,6 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Cannot check out without checking in first: {AppointmentId}", methodName, appointmentId);
                     return BaseResponse.CreateError("Cannot check out without checking in first", StatusCodes.Status400BadRequest, "NOT_CHECKED_IN");
-                }
-
-                // New Check: Ensure the CheckOut is only allowed on the same day as AppointmentDate
-                if (appointment.AppointmentDate != DateOnly.FromDateTime(DateTime.UtcNow))
-                {
-                    _logger.LogWarning("{MethodName}: Cannot check out for appointment. Date does not match today's date: {AppointmentId}", methodName, appointmentId);
-                    return BaseResponse.CreateError("Check-out can only occur on the appointment date", StatusCodes.Status400BadRequest, "INVALID_CHECK_OUT_DATE");
                 }
 
                 appointment.CheckOutTime = DateTime.UtcNow;
