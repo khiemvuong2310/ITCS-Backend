@@ -97,23 +97,6 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.KeyName));
             var redisOptions = configuration.GetSection(RedisOptions.KeyName).Get<RedisOptions>();
 
-            services.AddStackExchangeRedisCache(options =>
-            {
-                var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING")
-                    ?? redisOptions?.ConnectionString;
-
-                if (!string.IsNullOrEmpty(connectionString))
-                {
-                    options.Configuration = connectionString;
-                    options.InstanceName = redisOptions?.InstanceName ?? "CryoFert_";
-                }
-                else
-                {
-                    // Fallback to memory cache nếu không có Redis
-                    services.AddDistributedMemoryCache();
-                }
-            });
-
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IConnectionMultiplexer>>();

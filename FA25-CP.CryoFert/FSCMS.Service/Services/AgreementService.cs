@@ -9,6 +9,7 @@ using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Core.Enums;
+using FSCMS.Core.Interfaces;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
 using FSCMS.Service.ReponseModel;
@@ -31,6 +32,7 @@ namespace FSCMS.Service.Services
         private readonly IOTPService _otpService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMediaService _mediaService;
+        private readonly IRedisService _redisService;
 
         public AgreementService(
             IUnitOfWork unitOfWork,
@@ -38,7 +40,8 @@ namespace FSCMS.Service.Services
             ILogger<AgreementService> logger,
             IOTPService otpService,
             IHttpContextAccessor httpContextAccessor,
-            IMediaService mediaService)
+            IMediaService mediaService,
+            IRedisService redisService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -46,6 +49,7 @@ namespace FSCMS.Service.Services
             _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
+            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
         #region Agreement CRUD Operations   
         #region Get All
@@ -61,6 +65,22 @@ namespace FSCMS.Service.Services
             {
                 // Normalize pagination
                 request.Normalize();
+
+                // [REDIS STEP 1] Try to get from cache first
+                string cacheKey = $"agreements:p{request.Page}:s{request.Size}:t{request.TreatmentId}:p{request.PatientId}:st{request.Status}:fsd{request.FromStartDate}:tsd{request.ToStartDate}:fed{request.FromEndDate}:ted{request.ToEndDate}:sp{request.SignedByPatient}:sd{request.SignedByDoctor}:q{request.SearchTerm}:sort{request.Sort}:ord{request.Order}";
+                try
+                {
+                    var cachedData = await _redisService.GetAsync<DynamicResponse<AgreementResponse>>(cacheKey);
+                    if (cachedData != null)
+                    {
+                        _logger.LogInformation("{MethodName}: Retrieved agreements from Redis cache", methodName);
+                        return cachedData;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
+                }
 
                 var query = _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
@@ -144,7 +164,7 @@ namespace FSCMS.Service.Services
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} agreements", methodName, data.Count);
 
-                return new DynamicResponse<AgreementResponse>
+                var response = new DynamicResponse<AgreementResponse>
                 {
                     Code = StatusCodes.Status200OK,
                     Message = "Agreements retrieved successfully",
@@ -156,6 +176,19 @@ namespace FSCMS.Service.Services
                         Total = total
                     }
                 };
+
+                // [REDIS STEP 2] Store in cache
+                try
+                {
+                    await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
+                    _logger.LogInformation("{MethodName}: Stored agreements in Redis cache", methodName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
+                }
+
+                return response;
             }
             catch (Exception ex)
             {
@@ -188,6 +221,22 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AgreementDetailResponse>.CreateError("Invalid agreement ID", StatusCodes.Status400BadRequest, "INVALID_ID");
                 }
 
+                // [REDIS STEP 1] Try to get from cache first
+                string cacheKey = $"agreement:{id}";
+                try
+                {
+                    var cachedData = await _redisService.GetAsync<AgreementDetailResponse>(cacheKey);
+                    if (cachedData != null)
+                    {
+                        _logger.LogInformation("{MethodName}: Retrieved agreement from Redis cache with ID: {Id}", methodName, id);
+                        return BaseResponse<AgreementDetailResponse>.CreateSuccess(cachedData, "Agreement retrieved from cache");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
+                }
+
                 var entity = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
                     .AsNoTracking()
@@ -203,6 +252,17 @@ namespace FSCMS.Service.Services
                 }
 
                 var data = _mapper.Map<AgreementDetailResponse>(entity);
+
+                // [REDIS STEP 2] Store in cache
+                try
+                {
+                    await _redisService.SetAsync(cacheKey, data, TimeSpan.FromMinutes(10));
+                    _logger.LogInformation("{MethodName}: Stored agreement in Redis cache", methodName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
+                }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved agreement {Id}", methodName, id);
 
@@ -233,6 +293,22 @@ namespace FSCMS.Service.Services
                     return BaseResponse<AgreementDetailResponse>.CreateError("Agreement code cannot be empty", StatusCodes.Status400BadRequest, "INVALID_CODE");
                 }
 
+                // [REDIS STEP 1] Try to get from cache first
+                string cacheKey = $"agreement:code:{agreementCode}";
+                try
+                {
+                    var cachedData = await _redisService.GetAsync<AgreementDetailResponse>(cacheKey);
+                    if (cachedData != null)
+                    {
+                        _logger.LogInformation("{MethodName}: Retrieved agreement from Redis cache with code: {Code}", methodName, agreementCode);
+                        return BaseResponse<AgreementDetailResponse>.CreateSuccess(cachedData, "Agreement retrieved from cache");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
+                }
+
                 var entity = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
                     .AsNoTracking()
@@ -248,6 +324,17 @@ namespace FSCMS.Service.Services
                 }
 
                 var data = _mapper.Map<AgreementDetailResponse>(entity);
+
+                // [REDIS STEP 2] Store in cache
+                try
+                {
+                    await _redisService.SetAsync(cacheKey, data, TimeSpan.FromMinutes(10));
+                    _logger.LogInformation("{MethodName}: Stored agreement in Redis cache", methodName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
+                }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved agreement {Code}", methodName, agreementCode);
 
@@ -1080,6 +1167,22 @@ namespace FSCMS.Service.Services
                         "INVALID_ID");
                 }
 
+                // [REDIS STEP 1] Try to get from cache first
+                string cacheKey = $"agreement:files:{id}";
+                try
+                {
+                    var cachedData = await _redisService.GetAsync<List<MediaResponse>>(cacheKey);
+                    if (cachedData != null)
+                    {
+                        _logger.LogInformation("{MethodName}: Retrieved agreement files from Redis cache with ID: {Id}", methodName, id);
+                        return BaseResponse<List<MediaResponse>>.CreateSuccess(cachedData, "Agreement files retrieved from cache");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
+                }
+
                 // Verify agreement exists
                 var agreement = await _unitOfWork.Repository<Agreement>()
                     .AsQueryable()
@@ -1114,6 +1217,17 @@ namespace FSCMS.Service.Services
                     // Note: FileUrl is stored directly in Agreement, not in Media table
                     // We can return it as a MediaResponse-like object or just return empty list
                     // For consistency, we return empty list and let client use FileUrl from AgreementDetailResponse
+                }
+
+                // [REDIS STEP 2] Store in cache
+                try
+                {
+                    await _redisService.SetAsync(cacheKey, mediaResponses, TimeSpan.FromMinutes(10));
+                    _logger.LogInformation("{MethodName}: Stored agreement files in Redis cache", methodName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
                 }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} file(s) for agreement {Id}",
