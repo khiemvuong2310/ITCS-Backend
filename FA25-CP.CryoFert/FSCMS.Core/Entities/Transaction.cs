@@ -29,8 +29,6 @@ namespace FSCMS.Core.Entities
         }
         public string TransactionCode { get; set; } = string.Empty;
 
-        public long PayOSOrderCode { get; set; }
-
         public TransactionType TransactionType { get; set; }
         
         public decimal Amount { get; set; }
