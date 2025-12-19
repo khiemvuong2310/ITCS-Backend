@@ -147,7 +147,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 }
             });
 
-            services.AddSingleton<IRedisService,RedisService>();
+            services.AddSingleton<IRedisService, RedisService>();
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
