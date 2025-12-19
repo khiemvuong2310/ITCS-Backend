@@ -6,6 +6,7 @@ using FSCMS.Core.Models.Options;
 using FSCMS.Service.Payments;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using PayOS;
 using PayOS.Models.V2.PaymentRequests;
 
@@ -53,7 +54,7 @@ namespace FSCMS.Service.Services
         {
             var request = new CreatePaymentLinkRequest
             {
-                OrderCode = transaction.PayOSOrderCode,
+                OrderCode = long.Parse(transaction.ReferenceNumber),
                 Amount = (int)Math.Round(transaction.Amount),
                 Description = transaction.TransactionCode,
                 ReturnUrl = _posOptions.pos_ReturnUrl,
@@ -139,13 +140,37 @@ namespace FSCMS.Service.Services
         //        return false;
         //    }
         //}
+
         public bool VerifySignature(string rawBody, string receivedSignature)
         {
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey));
-            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawBody));
-            var computed = Convert.ToHexString(hash).ToLower();
+            try
+            {
+                var json = JObject.Parse(rawBody);
 
-            return computed == receivedSignature.ToLower();
+                // Lấy object 'data' bên trong JSON
+                var data = (JObject)json["data"];
+
+                // Sắp xếp key alphabet và tạo chuỗi key=value&...
+                var keyValues = data.Properties()
+                                    .OrderBy(p => p.Name)
+                                    .Select(p => $"{p.Name}={p.Value?.ToString() ?? ""}");
+
+                string transactionStr = string.Join("&", keyValues);
+
+                // Tạo HMAC SHA256
+                using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_posOptions.pos_ChecksumKey)))
+                {
+                    var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(transactionStr));
+                    var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+                    // So sánh với signature
+                    return hashHex == receivedSignature.ToLower();
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
         #endregion
     }
