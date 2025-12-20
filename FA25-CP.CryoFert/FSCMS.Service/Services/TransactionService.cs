@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Security;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -25,6 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PayOS;
 using PayOS.Models.Webhooks;
+using ServiceStack;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace FSCMS.Service.Services
@@ -63,7 +65,7 @@ namespace FSCMS.Service.Services
             {
                 object? entityExists = request.RelatedEntityType switch
                 {
-                    EntityTypeTransaction.ServiceRequest=> await _unitOfWork.Repository<ServiceRequest>()
+                    EntityTypeTransaction.ServiceRequest => await _unitOfWork.Repository<ServiceRequest>()
                                     .AsQueryable()
                                     .Include(x => x.Appointment)
                                     .Where(p => p.Id == request.RelatedEntityId && !p.IsDeleted)
@@ -120,6 +122,34 @@ namespace FSCMS.Service.Services
                         Message = "Transaction not found"
                     };
 
+                if (transaction.PaymentGateway != null)
+                {
+                    transaction.Status = TransactionStatus.Cancelled;
+                    await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
+                    var newTransaction = new Transaction
+                    {
+                        TransactionCode = GenerateTransactionCode(),
+                        TransactionType = transaction.TransactionType,
+                        Amount = transaction.Amount,
+                        Currency = transaction.Currency,
+                        PatientId = transaction.PatientId,
+                        PatientName = transaction.PatientName,
+                        Description = transaction.Description,
+                        RelatedEntityType = transaction.RelatedEntityType,
+                        RelatedEntityId = transaction.RelatedEntityId,
+                        Status = TransactionStatus.Pending,
+                        TransactionDate = DateTime.UtcNow,
+                        PaymentGateway = transaction.PaymentGateway,
+                        PaymentMethod = transaction.PaymentMethod,
+                        ReferenceNumber = transaction.ReferenceNumber
+                    };
+                    newTransaction.ReferenceNumber = newTransaction.TransactionCode;
+
+                    await _unitOfWork.Repository<Transaction>().InsertAsync(newTransaction);
+                    await _unitOfWork.CommitAsync();
+                    transaction = newTransaction;
+                }
+
                 string paymentUrl = null;
 
                 switch (request.PaymentGateway)
@@ -133,7 +163,6 @@ namespace FSCMS.Service.Services
                     case PaymentGateway.PayOS:
                         transaction.PaymentGateway = "PayOS";
                         transaction.PaymentMethod = "Online";
-                        transaction.PayOSOrderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                         await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                         paymentUrl = await _paymentGateway.CreatePayOSUrlAsync(transaction);
                         break;
@@ -144,7 +173,7 @@ namespace FSCMS.Service.Services
                             Message = "Unsupported payment gateway"
                         };
                 }
-                
+
                 var response = _mapper.Map<TransactionResponseModel>(transaction);
                 response.PaymentUrl = paymentUrl;
 
@@ -154,7 +183,7 @@ namespace FSCMS.Service.Services
                 //response.Exp = vnTime.AddMinutes(15).ToString("yyyyMMddHHmmss");
                 //response.Local = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 //response.Now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
+                await _unitOfWork.CommitAsync();
                 return new BaseResponse<TransactionResponseModel>
                 {
                     Code = StatusCodes.Status201Created,
@@ -233,7 +262,7 @@ namespace FSCMS.Service.Services
 
                 var transaction = new Transaction
                 {
-                    TransactionCode = $"TX-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 6)}",
+                    TransactionCode = GenerateTransactionCode(),
                     TransactionType = TransactionType.Payment,
                     Amount = request.Amount,
                     Currency = "VND",
@@ -395,7 +424,7 @@ namespace FSCMS.Service.Services
                 if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                 {
                     EntityTypeMedia? typeMedia = null;
-                    switch(transaction.RelatedEntityType)
+                    switch (transaction.RelatedEntityType)
                     {
                         case "ServiceRequest":
                             var serviceRequest = await _unitOfWork.Repository<ServiceRequest>()
@@ -423,7 +452,7 @@ namespace FSCMS.Service.Services
                             cryoStorageContract.Status = ContractStatus.Active;
                             cryoStorageContract.StartDate = DateTime.UtcNow;
                             cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
-                            cryoStorageContract.PaidAmount = vnpAmount/100;
+                            cryoStorageContract.PaidAmount = vnpAmount / 100;
                             foreach (var detail in cryoStorageContract.CPSDetails)
                             {
                                 detail.StorageStartDate = DateTime.UtcNow;
@@ -436,12 +465,12 @@ namespace FSCMS.Service.Services
                             break;
                         default:
                             break;
-                    }    
+                    }
                     transaction.Status = TransactionStatus.Completed;
                     await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                     await _unitOfWork.CommitAsync();
                     await transactionU.CommitAsync();
-                    if(typeMedia != null)
+                    if (typeMedia != null)
                     {
                         await _mediaService.UploadPdfFromHtmlAsync(transaction.RelatedEntityId, (EntityTypeMedia)typeMedia);
                     }
@@ -553,7 +582,7 @@ namespace FSCMS.Service.Services
                 var transaction = await _unitOfWork.Repository<Transaction>()
                     .AsQueryable()
                     .FirstOrDefaultAsync(t =>
-                        t.PayOSOrderCode == payload.Data.OrderCode);
+                        t.ReferenceNumber == payload.Data.OrderCode.ToString());
 
                 if (transaction == null)
                 {
@@ -599,10 +628,14 @@ namespace FSCMS.Service.Services
                 }
 
                 // 8️⃣ Update status
-                transaction.ProcessedDate = DateTime.UtcNow;
+                transaction.ProcessedDate = DateTime.TryParseExact(payload.Data.TransactionDateTime, "yyyy-MM-dd HH:mm:ss",
+                  System.Globalization.CultureInfo.InvariantCulture,
+                  System.Globalization.DateTimeStyles.None,
+                  out DateTime dt) ? dt : (DateTime?)null;
+
                 transaction.ProcessedBy = "PayOS";
-                transaction.BankTranNo = payload.Data.CounterAccountBankId;
-                transaction.BankName = payload.Data.CounterAccountBankName;
+                transaction.BankTranNo = payload.Data.CounterAccountBankId.IsNullOrEmpty() ? null : payload.Data.CounterAccountBankId;
+                transaction.BankName = payload.Data.CounterAccountBankName.IsNullOrEmpty() ? null : payload.Data.CounterAccountBankName;
                 transaction.Currency = payload.Data.Currency;
                 await _unitOfWork.Repository<Transaction>().UpdateGuid(transaction, transaction.Id);
                 await _unitOfWork.CommitAsync();
@@ -890,7 +923,7 @@ namespace FSCMS.Service.Services
         {
             try
             {
-                if(request.RelatedEntityId != null && request.RelatedEntityType != null)
+                if (request.RelatedEntityId != null && request.RelatedEntityType != null)
                 {
                     bool entityExists = await CheckRelatedEntityExistsAsync(request.RelatedEntityType, request.RelatedEntityId);
                     if (!entityExists)
@@ -1003,6 +1036,14 @@ namespace FSCMS.Service.Services
                     Data = new List<TransactionResponseModel>()
                 };
             }
+        }
+
+        public string GenerateTransactionCode()
+        {
+            long seconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); // ví dụ 1700000000
+            int rand = new Random().Next(0, 100); // 2 chữ số ngẫu nhiên
+            long code = (seconds % 100000000) * 100 + rand; // kết hợp → 10 chữ số
+            return code.ToString();
         }
 
     }
