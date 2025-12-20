@@ -1,6 +1,7 @@
 ﻿using DinkToPdf;
 using DinkToPdf.Contracts;
 using DotNetEnv;
+using EFCoreSecondLevelCacheInterceptor;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Filters;
 using FSCMS.Core; // namespace chứa AppDbContext
@@ -46,23 +47,6 @@ namespace FA25_CP.CryoFert_BE
             builder.Services.AddControllers().AddJsonOptions(opts =>
             {
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            });
-
-            // 3. DbContext config (MySQL)
-            builder.Services.AddDbContext<AppDbContext>(options =>
-            {
-                var connectionString =
-                    Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
-                    ?? builder.Configuration.GetConnectionString("DefaultConnection")
-                    ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
-                    ?? builder.Configuration["DB_CONNECTION_STRING"];
-
-                if (string.IsNullOrWhiteSpace(connectionString))
-                    throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
-
-                var serverVersion = ServerVersion.AutoDetect(connectionString);
-                options.UseMySql(connectionString, serverVersion,
-                    mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
             });
 
             //builder.Services.Configure<CloudinarySettings>(
@@ -142,13 +126,33 @@ namespace FA25_CP.CryoFert_BE
                 options.MultipartBodyLengthLimit = 104857600; // 100 MB
             });
 
-            // 6. Install Dependency Injection Services
+            // 6. Install Dependency Injection Services (includes AddCaching which registers SecondLevelCacheInterceptor)
             builder.Services.InstallService(builder.Configuration);
 
-            // 7. Configure Authentication & Authorization (JWT)
+            // 7. DbContext config (MySQL) with DbContextPool and Second Level Cache
+            builder.Services.AddDbContextPool<AppDbContext>((serviceProvider, options) =>
+            {
+                var connectionString =
+                    Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+                    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+                    ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
+                    ?? builder.Configuration["DB_CONNECTION_STRING"];
+
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
+
+                var serverVersion = ServerVersion.AutoDetect(connectionString);
+                options.UseMySql(connectionString, serverVersion,
+                    mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
+
+                // Enable Second Level Cache
+                options.AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
+            });
+
+            // 8. Configure Authentication & Authorization (JWT)
             builder.Services.ConfigureAuthService(builder.Configuration);
 
-            // 8. Swagger & OpenAPI + JWT Auth
+            // 9. Swagger & OpenAPI + JWT Auth
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {

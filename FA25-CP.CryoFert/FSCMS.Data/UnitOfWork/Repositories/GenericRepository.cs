@@ -19,7 +19,7 @@ namespace FSCMS.Data.UnitOfWork.Repositories
 
         public GenericRepository(AppDbContext context)
         {
-            Context = context ?? throw new ArgumentNullException(nameof(context));  // Thêm kiểm tra null
+            Context = context ?? throw new ArgumentNullException(nameof(context));  
             Table = Context.Set<T>();
         }
         public IEnumerable<T> Find(Expression<Func<T, bool>> predicate)
@@ -54,6 +54,11 @@ namespace FSCMS.Data.UnitOfWork.Repositories
         public async Task<T?> GetByIdGuid(Guid Id)
         {
             return await Table.FindAsync(Id);
+        }
+
+        public async Task<T?> GetByIdAsync(Guid id)
+        {
+            return await GetByIdGuid(id);
         }
 
         public async Task<T?> GetById(int Id)

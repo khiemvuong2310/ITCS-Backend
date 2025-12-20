@@ -21,13 +21,11 @@ namespace FSCMS.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<AppointmentDoctorService> _logger;
-        private readonly IRedisService _redisService;
 
-        public AppointmentDoctorService(IUnitOfWork unitOfWork, ILogger<AppointmentDoctorService> logger, IRedisService redisService)
+        public AppointmentDoctorService(IUnitOfWork unitOfWork, ILogger<AppointmentDoctorService> logger)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         public async Task<BaseResponse<AppointmentDoctorResponse>> GetByIdAsync(Guid appointmentDoctorId)
@@ -41,22 +39,6 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Invalid ID - {AppointmentDoctorId}", methodName, appointmentDoctorId);
                     return BaseResponse<AppointmentDoctorResponse>.CreateError("ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
-                }
-
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"appointment_doctor:{appointmentDoctorId}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<AppointmentDoctorResponse>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved from Redis cache with ID: {AppointmentDoctorId}", methodName, appointmentDoctorId);
-                        return BaseResponse<AppointmentDoctorResponse>.CreateSuccess(cachedData, "Retrieved from cache");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
                 }
 
                 var entity = await _unitOfWork.Repository<AppointmentDoctor>()
@@ -76,17 +58,6 @@ namespace FSCMS.Service.Services
 
                 var response = MapToResponse(entity);
 
-                // [REDIS STEP 2] Store in cache
-                try
-                {
-                    await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("{MethodName}: Stored in Redis cache", methodName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
-                }
-
                 return BaseResponse<AppointmentDoctorResponse>.CreateSuccess(response, "Retrieved successfully");
             }
             catch (Exception ex)
@@ -105,22 +76,6 @@ namespace FSCMS.Service.Services
             {
                 request ??= new GetAppointmentDoctorsRequest();
                 request.Normalize();
-
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"appointment_doctors:p{request.Page}:s{request.Size}:a{request.AppointmentId}:d{request.DoctorId}:r{request.Role}:q{request.SearchTerm}:sort{request.Sort}:ord{request.Order}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<DynamicResponse<AppointmentDoctorResponse>>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved from Redis cache", methodName);
-                        return cachedData;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
-                }
 
                 var query = _unitOfWork.Repository<AppointmentDoctor>()
                     .AsQueryable()
@@ -198,17 +153,6 @@ namespace FSCMS.Service.Services
                     },
                     Data = data
                 };
-
-                // [REDIS STEP 2] Store in cache
-                try
-                {
-                    await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("{MethodName}: Stored in Redis cache", methodName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
-                }
 
                 return response;
             }

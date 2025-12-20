@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using DinkToPdf;
 using DinkToPdf.Contracts;
+using EFCoreSecondLevelCacheInterceptor;
+using FSCMS.Core.Extensions;
 using FSCMS.Core.Interfaces;
 using FSCMS.Core.Models.Options;
 using FSCMS.Core.Services;
@@ -16,13 +11,24 @@ using FSCMS.Service.Interfaces;
 using FSCMS.Service.Mapping;
 using FSCMS.Service.Payments;
 using FSCMS.Service.Services;
+using Google;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Threading.Tasks;
 using Twilio.Clients;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace FA25_CP.CryoFert_BE.AppStarts
 {
@@ -94,60 +100,11 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
 
-            services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.KeyName));
-            var redisOptions = configuration.GetSection(RedisOptions.KeyName).Get<RedisOptions>();
-
-            services.AddSingleton<IConnectionMultiplexer>(sp =>
-            {
-                var logger = sp.GetRequiredService<ILogger<IConnectionMultiplexer>>();
-                var connectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") ?? redisOptions.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    logger.LogWarning("⚠️ Không tìm thấy Redis Connection String. Bỏ qua Cache.");
-                    return null;
-                }
-                try
-                {
-                    var config = ConfigurationOptions.Parse(connectionString, true);
-
-                    config.Ssl = true;
-                    config.SslProtocols = SslProtocols.Tls12; // Ép dùng TLS 1.2
-                    config.AbortOnConnectFail = false;        // Giữ app sống
-                    config.ConnectTimeout = 10000;            // 10 giây timeout
-
-                    // Bỏ qua lỗi chứng chỉ (Fix lỗi Self-signed certificate)
-                    config.CertificateValidation += (sender, cert, chain, errors) => true;
-
-                    var multiplexer = ConnectionMultiplexer.Connect(config);
-
-                    multiplexer.ConnectionFailed += (sender, e) =>
-                        logger.LogError($"❌ REDIS KẾT NỐI THẤT BẠI: {e.FailureType} - {e.Exception?.Message}");
-
-                    multiplexer.ErrorMessage += (sender, e) =>
-                        logger.LogError($"❌ REDIS LỖI SERVER: {e.Message}");
-
-                    multiplexer.ConnectionRestored += (sender, e) =>
-                        logger.LogInformation("✅ REDIS ĐÃ KẾT NỐI LẠI!");
-
-                    if (multiplexer.IsConnected)
-                    {
-                        logger.LogInformation("✅ [REDIS ALIVE] Kết nối thành công & Sẵn sàng!");
-                    }
-                    else
-                    {
-                        logger.LogWarning("⚠️ [REDIS WAITING] Object đã tạo nhưng chưa thông mạng. Đang chờ handshake...");
-                    }
-
-                    return multiplexer;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "🔥 Lỗi crash khi khởi tạo Redis.");
-                    return null;
-                }
-            });
-
-            services.AddSingleton<IRedisService, RedisService>();
+            // Get Redis connection string from configuration
+            string redisConnectionString = configuration.GetConnectionStringOrThrow("redis");
+            
+            // Configure FusionCache with Redis
+            services.AddCaching(redisConnectionString);
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
@@ -165,29 +122,51 @@ namespace FA25_CP.CryoFert_BE.AppStarts
         }
 
         /// <summary>
-        /// Creates a dummy connection multiplexer that will fail gracefully when Redis is not available
+        /// Configures caching system using FusionCache with Redis backend.
         /// </summary>
-        private static IConnectionMultiplexer CreateDummyConnectionMultiplexer()
+        /// <param name="services">The service collection.</param>
+        /// <param name="redisConnectionString">The Redis connection string.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddCaching(this IServiceCollection services, string redisConnectionString)
         {
-            // Create a configuration that will never connect
-            var config = new ConfigurationOptions
+            services.AddStackExchangeRedisCache(options =>
             {
-                EndPoints = { "localhost:0" }, // Invalid endpoint
-                AbortOnConnectFail = false,
-                ConnectRetry = 0,
-                ConnectTimeout = 1
-            };
+                options.Configuration = redisConnectionString;
+            });
 
-            try
+            services.AddFusionCacheNewtonsoftJsonSerializer();
+
+            services.AddFusionCacheStackExchangeRedisBackplane(options =>
             {
-                return ConnectionMultiplexer.Connect(config);
-            }
-            catch
+                options.Configuration = redisConnectionString;
+            });
+
+            services.AddFusionCache()
+                .WithDefaultEntryOptions(new FusionCacheEntryOptions
+                {
+                    Duration = TimeSpan.FromMinutes(30),
+                    DistributedCacheDuration = TimeSpan.FromMinutes(30),
+                    IsFailSafeEnabled = true,
+                    FailSafeMaxDuration = TimeSpan.FromDays(1),
+                    FailSafeThrottleDuration = TimeSpan.FromSeconds(30),
+
+                    EagerRefreshThreshold = 0.9f,
+
+                    FactorySoftTimeout = TimeSpan.FromMilliseconds(100),
+                    FactoryHardTimeout = TimeSpan.FromMilliseconds(1500)
+                })
+                .WithRegisteredDistributedCache()
+                .WithRegisteredSerializer()
+                .WithRegisteredBackplane()
+                .AsHybridCache();
+            services.AddEFSecondLevelCache(options =>
             {
-                // If even this fails, we'll handle it in RedisService
-                // Return null and let RedisService handle it
-                return null!;
-            }
+                options.UseHybridCacheProvider().ConfigureLogging(false).UseCacheKeyPrefix("EF_")
+                       .UseDbCallsIfCachingProviderIsDown(TimeSpan.FromMinutes(1));
+                options.CacheAllQueries(CacheExpirationMode.Absolute, TimeSpan.FromMinutes(30));
+            });
+
+            return services;
         }
     }
 }

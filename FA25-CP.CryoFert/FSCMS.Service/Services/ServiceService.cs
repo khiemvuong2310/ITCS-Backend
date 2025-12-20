@@ -18,17 +18,15 @@ namespace FSCMS.Service.Services
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ServiceService> _logger;
-        private readonly IRedisService _redisService;
 
         #endregion
 
         #region Constructor
 
-        public ServiceService(IUnitOfWork unitOfWork, ILogger<ServiceService> logger, IRedisService redisService)
+        public ServiceService(IUnitOfWork unitOfWork, ILogger<ServiceService> logger)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         #endregion
@@ -64,29 +62,6 @@ namespace FSCMS.Service.Services
 
                 // Tạo key đại diện cho toàn bộ tham số filter (Search, Sort, Page, Price...)
                 // Key format: services_p{Page}_s{Size}_{Search}_{Category}_{Active}_{Sort}_{Order}...
-                string cacheKey = $"services_list_p{request.Page}_s{request.Size}_q_{request.SearchTerm}_cat_{request.ServiceCategoryId}_act_{request.IsActive}_min_{request.MinPrice}_max_{request.MaxPrice}_sort_{request.Sort}_{request.Order}";
-
-                try
-                {
-                    // Gọi Redis lấy dữ liệu
-                    var cachedData = await _redisService.GetAsync<DynamicResponse<ServiceResponseModel>>(cacheKey);
-
-                    if (cachedData != null)
-                    {
-                        // [REDIS HIT]: Tìm thấy trong cache -> Trả về luôn
-                        _logger.LogInformation("🚀 [REDIS HIT] Found data in cache for key: {CacheKey}", cacheKey);
-                        return cachedData;
-                    }
-
-                    // [REDIS MISS]: Không tìm thấy -> Log và tiếp tục chạy xuống dưới để Query DB
-                    _logger.LogInformation("⏳ [REDIS MISS] Data not found in cache. Querying Database...");
-                }
-                catch (Exception ex)
-                {
-                    // Nếu Redis lỗi (mất kết nối), chỉ log warning và vẫn tiếp tục query DB bình thường
-                    _logger.LogWarning("⚠️ Redis Error (Read): {Message}. Continuing with Database flow.", ex.Message);
-                }
-
                 var query = _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .AsNoTracking()
@@ -171,18 +146,6 @@ namespace FSCMS.Service.Services
                     Data = responseItems
                 };
 
-                // [REDIS STEP 2]: LƯU KẾT QUẢ VÀO CACHE=
-                try
-                {
-                    // Lưu vào Redis với thời gian hết hạn là 10 phút
-                    await _redisService.SetAsync(cacheKey, finalResponse, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("💾 [REDIS SAVE] Saved result to cache for key: {CacheKey}", cacheKey);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning("⚠️ Redis Error (Write): {Message}", ex.Message);
-                }
-
                 return finalResponse;
             }
             catch (Exception ex)
@@ -212,23 +175,49 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceResponseModel>.CreateError("Service ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 }
 
-                var service = await _unitOfWork.Repository<Core.Entities.Service>()
+                // Try to get entity from repository cache first (basic entity without includes)
+                var cachedService = await _unitOfWork.Repository<Core.Entities.Service>().GetByIdAsync(id);
+                
+                // If not found in cache or entity is deleted, query with includes
+                if (cachedService == null || cachedService.IsDeleted)
+                {
+                    var service = await _unitOfWork.Repository<Core.Entities.Service>()
+                        .GetQueryable()
+                        .AsNoTracking()
+                        .Include(s => s.ServiceCategory)
+                        .Where(s => s.Id == id && !s.IsDeleted)
+                        .FirstOrDefaultAsync();
+
+                    if (service == null)
+                    {
+                        _logger.LogWarning("{MethodName}: Service not found with ID: {Id}", methodName, id);
+                        return BaseResponse<ServiceResponseModel>.CreateError("Service not found", StatusCodes.Status404NotFound, "SERVICE_NOT_FOUND");
+                    }
+
+                    var response = service.ToResponseModel();
+                    _logger.LogInformation("{MethodName}: Successfully retrieved service {Id} from database", methodName, id);
+                    return BaseResponse<ServiceResponseModel>.CreateSuccess(response, "Service retrieved successfully", StatusCodes.Status200OK);
+                }
+
+                // Entity found in cache, but we need includes for response
+                // Load includes separately if entity is from cache
+                var serviceWithIncludes = await _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .AsNoTracking()
                     .Include(s => s.ServiceCategory)
                     .Where(s => s.Id == id && !s.IsDeleted)
                     .FirstOrDefaultAsync();
 
-                if (service == null)
+                if (serviceWithIncludes == null)
                 {
                     _logger.LogWarning("{MethodName}: Service not found with ID: {Id}", methodName, id);
                     return BaseResponse<ServiceResponseModel>.CreateError("Service not found", StatusCodes.Status404NotFound, "SERVICE_NOT_FOUND");
                 }
 
-                var response = service.ToResponseModel();
-                _logger.LogInformation("{MethodName}: Successfully retrieved service {Id}", methodName, id);
+                var responseFromCache = serviceWithIncludes.ToResponseModel();
+                _logger.LogInformation("{MethodName}: Successfully retrieved service {Id} (entity was cached)", methodName, id);
 
-                return BaseResponse<ServiceResponseModel>.CreateSuccess(response, "Service retrieved successfully", StatusCodes.Status200OK);
+                return BaseResponse<ServiceResponseModel>.CreateSuccess(responseFromCache, "Service retrieved successfully", StatusCodes.Status200OK);
             }
             catch (Exception ex)
             {
@@ -237,7 +226,7 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<ServiceResponseModel>> CreateAsync(ServiceCreateUpdateRequestModel request)
+        public async Task<BaseResponse<ServiceResponseModel>> CreateAsync(ServiceCreateRequestModel request)
         {
             const string methodName = nameof(CreateAsync);
             _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
@@ -279,14 +268,22 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<Core.Entities.Service>().InsertAsync(entity);
                 await _unitOfWork.CommitAsync();
 
-                // Get the created service with category info
+                // After SaveChanges, entity.Id is now available
+                // Invalidate cache for this entity to ensure fresh data on next query
+                // Then query with includes for response
                 var createdService = await _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .AsNoTracking()
                     .Include(s => s.ServiceCategory)
                     .FirstOrDefaultAsync(s => s.Id == entity.Id);
 
-                var response = createdService!.ToResponseModel();
+                if (createdService == null)
+                {
+                    _logger.LogError("{MethodName}: Failed to retrieve created service {Id}", methodName, entity.Id);
+                    return BaseResponse<ServiceResponseModel>.CreateError("Failed to retrieve created service", StatusCodes.Status500InternalServerError, "RETRIEVE_ERROR");
+                }
+
+                var response = createdService.ToResponseModel();
                 _logger.LogInformation("{MethodName}: Successfully created service {Id}", methodName, entity.Id);
 
                 return BaseResponse<ServiceResponseModel>.CreateSuccess(response, "Service created successfully", StatusCodes.Status201Created);
@@ -298,13 +295,14 @@ namespace FSCMS.Service.Services
             }
         }
 
-        public async Task<BaseResponse<ServiceResponseModel>> UpdateAsync(Guid id, ServiceCreateUpdateRequestModel request)
+        public async Task<BaseResponse<ServiceResponseModel>> UpdateAsync(Guid id, ServiceUpdateRequestModel request)
         {
             const string methodName = nameof(UpdateAsync);
             _logger.LogInformation("{MethodName} called with id: {Id}, request: {@Request}", methodName, id, request);
 
             try
             {
+                // 1. Validate input parameters
                 if (id == Guid.Empty)
                 {
                     _logger.LogWarning("{MethodName}: Invalid ID provided - {Id}", methodName, id);
@@ -317,6 +315,7 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceResponseModel>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "INVALID_REQUEST");
                 }
 
+                // 2. Get existing entity
                 var entity = await _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .Include(s => s.ServiceCategory)
@@ -329,19 +328,25 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceResponseModel>.CreateError("Service not found", StatusCodes.Status404NotFound, "SERVICE_NOT_FOUND");
                 }
 
-                // Check if service category exists
-                var categoryExists = await _unitOfWork.Repository<ServiceCategory>()
-                    .GetQueryable()
-                    .AnyAsync(sc => sc.Id == request.ServiceCategoryId && !sc.IsDeleted);
-
-                if (!categoryExists)
+                // 3. Validate ServiceCategoryId if provided (partial update - only validate if value is provided)
+                if (request.ServiceCategoryId.HasValue)
                 {
-                    _logger.LogWarning("{MethodName}: Service category not found with ID: {CategoryId}", methodName, request.ServiceCategoryId);
-                    return BaseResponse<ServiceResponseModel>.CreateError("Service category not found", StatusCodes.Status404NotFound, "SERVICE_CATEGORY_NOT_FOUND");
+                    var categoryExists = await _unitOfWork.Repository<ServiceCategory>()
+                        .GetQueryable()
+                        .AnyAsync(sc => sc.Id == request.ServiceCategoryId.Value && !sc.IsDeleted);
+
+                    if (!categoryExists)
+                    {
+                        _logger.LogWarning("{MethodName}: Service category not found with ID: {CategoryId}", methodName, request.ServiceCategoryId.Value);
+                        return BaseResponse<ServiceResponseModel>.CreateError(
+                            $"Service category with ID '{request.ServiceCategoryId.Value}' not found", 
+                            StatusCodes.Status404NotFound, 
+                            "SERVICE_CATEGORY_NOT_FOUND");
+                    }
                 }
 
-                // Check if code already exists (excluding current entity)
-                if (!string.IsNullOrEmpty(request.Code))
+                // 4. Validate Code uniqueness if provided (partial update - only validate if value is provided)
+                if (!string.IsNullOrWhiteSpace(request.Code))
                 {
                     var existingByCode = await _unitOfWork.Repository<Core.Entities.Service>()
                         .GetQueryable()
@@ -350,22 +355,39 @@ namespace FSCMS.Service.Services
                     if (existingByCode != null)
                     {
                         _logger.LogWarning("{MethodName}: Service code already exists: {Code}", methodName, request.Code);
-                        return BaseResponse<ServiceResponseModel>.CreateError("Service code already exists", StatusCodes.Status400BadRequest, "CODE_ALREADY_EXISTS");
+                        return BaseResponse<ServiceResponseModel>.CreateError(
+                            $"Service code '{request.Code}' already exists", 
+                            StatusCodes.Status400BadRequest, 
+                            "CODE_ALREADY_EXISTS");
                     }
                 }
 
+                // 5. Apply partial update - only updates fields that are provided (not null)
+                // If a property is null, the existing value will be kept
                 entity.UpdateEntity(request);
+                
+                // 6. Save changes (UpdateGuid will automatically invalidate cache for this entity)
                 await _unitOfWork.Repository<Core.Entities.Service>().UpdateGuid(entity, id);
                 await _unitOfWork.CommitAsync();
 
-                // Reload with category info
+                // 7. Retrieve updated entity with includes for response
+                // Cache has been invalidated by UpdateGuid, so query fresh data
                 var updatedService = await _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .AsNoTracking()
                     .Include(s => s.ServiceCategory)
                     .FirstOrDefaultAsync(s => s.Id == id);
 
-                var response = updatedService!.ToResponseModel();
+                if (updatedService == null)
+                {
+                    _logger.LogError("{MethodName}: Failed to retrieve updated service {Id}", methodName, id);
+                    return BaseResponse<ServiceResponseModel>.CreateError(
+                        "Failed to retrieve updated service", 
+                        StatusCodes.Status500InternalServerError, 
+                        "RETRIEVE_ERROR");
+                }
+
+                var response = updatedService.ToResponseModel();
                 _logger.LogInformation("{MethodName}: Successfully updated service {Id}", methodName, id);
 
                 return BaseResponse<ServiceResponseModel>.CreateSuccess(response, "Service updated successfully", StatusCodes.Status200OK);
@@ -373,7 +395,10 @@ namespace FSCMS.Service.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "{MethodName}: Error updating service {Id}", methodName, id);
-                return BaseResponse<ServiceResponseModel>.CreateError($"Error updating service: {ex.Message}", StatusCodes.Status500InternalServerError, "INTERNAL_ERROR");
+                return BaseResponse<ServiceResponseModel>.CreateError(
+                    $"Error updating service: {ex.Message}", 
+                    StatusCodes.Status500InternalServerError, 
+                    "INTERNAL_ERROR");
             }
         }
 
