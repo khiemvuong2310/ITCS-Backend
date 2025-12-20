@@ -20,20 +20,17 @@ namespace FSCMS.Service.Services
         private readonly ILogger<ServiceRequestDetailsService> _logger;
         private readonly IMapper _mapper;
         private readonly IMediaService _mediaService;
-        private readonly IRedisService _redisService;
 
         public ServiceRequestDetailsService(
             IUnitOfWork unitOfWork,
             ILogger<ServiceRequestDetailsService> logger,
             IMapper mapper,
-            IMediaService mediaService,
-            IRedisService redisService)
+            IMediaService mediaService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
-            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         public async Task<BaseResponse<List<ServiceRequestDetailResponseModel>>> GetByServiceRequestAsync(Guid serviceRequestId)
@@ -47,22 +44,6 @@ namespace FSCMS.Service.Services
                 {
                     _logger.LogWarning("{MethodName}: Invalid serviceRequestId provided - {ServiceRequestId}", methodName, serviceRequestId);
                     return BaseResponse<List<ServiceRequestDetailResponseModel>>.CreateError("Service request ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
-                }
-
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"service_request_details:sr{serviceRequestId}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<List<ServiceRequestDetailResponseModel>>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved from Redis cache with serviceRequestId: {ServiceRequestId}", methodName, serviceRequestId);
-                        return BaseResponse<List<ServiceRequestDetailResponseModel>>.CreateSuccess(cachedData, "Retrieved from cache", StatusCodes.Status200OK);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
                 }
 
                 var details = await _unitOfWork.Repository<ServiceRequestDetails>()
@@ -110,22 +91,6 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestDetailResponseModel>.CreateError("Service request detail ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 }
 
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"service_request_detail:{id}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<ServiceRequestDetailResponseModel>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved from Redis cache with ID: {Id}", methodName, id);
-                        return BaseResponse<ServiceRequestDetailResponseModel>.CreateSuccess(cachedData, "Retrieved from cache", StatusCodes.Status200OK);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
-                }
-
                 var detail = await _unitOfWork.Repository<ServiceRequestDetails>()
                     .GetQueryable()
                     .AsNoTracking()
@@ -147,17 +112,6 @@ namespace FSCMS.Service.Services
                 if (detailMediaMap.TryGetValue(detail.Id, out var medias))
                 {
                     response.MediaFiles = medias;
-                }
-
-                // [REDIS STEP 2] Store in cache
-                try
-                {
-                    await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("{MethodName}: Stored in Redis cache", methodName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
                 }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved service request detail {Id}", methodName, id);
@@ -408,22 +362,6 @@ namespace FSCMS.Service.Services
                     return BaseResponse<List<ServiceRequestDetailResponseModel>>.CreateError("Service ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
                 }
 
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"service_request_details:service{serviceId}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<List<ServiceRequestDetailResponseModel>>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved from Redis cache with serviceId: {ServiceId}", methodName, serviceId);
-                        return BaseResponse<List<ServiceRequestDetailResponseModel>>.CreateSuccess(cachedData, "Retrieved from cache", StatusCodes.Status200OK);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
-                }
-
                 var details = await _unitOfWork.Repository<ServiceRequestDetails>()
                     .GetQueryable()
                     .AsNoTracking()
@@ -444,17 +382,6 @@ namespace FSCMS.Service.Services
                     {
                         item.MediaFiles = medias;
                     }
-                }
-
-                // [REDIS STEP 2] Store in cache
-                try
-                {
-                    await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("{MethodName}: Stored in Redis cache", methodName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
                 }
 
                 _logger.LogInformation("{MethodName}: Successfully retrieved {Count} service request details", methodName, response.Count);

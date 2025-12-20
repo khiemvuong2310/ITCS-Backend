@@ -110,7 +110,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         [HttpPost]
         [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> Create([FromBody] ServiceCreateUpdateRequestModel request)
+        public async Task<IActionResult> Create([FromBody] ServiceCreateRequestModel request)
         {
             if (!ModelState.IsValid)
             {
@@ -129,12 +129,12 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update an existing service
         /// </summary>
         /// <param name="id">Service ID</param>
-        /// <param name="request">Service update request</param>
+        /// <param name="request">Service update request (all fields are optional - only provided fields will be updated)</param>
         /// <returns>Updated service response</returns>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
-        public async Task<IActionResult> Update(Guid id, [FromBody] ServiceCreateUpdateRequestModel request)
+        public async Task<IActionResult> Update(Guid id, [FromBody] ServiceUpdateRequestModel request)
         {
             if (!ModelState.IsValid)
             {

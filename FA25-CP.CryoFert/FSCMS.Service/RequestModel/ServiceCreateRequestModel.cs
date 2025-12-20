@@ -2,7 +2,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FSCMS.Service.RequestModel
 {
-    public class ServiceCreateUpdateRequestModel
+    /// <summary>
+    /// Request model for creating a new Service - all required fields must be provided
+    /// </summary>
+    public class ServiceCreateRequestModel
     {
         [Required(ErrorMessage = "Name is required")]
         [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
@@ -33,3 +36,4 @@ namespace FSCMS.Service.RequestModel
         public Guid ServiceCategoryId { get; set; }
     }
 }
+

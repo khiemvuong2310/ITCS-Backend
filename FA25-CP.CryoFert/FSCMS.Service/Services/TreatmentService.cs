@@ -21,7 +21,6 @@ namespace FSCMS.Service.Services
         private readonly ILogger<TreatmentService> _logger;
         private readonly ITreatmentIUIService _treatmentIUIService;
         private readonly ITreatmentIVFService _treatmentIVFService;
-        private readonly IRedisService _redisService;
         #endregion
 
         #region Constructor
@@ -30,14 +29,12 @@ namespace FSCMS.Service.Services
             IUnitOfWork unitOfWork,
             ILogger<TreatmentService> logger,
             ITreatmentIUIService treatmentIUIService,
-            ITreatmentIVFService treatmentIVFService,
-            IRedisService redisService)
+            ITreatmentIVFService treatmentIVFService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _treatmentIUIService = treatmentIUIService ?? throw new ArgumentNullException(nameof(treatmentIUIService));
             _treatmentIVFService = treatmentIVFService ?? throw new ArgumentNullException(nameof(treatmentIVFService));
-            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         #endregion
@@ -64,22 +61,6 @@ namespace FSCMS.Service.Services
                 }
 
                 request.Normalize();
-
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"treatments:p{request.Page}:s{request.Size}:pid{request.PatientId}:did{request.DoctorId}:tt{request.TreatmentType}:st{request.Status}:q{request.SearchTerm}:sdf{request.StartDateFrom}:sdt{request.StartDateTo}:sort{request.Sort}:ord{request.Order}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<DynamicResponse<TreatmentResponseModel>>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved treatments from Redis cache", methodName);
-                        return cachedData;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
-                }
 
                 var query = _unitOfWork.Repository<Treatment>()
                     .GetQueryable()
@@ -201,17 +182,6 @@ namespace FSCMS.Service.Services
                     Data = data
                 };
 
-                // [REDIS STEP 2] Store in cache
-                try
-                {
-                    await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("{MethodName}: Stored treatments in Redis cache", methodName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
-                }
-
                 return response;
             }
             catch (Exception ex)
@@ -250,22 +220,6 @@ namespace FSCMS.Service.Services
                         "INVALID_ID");
                 }
 
-                // [REDIS STEP 1] Try to get from cache first
-                string cacheKey = $"treatment:{id}";
-                try
-                {
-                    var cachedData = await _redisService.GetAsync<TreatmentDetailResponseModel>(cacheKey);
-                    if (cachedData != null)
-                    {
-                        _logger.LogInformation("{MethodName}: Retrieved treatment from Redis cache with ID: {Id}", methodName, id);
-                        return BaseResponse<TreatmentDetailResponseModel>.CreateSuccess(cachedData, "Treatment retrieved from cache", StatusCodes.Status200OK);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error accessing Redis cache", methodName);
-                }
-
                 // Retrieve treatment entity with related data in a single optimized query
                 var treatment = await GetTreatmentWithRelatedDataAsync(id);
                 
@@ -280,17 +234,6 @@ namespace FSCMS.Service.Services
 
                 // Map entity to response model
                 var responseModel = await MapToDetailResponseModelAsync(treatment, id);
-
-                // [REDIS STEP 2] Store in cache
-                try
-                {
-                    await _redisService.SetAsync(cacheKey, responseModel, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("{MethodName}: Stored treatment in Redis cache", methodName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "{MethodName}: Error storing in Redis cache", methodName);
-                }
 
                 _logger.LogInformation(
                     "{MethodName}: Successfully retrieved treatment {TreatmentId} with Type: {TreatmentType}", 

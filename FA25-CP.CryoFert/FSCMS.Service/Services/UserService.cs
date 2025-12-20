@@ -22,18 +22,12 @@ namespace FSCMS.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<UserService> _logger;
-        private readonly IRedisService _redisService;
-        private const int CACHE_EXPIRY_MINUTES = 15;
-        private const string CACHE_KEY_PREFIX = "user";
-        private const string CACHE_KEY_EMAIL_PREFIX = "user:email";
-        private const string CACHE_KEY_DETAIL_PREFIX = "user:detail";
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger, IRedisService redisService)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
         }
 
         /// <summary>
@@ -59,15 +53,6 @@ namespace FSCMS.Service.Services
                         Message = "User ID cannot be empty or invalid",
                         Data = null
                     };
-                }
-
-                // Try to get from cache
-                var cacheKey = $"{CACHE_KEY_PREFIX}:{userId}";
-                var cachedUser = await _redisService.GetAsync<BaseResponse<UserResponse>>(cacheKey);
-                if (cachedUser != null && cachedUser.Data != null)
-                {
-                    _logger.LogInformation("{MethodName}: User {UserId} retrieved from cache", methodName, userId);
-                    return cachedUser;
                 }
 
                 var accountQuery = IncludeFullUserGraph(
@@ -100,9 +85,7 @@ namespace FSCMS.Service.Services
                     Data = userResponse
                 };
 
-                // Cache the response
-                await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
-                _logger.LogInformation("{MethodName}: Successfully retrieved user {UserId} and cached", methodName, userId);
+                _logger.LogInformation("{MethodName}: Successfully retrieved user {UserId}", methodName, userId);
 
                 return response;
             }
@@ -146,15 +129,6 @@ namespace FSCMS.Service.Services
 
                 var normalizedEmail = email.Trim().ToLowerInvariant();
 
-                // Try to get from cache
-                var cacheKey = $"{CACHE_KEY_EMAIL_PREFIX}:{normalizedEmail}";
-                var cachedUser = await _redisService.GetAsync<BaseResponse<UserResponse>>(cacheKey);
-                if (cachedUser != null && cachedUser.Data != null)
-                {
-                    _logger.LogInformation("{MethodName}: User with email {Email} retrieved from cache", methodName, email);
-                    return cachedUser;
-                }
-
                 var accountQuery = IncludeFullUserGraph(
                     _unitOfWork.Repository<Account>()
                         .AsQueryable());
@@ -185,10 +159,7 @@ namespace FSCMS.Service.Services
                     Data = userResponse
                 };
 
-                // Cache the response (also cache by user ID for consistency)
-                await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
-                await _redisService.SetAsync($"{CACHE_KEY_PREFIX}:{account.Id}", response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
-                _logger.LogInformation("{MethodName}: Successfully retrieved user by email and cached", methodName);
+                _logger.LogInformation("{MethodName}: Successfully retrieved user by email", methodName);
 
                 return response;
             }
@@ -280,15 +251,6 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                // Try to get from cache
-                var cacheKey = $"{CACHE_KEY_DETAIL_PREFIX}:{userId}";
-                var cachedUserDetail = await _redisService.GetAsync<BaseResponse<UserDetailResponse>>(cacheKey);
-                if (cachedUserDetail != null && cachedUserDetail.Data != null)
-                {
-                    _logger.LogInformation("{MethodName}: User detail {UserId} retrieved from cache", methodName, userId);
-                    return cachedUserDetail;
-                }
-
                 var account = await IncludeFullUserGraph(
                         _unitOfWork.Repository<Account>()
                             .AsQueryable())
@@ -315,9 +277,7 @@ namespace FSCMS.Service.Services
                     Data = userDetail
                 };
 
-                // Cache the response
-                await _redisService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(CACHE_EXPIRY_MINUTES));
-                _logger.LogInformation("{MethodName}: Successfully retrieved user detail {UserId} and cached", methodName, userId);
+                _logger.LogInformation("{MethodName}: Successfully retrieved user detail {UserId}", methodName, userId);
 
                 return response;
             }

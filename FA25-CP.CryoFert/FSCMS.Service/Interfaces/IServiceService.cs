@@ -8,8 +8,8 @@ namespace FSCMS.Service.Interfaces
     {
         Task<DynamicResponse<ServiceResponseModel>> GetAllAsync(GetServicesRequest request);
         Task<BaseResponse<ServiceResponseModel>> GetByIdAsync(Guid id);
-        Task<BaseResponse<ServiceResponseModel>> CreateAsync(ServiceCreateUpdateRequestModel request);
-        Task<BaseResponse<ServiceResponseModel>> UpdateAsync(Guid id, ServiceCreateUpdateRequestModel request);
+        Task<BaseResponse<ServiceResponseModel>> CreateAsync(ServiceCreateRequestModel request);
+        Task<BaseResponse<ServiceResponseModel>> UpdateAsync(Guid id, ServiceUpdateRequestModel request);
         Task<BaseResponse<bool>> DeleteAsync(Guid id);
         Task<BaseResponse<List<ServiceResponseModel>>> GetActiveAsync();
         Task<BaseResponse<List<ServiceResponseModel>>> GetByCategoryAsync(Guid categoryId);

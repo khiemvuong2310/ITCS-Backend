@@ -38,6 +38,8 @@ namespace FSCMS.Data.UnitOfWork.Repositories
 
         Task<TEntity?> GetByIdGuid(Guid Id);
 
+        Task<TEntity?> GetByIdAsync(Guid id);
+
         void Insert(TEntity entity);
 
         Task Update(TEntity entity, int Id);

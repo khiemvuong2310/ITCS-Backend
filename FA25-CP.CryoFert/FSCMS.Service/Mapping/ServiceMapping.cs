@@ -26,7 +26,7 @@ namespace FSCMS.Service.Mapping
             };
         }
 
-        public static Core.Entities.Service ToEntity(this ServiceCreateUpdateRequestModel request)
+        public static Core.Entities.Service ToEntity(this ServiceCreateRequestModel request)
         {
             return new Core.Entities.Service(Guid.NewGuid(), request.Name, request.Price, request.ServiceCategoryId)
             {
@@ -39,17 +39,65 @@ namespace FSCMS.Service.Mapping
             };
         }
 
-        public static void UpdateEntity(this Core.Entities.Service entity, ServiceCreateUpdateRequestModel request)
+        /// <summary>
+        /// Partial update - only updates fields that are provided (not null)
+        /// </summary>
+        public static void UpdateEntity(this Core.Entities.Service entity, ServiceUpdateRequestModel request)
         {
-            entity.Name = request.Name;
-            entity.Description = request.Description;
-            entity.Price = request.Price;
-            entity.Code = request.Code;
-            entity.Unit = request.Unit;
-            entity.Duration = request.Duration;
-            entity.IsActive = request.IsActive;
-            entity.Notes = request.Notes;
-            entity.ServiceCategoryId = request.ServiceCategoryId;
+            // Name: Only update if a non-empty value is provided (Name is required, cannot be cleared)
+            if (!string.IsNullOrWhiteSpace(request.Name))
+            {
+                entity.Name = request.Name;
+            }
+
+            // Description: Update if provided (null = keep existing, empty string = clear, value = update)
+            if (request.Description != null)
+            {
+                entity.Description = request.Description;
+            }
+
+            // Price: Update if provided (null = keep existing, value = update)
+            if (request.Price.HasValue)
+            {
+                entity.Price = request.Price.Value;
+            }
+
+            // Code: Update if provided (null = keep existing, empty string = clear, value = update)
+            if (request.Code != null)
+            {
+                entity.Code = request.Code;
+            }
+
+            // Unit: Update if provided (null = keep existing, empty string = clear, value = update)
+            if (request.Unit != null)
+            {
+                entity.Unit = request.Unit;
+            }
+
+            // Duration: Update if provided (null = keep existing, value = update)
+            if (request.Duration.HasValue)
+            {
+                entity.Duration = request.Duration.Value;
+            }
+
+            // IsActive: Update if provided (null = keep existing, value = update)
+            if (request.IsActive.HasValue)
+            {
+                entity.IsActive = request.IsActive.Value;
+            }
+
+            // Notes: Update if provided (null = keep existing, empty string = clear, value = update)
+            if (request.Notes != null)
+            {
+                entity.Notes = request.Notes;
+            }
+
+            // ServiceCategoryId: Update if provided (null = keep existing, value = update)
+            // Note: Validation should be done in service layer before calling this method
+            if (request.ServiceCategoryId.HasValue)
+            {
+                entity.ServiceCategoryId = request.ServiceCategoryId.Value;
+            }
         }
     }
 }
