@@ -129,18 +129,22 @@ namespace FA25_CP.CryoFert_BE.AppStarts
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddCaching(this IServiceCollection services, string redisConnectionString)
         {
+            // 1. Configure StackExchange Redis Cache
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = redisConnectionString;
             });
 
+            // 2. FusionCache Serializer
             services.AddFusionCacheNewtonsoftJsonSerializer();
 
+            // 3. FusionCache Redis Backplane
             services.AddFusionCacheStackExchangeRedisBackplane(options =>
             {
                 options.Configuration = redisConnectionString;
             });
 
+            // 4. Configure FusionCache with default options
             services.AddFusionCache()
                 .WithDefaultEntryOptions(new FusionCacheEntryOptions
                 {
@@ -159,6 +163,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 .WithRegisteredSerializer()
                 .WithRegisteredBackplane()
                 .AsHybridCache();
+
+            // 5. Configure EF Core Second Level Cache with Hybrid Cache Provider
             services.AddEFSecondLevelCache(options =>
             {
                 options.UseHybridCacheProvider().ConfigureLogging(false).UseCacheKeyPrefix("EF_")
