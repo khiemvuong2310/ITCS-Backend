@@ -67,6 +67,14 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpGet("fertilize")]
+        [ApiDefaultResponse(typeof(LabSampleResponse))]
+        public async Task<IActionResult> GetFertilizedLabSamples([FromQuery] GetEligibleLabSamplesRequest request)
+        {
+            var result = await _labSampleService.GetEligibleLabSamplesAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         /// <summary>
         /// Create new sperm sample
         /// </summary>
@@ -121,6 +129,24 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 });
 
             var result = await _labSampleService.CreateEmbryoAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
+        [HttpPut("fertilize/{id}")]
+        [Authorize(Roles = "Doctor")]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> UpdateFertilize(Guid id, [FromBody] UpdateLabSampleFertilizeRequest request)
+        {
+            if (!ModelState.IsValid || id == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data or sample ID."
+                });
+            }
+
+            var result = await _labSampleService.UpdateFertilizeAsync(id, request);
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
