@@ -48,6 +48,8 @@ namespace FSCMS.Service.ReponseModel
 
         [JsonPropertyName("canFrozen")]
         public bool CanFrozen { get; set; }
+        [JsonPropertyName("canFertilize")]
+        public bool CanFertilize { get; set; }
     }
 
     /// <summary>
