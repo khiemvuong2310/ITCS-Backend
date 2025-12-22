@@ -1,4 +1,8 @@
-﻿using AutoMapper;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -8,10 +12,7 @@ using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using ServiceStack.Html;
 
 namespace FSCMS.Service.Services
 {
@@ -172,6 +173,94 @@ namespace FSCMS.Service.Services
             {
                 _logger.LogError(ex, "{MethodName}: Error getting all lab samples", methodName);
                 return new DynamicResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
+        public async Task<DynamicResponse<LabSampleDetailResponse>> GetEligibleLabSamplesAsync(GetEligibleLabSamplesRequest request)
+        {
+            const string methodName = nameof(GetAllAsync);
+            _logger.LogInformation("{MethodName} called", methodName);
+
+            try
+            {
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                   .AsQueryable()
+                   .FirstOrDefaultAsync(x => !x.IsDeleted && x.IsActive && (x.Patient1Id == request.PatientId || x.Patient2Id == request.PatientId));
+
+                if (relationship == null)
+                {
+                    return new DynamicResponse<LabSampleDetailResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Relationship not found",
+                        SystemCode = "INVALID_PATIENT",
+                        Data = null
+                    };
+                }
+                var query = _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .Include(x => x.LabSampleSperm)
+                    .Include(x => x.LabSampleOocyte)
+                    .Where(x => !x.IsDeleted);
+
+                // --- Filtering ---
+                if (request.SampleType.HasValue)
+                    query = query.Where(x => x.SampleType == request.SampleType);
+
+                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                    query = query.Where(x => x.SampleCode.Contains(request.SearchTerm)
+                                          || (x.Notes != null && x.Notes.Contains(request.SearchTerm)));
+
+                query = query.Where(x => (x.PatientId == relationship.Patient2Id || x.PatientId == relationship.Patient1Id) && x.Status == SpecimenStatus.QualityChecked);
+
+                var totalCount = await query.CountAsync();
+
+                // Apply sorting
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    var isDescending = request.Order?.ToLower() == "desc";
+
+                    query = request.Sort.ToLower() switch
+                    {
+                        "collectiondate" => isDescending ? query.OrderByDescending(x => x.CollectionDate) : query.OrderBy(x => x.CollectionDate),
+                        "samplecode" => isDescending ? query.OrderByDescending(x => x.SampleCode) : query.OrderBy(x => x.SampleCode),
+                        _ => query.OrderByDescending(x => x.CreatedAt)
+                    };
+                }
+                else
+                {
+                    query = query.OrderByDescending(u => u.CreatedAt);
+                }
+
+                // Apply pagination
+                var items = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var data = _mapper.Map<List<LabSampleDetailResponse>>(items);
+
+                return new DynamicResponse<LabSampleDetailResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Lab samples retrieved successfully.",
+                    Data = data,
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error getting all lab samples", methodName);
+                return new DynamicResponse<LabSampleDetailResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
                     Message = "Internal server error."
@@ -479,6 +568,12 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status404NotFound,
                         Message = "Sperm not found or already used."
                     };
+                if (!sperm.CanFertilize)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Sperm can not fertilize."
+                    };
 
                 var oocyte = await _unitOfWork.Repository<LabSample>().GetByIdGuid(request.LabSampleOocyteId);
                 if (oocyte == null || oocyte.Status == SpecimenStatus.Used)
@@ -487,7 +582,13 @@ namespace FSCMS.Service.Services
                         Code = StatusCodes.Status404NotFound,
                         Message = "Oocyte not found or already used."
                     };
-                
+                if (!oocyte.CanFertilize)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Oocyte can not fertilize."
+                    };
+
                 if (sperm.PatientId != patient.Id || oocyte.PatientId != patient.Id)
                     return new BaseResponse<LabSampleResponse>
                     {
@@ -698,10 +799,10 @@ namespace FSCMS.Service.Services
 
         #region UPDATE
 
-        public async Task<BaseResponse<LabSampleResponse>> UpdateFrozenAsync(Guid id, UpdateLabSampleFrozenRequest request)
+        public async Task<BaseResponse<LabSampleResponse>> UpdateFertilizeAsync(Guid id, UpdateLabSampleFertilizeRequest request)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
-            const string methodName = nameof(UpdateSpermAsync);
+            const string methodName = nameof(UpdateFertilizeAsync);
             _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
 
             if (id == Guid.Empty)
@@ -723,7 +824,63 @@ namespace FSCMS.Service.Services
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status404NotFound,
-                        Message = "Invalid sample or already valid frozen."
+                        Message = "Invalid sample."
+                    };
+                }
+
+                entity.UpdatedAt = DateTime.UtcNow;
+                entity.CanFertilize = request.CanFertilize;
+
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Sample updated successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "{MethodName}: Error updating sample {Id}", methodName, id);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
+        public async Task<BaseResponse<LabSampleResponse>> UpdateFrozenAsync(Guid id, UpdateLabSampleFrozenRequest request)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            const string methodName = nameof(UpdateFrozenAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            if (id == Guid.Empty)
+            {
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid lab sample ID."
+                };
+            }
+            try
+            {
+                var entity = await _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted && x.Status == SpecimenStatus.QualityChecked);
+
+                if (entity == null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Invalid sample."
                     };
                 }
 

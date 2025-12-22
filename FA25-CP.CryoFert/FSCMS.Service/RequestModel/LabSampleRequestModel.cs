@@ -29,6 +29,12 @@ namespace FSCMS.Service.RequestModel
         public bool CanFrozen { get; set; }
     }
 
+    public class UpdateLabSampleFertilizeRequest
+    {
+        [Required(ErrorMessage = "CanFertilize is required.")]
+        public bool CanFertilize { get; set; }
+    }
+
     /// <summary>
     /// Base request for updating lab samples (common fields)
     /// </summary>
@@ -240,6 +246,14 @@ namespace FSCMS.Service.RequestModel
         public bool? CanFrozen { get; set; }
         public string? SearchTerm { get; set; }
         public Guid? PatientId { get; set; }
+    }
+
+    public class GetEligibleLabSamplesRequest : PagingModel
+    {
+        [Required(ErrorMessage = "PatientId is required.")]
+        public Guid PatientId { get; set; }
+        public SampleType? SampleType { get; set; }
+        public string? SearchTerm { get; set; }
     }
 
     #endregion
