@@ -1014,17 +1014,14 @@ namespace FSCMS.Service.Services
 
             var createdCycles = new List<TreatmentCycle>();
             
-            // Define IUI step plan
+            // Define IUI step plan aligned with CryoFert flow
             // Note: All ExpectedDurationDays must be >= 1 (0 is automatically converted to 1)
             var stepPlan = new List<(int CycleNumber, string CycleName, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
             {
-                (1, "Pre-Cycle Preparation", TreatmentStepType.IUI_PreCyclePreparation, 14, "Preparation phase begins at baseline."),
-                (2, "Assessment", TreatmentStepType.IUI_Day2_3_Assessment, 1, "Baseline ultrasound/bloodwork (Day 2-3)."),
-                (3, "Follicle Monitoring", TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 1, "Mid-cycle follicle monitoring (Day 7-10 )."),
-                (4, "Trigger", TreatmentStepType.IUI_Day10_12_Trigger, 1, "Ovulation trigger planning (Day 10-12)."),
-                (5, "IUI Procedure", TreatmentStepType.IUI_Procedure, 1, "Intrauterine insemination procedure."),
-                (6, "Post-IUI Monitoring", TreatmentStepType.IUI_PostIUI, 1, "Immediate post-procedure care."),
-                (7, "Beta HCG", TreatmentStepType.IUI_BetaHCGTest, 1, "Pregnancy test 14 days after procedure (14 days).")
+                (1, "Initial Medical Examination", TreatmentStepType.IUI_PreCyclePreparation, 3, "Baseline visit, counseling, and protocol confirmation."),
+                (2, "Ovarian Stimulation", TreatmentStepType.IUI_Day7_10_FollicleMonitoring, 10, "Stimulation with ultrasound/hormone monitoring."),
+                (3, "Sperm Collection and Intrauterine Insemination", TreatmentStepType.IUI_Procedure, 1, "Collect sample and perform insemination."),
+                (4, "Post-Insemination Follow-Up", TreatmentStepType.IUI_PostIUI, 14, "Luteal support and monitoring until pregnancy test.")
             };
 
             // Calculate sequential ScheduledDate based on ExpectedDurationDays
@@ -1099,18 +1096,16 @@ namespace FSCMS.Service.Services
 
             var createdCycles = new List<TreatmentCycle>();
             
-            // Define IVF step plan
+            // Define IVF step plan aligned with CryoFert flow
             // Note: All ExpectedDurationDays must be >= 1 (0 is automatically converted to 1)
             var stepPlan = new List<(int CycleNumber, string CycleName, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)>
             {
-                (1, "Pre-Cycle Preparation", TreatmentStepType.IVF_PreCyclePreparation, 14, "Patient prep and protocol confirmation starts at baseline."),
-                (2, "Controlled Ovarian Stimulation", TreatmentStepType.IVF_StimulationStart, 10, "Stimulation start (COS day 1)."),
-                (3, "Mid-Stimulation Monitoring", TreatmentStepType.IVF_Monitoring, 1, "Ultrasound/bloodwork mid stimulation."),
-                (4, "Ovulation Trigger", TreatmentStepType.IVF_Trigger, 1, "Trigger shot ~day 10."),
-                (5, "Oocyte Pick-Up (OPU)", TreatmentStepType.IVF_OPU, 1, "Oocyte retrieval ~36h post trigger."),
-                (6, "Fertilization/Lab", TreatmentStepType.IVF_Fertilization, 1, "Fertilization/ICSI lab work."),
-                (7, "Embryo Culture", TreatmentStepType.IVF_EmbryoCulture, 3, "Embryo assessment (Day 3 checkpoint)."),
-                (8, "Embryo Transfer", TreatmentStepType.IVF_EmbryoTransfer, 1, "Default day-5 transfer.")
+                (1, "Initial Medical Examination", TreatmentStepType.IVF_PreCyclePreparation, 3, "Baseline evaluation, counseling, and protocol setup."),
+                (2, "Ovarian Stimulation", TreatmentStepType.IVF_StimulationStart, 10, "Controlled ovarian stimulation with monitoring."),
+                (3, "Oocyte Retrieval and Sperm Collection", TreatmentStepType.IVF_OPU, 1, "OPU and partner sperm collection."),
+                (4, "In Vitro Fertilization", TreatmentStepType.IVF_Fertilization, 1, "Fertilization/ICSI in the lab."),
+                (5, "Embryo Transfer", TreatmentStepType.IVF_EmbryoTransfer, 1, "Transfer planned per protocol."),
+                (6, "Post-Transfer Follow-Up", TreatmentStepType.IVF_BetaHCGTest, 14, "Monitoring and pregnancy test after transfer.")
             };
 
             // Calculate sequential ScheduledDate based on ExpectedDurationDays
