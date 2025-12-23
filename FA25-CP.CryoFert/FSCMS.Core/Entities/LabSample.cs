@@ -37,7 +37,6 @@ namespace FSCMS.Core.Entities
         public SampleType SampleType { get; set; }
         public SpecimenStatus Status { get; set; }
         public DateTime CollectionDate { get; set; }
-
         public DateTime? StorageDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
         public string? Quality { get; set; }

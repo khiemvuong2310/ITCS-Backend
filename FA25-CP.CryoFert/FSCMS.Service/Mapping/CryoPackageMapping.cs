@@ -25,7 +25,7 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
                 .ForMember(dest => dest.Benefits, opt => opt.MapFrom(src => src.Benefits))
                 .ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.Notes))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
 
             // Map CryoPackage entity -> CryoPackageDetailResponse (include contracts info)

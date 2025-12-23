@@ -25,7 +25,7 @@ namespace FSCMS.Service.ReponseModel
         public string? PhoneNumber { get; set; }
 
         [JsonPropertyName("dob")]
-        public DateTime? DOB { get; set; }
+        public DateOnly? DOB { get; set; }
 
         [JsonPropertyName("gender")]
         public string? Gender { get; set; }

@@ -47,14 +47,6 @@
 
 	<!-- Copy .env to output directory -->
 	<ItemGroup>
-		<!-- Copy .env to output directory -->
-		<None Update=".env">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		</None>
-		<!-- Templates are provided by FSCMS.Service project, no need to copy from here -->
-	</ItemGroup>
-	<ItemGroup>
 	  <Folder Include="Common\Constants\" />
 	</ItemGroup>
 

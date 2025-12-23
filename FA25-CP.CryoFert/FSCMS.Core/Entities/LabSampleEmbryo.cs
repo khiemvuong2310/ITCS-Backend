@@ -20,7 +20,6 @@ namespace FSCMS.Core.Entities
             Guid labSampleId,
             Guid labSampleOocyteId,
             Guid labSampleSpermId,
-            int dayOfDevelopment,
             string? grade,
             string? fertilizationMethod
         )
@@ -29,14 +28,12 @@ namespace FSCMS.Core.Entities
             LabSampleId = labSampleId;
             LabSampleOocyteId = labSampleOocyteId;
             LabSampleSpermId = labSampleSpermId;
-            DayOfDevelopment = dayOfDevelopment;
             Grade = grade;
             FertilizationMethod = fertilizationMethod;
         }
         public Guid LabSampleId { get; set; }
         public Guid LabSampleOocyteId { get; set; }
         public Guid LabSampleSpermId { get; set; }
-        public int DayOfDevelopment { get; set; }
         public string? Grade { get; set; }
         public int? CellCount { get; set; }
         public string? Morphology { get; set; }
@@ -45,6 +42,7 @@ namespace FSCMS.Core.Entities
         public string? PGTResult { get; set; }
         public string? FertilizationMethod { get; set; }
         public string? Notes { get; set; }
+        public DateTime FertilizationDate { get; set; }
         public virtual LabSample? LabSample { get; set; }
         public virtual LabSampleOocyte? LabSampleOocyte { get; set; }
         public virtual LabSampleSperm? LabSampleSperm { get; set; }

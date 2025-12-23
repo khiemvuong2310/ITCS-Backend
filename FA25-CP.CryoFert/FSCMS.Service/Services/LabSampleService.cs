@@ -74,7 +74,7 @@ namespace FSCMS.Service.Services
 
                 var response = _mapper.Map<LabSampleDetailResponse>(sample);
                 response.Patient.FullName = patient.Account.FirstName + " " + patient.Account.LastName;
-                response.Patient.DOB = patient.Account.BirthDate?.ToDateTime(TimeOnly.MinValue);
+                response.Patient.DOB = patient.Account.BirthDate;
                 if (patient.Account.Gender != null)
                     response.Patient.Gender = (bool)patient.Account.Gender ? "Man" : "Female";
 
@@ -325,6 +325,18 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var data = _mapper.Map<List<LabSampleDetailResponse>>(items);
+                foreach (var ld in data)
+                {
+                    var account = await _unitOfWork.Repository<Account>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == ld.PatientId && !x.IsDeleted);
+                    ld.Patient.FullName = account.FirstName + " " + account.LastName;
+                    ld.Patient.PhoneNumber = account.Phone;
+                    ld.Patient.Email = account.Email;
+                    ld.Patient.DOB = account.BirthDate;
+                    ld.Patient.Gender = (bool)account.Gender ? "Male" : "Female";
+                }
+
 
                 return new DynamicResponse<LabSampleDetailResponse>
                 {
@@ -589,11 +601,33 @@ namespace FSCMS.Service.Services
                         Message = "Oocyte can not fertilize."
                     };
 
-                if (sperm.PatientId != patient.Id || oocyte.PatientId != patient.Id)
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                   .AsQueryable()
+                   .FirstOrDefaultAsync(x => !x.IsDeleted && x.IsActive && (x.Patient1Id == request.PatientId || x.Patient2Id == request.PatientId));
+
+                if (relationship == null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Relationship not found",
+                        SystemCode = "INVALID_PATIENT",
+                        Data = null
+                    };
+                }
+
+                if (sperm.PatientId != relationship.Patient1Id && sperm.PatientId != relationship.Patient2Id)
                     return new BaseResponse<LabSampleResponse>
                     {
                         Code = StatusCodes.Status400BadRequest,
-                        Message = "Sperm or Oocyte does not belong to the specified patient."
+                        Message = "Sperm does not belong to the specified patient."
+                    };
+
+                if (oocyte.PatientId != relationship.Patient1Id && oocyte.PatientId != relationship.Patient2Id)
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Oocyte does not belong to the specified patient."
                     };
 
                 // 1️⃣ Tạo LabSample cha
@@ -608,7 +642,6 @@ namespace FSCMS.Service.Services
                 }
                 labSample.Status = request.IsQualityCheck ? SpecimenStatus.QualityChecked : SpecimenStatus.Collected;
 
-
                 await _unitOfWork.Repository<LabSample>().InsertAsync(labSample);
                 await _unitOfWork.SaveChangesAsync();
 
@@ -617,7 +650,6 @@ namespace FSCMS.Service.Services
                 {
                     LabSampleId = labSample.Id,
                     CellCount = request.CellCount,
-                    DayOfDevelopment = request.DayOfDevelopment,
                     FertilizationMethod = request.FertilizationMethod,
                     Grade = request.Grade,
                     IsBiopsied = request.IsBiopsied,
@@ -627,6 +659,7 @@ namespace FSCMS.Service.Services
                     Morphology = request.Morphology,
                     Notes = request.Notes,
                     PGTResult = request.PGTResult,
+                    FertilizationDate = DateTime.UtcNow
                 };
 
                 // 3️⃣ Gắn vào navigation (nếu muốn)
