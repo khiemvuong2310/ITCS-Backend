@@ -171,7 +171,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             {
                 options.UseHybridCacheProvider().ConfigureLogging(false).UseCacheKeyPrefix("EF_")
                        .UseDbCallsIfCachingProviderIsDown(TimeSpan.FromMinutes(1));
-                options.CacheAllQueries(CacheExpirationMode.Absolute, TimeSpan.FromMinutes(30));
+                options.CacheAllQueries(CacheExpirationMode.Absolute, TimeSpan.FromSeconds(30));
             });
 
             return services;
