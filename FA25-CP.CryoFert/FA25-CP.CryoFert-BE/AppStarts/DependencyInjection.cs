@@ -100,8 +100,10 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
 
-            // Get Redis connection string from configuration
-            string redisConnectionString = configuration.GetConnectionStringOrThrow("redis");
+            // Get Redis connection string from environment variable (.env) or configuration as fallback
+            string redisConnectionString =
+                Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING")
+                ?? configuration.GetConnectionStringOrThrow("redis");
             
             // Configure FusionCache with Redis
             services.AddCaching(redisConnectionString);
