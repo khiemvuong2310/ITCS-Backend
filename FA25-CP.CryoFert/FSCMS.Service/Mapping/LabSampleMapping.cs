@@ -38,8 +38,9 @@ namespace FSCMS.Service.Mapping
             // Type-specific entity → response
             CreateMap<LabSampleSperm, LabSampleSpermDto>();
             CreateMap<LabSampleOocyte, LabSampleOocyteDto>();
-            CreateMap<LabSampleEmbryo, LabSampleEmbryoDto>();
-
+            CreateMap<LabSampleEmbryo, LabSampleEmbryoDto>()
+                .ForMember(dest => dest.DayOfDevelopment, opt => opt.MapFrom(src => (int)(DateTime.UtcNow - src.FertilizationDate).TotalDays))
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // =========================================================
             // REQUEST → ENTITY
