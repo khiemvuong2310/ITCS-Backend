@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
+using EFCoreSecondLevelCacheInterceptor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,17 +54,23 @@ namespace FSCMS.Data.UnitOfWork.Repositories
         }
         public async Task<T?> GetByIdGuid(Guid Id)
         {
-            return await Table.FindAsync(Id);
+            return await Table.Where(x => EF.Property<Guid>(x, "Id") == Id)
+                              .Cacheable()
+                              .FirstOrDefaultAsync();
         }
 
         public async Task<T?> GetByIdAsync(Guid id)
         {
-            return await GetByIdGuid(id);
+            return await Table.Where(x => EF.Property<Guid>(x, "Id") == id)
+                              .Cacheable()
+                              .FirstOrDefaultAsync();   
         }
 
         public async Task<T?> GetById(int Id)
         {
-            return await Table.FindAsync(Id);
+            return await Table.Where(x => EF.Property<int>(x, "Id") == Id)
+                              .Cacheable()
+                              .FirstOrDefaultAsync();
         }
 
         public async Task HardDeleteGuid(Guid key)
