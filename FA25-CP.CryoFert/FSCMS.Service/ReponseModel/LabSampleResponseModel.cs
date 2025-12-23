@@ -149,7 +149,9 @@ namespace FSCMS.Service.ReponseModel
     {
         [JsonPropertyName("dayOfDevelopment")]
         public int DayOfDevelopment { get; set; }
-
+        
+        [JsonPropertyName("fertilizationDate")]
+        public DateTime FertilizationDate { get; set; }
         [JsonPropertyName("grade")]
         public string? Grade { get; set; }
 

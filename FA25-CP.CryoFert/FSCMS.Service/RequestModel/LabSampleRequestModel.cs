@@ -174,8 +174,6 @@ namespace FSCMS.Service.RequestModel
         public Guid LabSampleOocyteId { get; set; }
         [Required(ErrorMessage = "Lab Sample Sperm ID is required.")]
         public Guid LabSampleSpermId { get; set; }
-        [Range(1, 10, ErrorMessage = "Day of development must be between 1 and 10.")]
-        public int DayOfDevelopment { get; set; }
 
         [StringLength(20)]
         public string? Grade { get; set; }
