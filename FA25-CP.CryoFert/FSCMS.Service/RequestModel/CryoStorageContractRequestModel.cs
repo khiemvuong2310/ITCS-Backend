@@ -27,6 +27,20 @@ namespace FSCMS.Service.RequestModel
         public string? Notes { get; set; }
     }
 
+    public class RenewCryoStorageContractRequest
+    {
+        [Required(ErrorMessage = "ContractID is required.")]
+        public Guid ContractID { get; set; }
+        [Required(ErrorMessage = "PatientId is required.")]
+        public Guid PatientId { get; set; }
+
+        [Required(ErrorMessage = "CryoPackageId is required.")]
+        public Guid CryoPackageId { get; set; }
+
+        [StringLength(200, ErrorMessage = "Notes cannot exceed 200 characters.")]
+        public string? Notes { get; set; }
+    }
+
     public class SentOtpEmailRequest
     {
         [Required(ErrorMessage = "ContractId is required.")]

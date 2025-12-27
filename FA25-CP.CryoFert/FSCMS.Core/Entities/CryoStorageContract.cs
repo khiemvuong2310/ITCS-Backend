@@ -48,6 +48,8 @@ namespace FSCMS.Core.Entities
         public string? Notes { get; set; }
         public Guid PatientId { get; set; }
         public virtual Patient? Patient { get; set; }
+        public Guid? RenewFromContractId { get; set; }
+        public virtual CryoStorageContract? RenewFromContract { get; set; }
         public Guid CryoPackageId { get; set; }
         public virtual CryoPackage? CryoPackage { get; set; }
         public virtual ICollection<CPSDetail> CPSDetails { get; set; } = new List<CPSDetail>();

@@ -32,6 +32,7 @@ namespace FSCMS.Service.Interfaces
         /// <param name="request">The contract creation request.</param>
         /// <returns>Base response with the created contract.</returns>
         Task<BaseResponse<CryoStorageContractResponse>> CreateAsync(CreateCryoStorageContractRequest request);
+        Task<BaseResponse<CryoStorageContractResponse>> RenewAsync(RenewCryoStorageContractRequest request);
 
         /// <summary>
         /// Update an existing cryo storage contract.
