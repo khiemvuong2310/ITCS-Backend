@@ -61,6 +61,17 @@ namespace FSCMS.Service.RequestModel
         public ContractStatus? Status { get; set; }
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
+        public ContractType? ContractType { get; set; }
+        public string? SearchTerm { get; set; }
+    }
+
+    public class GetRenewalContractsRequest : PagingModel
+    {
+        [Required(ErrorMessage = "MainContractId is required.")]
+        public Guid MainContractId { get; set; }
+        public ContractStatus? Status { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
         public string? SearchTerm { get; set; }
     }
 
@@ -70,5 +81,11 @@ namespace FSCMS.Service.RequestModel
         public Guid LabSampleId { get; set; }
         [StringLength(200, ErrorMessage = "Notes cannot exceed 200 characters.")]
         public string? Notes { get; set; }
+    }
+
+    public enum ContractType
+    {
+        MainContract = 1,   
+        RenewContract = 2,   
     }
 }
