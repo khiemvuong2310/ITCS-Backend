@@ -62,6 +62,18 @@ namespace FSCMS.Service.Services
                 if (request.Status.HasValue)
                     query = query.Where(x => x.Status == request.Status);
 
+                if (request.ContractType.HasValue)
+                {
+                    if(request.ContractType == ContractType.MainContract)
+                    {
+                        query = query.Where(x => x.RenewFromContractId == null);
+                    }
+                    else
+                    {
+                        query = query.Where(x => x.RenewFromContractId != null);
+                    }
+                }
+
                 // Count total
                 var total = await query.CountAsync();
 
@@ -108,6 +120,65 @@ namespace FSCMS.Service.Services
             }
         }
         #endregion
+
+        public async Task<DynamicResponse<CryoStorageContractResponse>> GetRenewalContractAsync(GetRenewalContractsRequest request)
+        {
+            try
+            {
+                var query = _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .Include(x => x.Patient)
+                    .Include(x => x.CryoPackage)
+                    .Where(x => !x.IsDeleted && x.RenewFromContractId == request.MainContractId);
+
+                if (request.Status.HasValue)
+                    query = query.Where(x => x.Status == request.Status);
+
+                // Count total
+                var total = await query.CountAsync();
+
+                // Sorting
+                query = request.Sort?.ToLower() switch
+                {
+                    "startdate" => (request.Order?.ToLower() == "desc")
+                        ? query.OrderByDescending(x => x.StartDate)
+                        : query.OrderBy(x => x.StartDate),
+                    _ => query.OrderByDescending(x => x.CreatedAt)
+                };
+
+                // Pagination
+                var items = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var data = _mapper.Map<List<CryoStorageContractResponse>>(items);
+
+                return new DynamicResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Contracts retrieved successfully",
+                    Data = data,
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = total
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving contracts");
+                return new DynamicResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}",
+                    MetaData = new PagingMetaData(),
+                    Data = new List<CryoStorageContractResponse>()
+                };
+            }
+        }
 
         #region Get By Id
         public async Task<BaseResponse<CryoStorageContractDetailResponse>> GetByIdAsync(Guid id)

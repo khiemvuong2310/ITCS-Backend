@@ -40,6 +40,14 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? 500, result);
         }
 
+        [HttpGet("renew")]
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse))]
+        public async Task<IActionResult> GetRenewalContracts([FromQuery] GetRenewalContractsRequest request)
+        {
+            var result = await _contractService.GetRenewalContractAsync(request);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
         /// <summary>
         /// Get a cryo storage contract by ID
         /// </summary>

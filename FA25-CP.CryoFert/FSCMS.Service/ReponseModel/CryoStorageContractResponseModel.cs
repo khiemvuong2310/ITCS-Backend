@@ -26,6 +26,7 @@ namespace FSCMS.Service.ReponseModel
 
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public Guid? RenewFromContractId { get; set; }
     }
 
     public class CryoStorageContractDetailResponse : CryoStorageContractResponse

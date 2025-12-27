@@ -694,6 +694,7 @@ namespace FSCMS.Service.Services
                                 .FirstOrDefaultAsync(p => p.Id == cryoStorageContract.RenewFromContractId && !p.IsDeleted);
                                 mainContract.Status = ContractStatus.Renewed;
                                 mainContract.EndDate = cryoStorageContract.EndDate;
+                                mainContract.UpdatedAt = DateTime.UtcNow;
                                 await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(mainContract, mainContract.Id);
                                 await _unitOfWork.CommitAsync();
                                 foreach (var detail in cryoStorageContract.CPSDetails)

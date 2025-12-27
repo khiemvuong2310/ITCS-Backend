@@ -18,6 +18,7 @@ namespace FSCMS.Service.Interfaces
         /// <param name="request">Filter and pagination request.</param>
         /// <returns>Dynamic response containing contract list and metadata.</returns>
         Task<DynamicResponse<CryoStorageContractResponse>> GetAllAsync(GetCryoStorageContractsRequest request);
+        Task<DynamicResponse<CryoStorageContractResponse>> GetRenewalContractAsync(GetRenewalContractsRequest request);
 
         /// <summary>
         /// Get detailed cryo storage contract by ID.
