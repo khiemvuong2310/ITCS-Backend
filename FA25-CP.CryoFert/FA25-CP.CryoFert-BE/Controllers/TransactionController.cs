@@ -260,7 +260,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
                 <b>Status:</b> {(isSuccess ? "Success" : "Failed")}
             </div>
 
-            <a class='btn' href='https://cryo.devnguyen.xyz'>Quay về trang chủ</a>
         </div>
         </body>
         </html>";

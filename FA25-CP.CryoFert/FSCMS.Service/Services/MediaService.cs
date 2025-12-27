@@ -1082,6 +1082,7 @@ namespace FSCMS.Service.Services
                     EntityTypeMedia.CryoStorageContract => await _unitOfWork.Repository<CryoStorageContract>()
                         .AsQueryable().Include(m => m.CryoPackage)
                         .Include(m => m.CPSDetails).ThenInclude(cd => cd.LabSample)
+                        .Include(m => m.RenewFromContract)
                         .FirstOrDefaultAsync(m => m.Id == request.RelatedEntityId && !m.IsDeleted),
                     _ => null
                 };

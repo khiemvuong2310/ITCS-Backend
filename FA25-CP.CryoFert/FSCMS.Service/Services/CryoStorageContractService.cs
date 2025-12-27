@@ -54,7 +54,7 @@ namespace FSCMS.Service.Services
 
                 // Filtering
                 if (request.CryoPackageId.HasValue)
-                    query = query.Where(x => x.CryoPackageId== request.CryoPackageId);
+                    query = query.Where(x => x.CryoPackageId == request.CryoPackageId);
 
                 if (request.PatientId.HasValue)
                     query = query.Where(x => x.PatientId == request.PatientId);
@@ -134,7 +134,7 @@ namespace FSCMS.Service.Services
 
                 var data = _mapper.Map<CryoStorageContractDetailResponse>(entity);
 
-                data.PatientName = entity.Patient?.Account.FirstName + " " +entity.Patient?.Account.LastName;
+                data.PatientName = entity.Patient?.Account.FirstName + " " + entity.Patient?.Account.LastName;
 
                 return new BaseResponse<CryoStorageContractDetailResponse>
                 {
@@ -277,6 +277,7 @@ namespace FSCMS.Service.Services
                 contract.SignedBy = $"{patient.FirstName} {patient.LastName}";
                 contract.SignedDate = DateTime.UtcNow;
                 contract.Status = ContractStatus.Pending;
+                contract.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.CommitAsync();
                 var data = _mapper.Map<CryoStorageContractResponse>(contract);
                 return new BaseResponse<CryoStorageContractResponse>
@@ -350,7 +351,7 @@ namespace FSCMS.Service.Services
                     {
                         var sample = await _unitOfWork.Repository<LabSample>()
                             .AsQueryable()
-                            .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType && x.PatientId == patient.Id && x.Status == SpecimenStatus.QualityChecked);
+                            .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType && x.PatientId == patient.Id && x.Status == SpecimenStatus.QualityChecked && x.CanFrozen);
                         if (sample == null)
                         {
                             return new BaseResponse<CryoStorageContractResponse>
@@ -388,6 +389,162 @@ namespace FSCMS.Service.Services
                 entity.SignedDate = null;
                 entity.SignedBy = null;
                 entity.IsAutoRenew = false;
+                entity.Notes = request.Notes;
+                await _unitOfWork.Repository<CryoStorageContract>().InsertAsync(entity);
+                CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
+                {
+                    Amount = entity.TotalAmount,
+                    RelatedEntityType = EntityTypeTransaction.CryoStorageContract,
+                    RelatedEntityId = entity.Id
+                };
+                await _transactionService.CreateTransactionAsync(createTransactionRequest, patient.Id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+
+                var data = _mapper.Map<CryoStorageContractResponse>(entity);
+                data.PatientName = $"{patient.Account.FirstName} {patient.Account.LastName}";
+                data.CryoPackageName = package.PackageName;
+
+                return new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status201Created,
+                    Message = "Contract created successfully",
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error creating contract");
+                return new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
+            }
+        }
+        
+        public async Task<BaseResponse<CryoStorageContractResponse>> RenewAsync(RenewCryoStorageContractRequest request)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Validate Patient & Package
+                var contract = await _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .Include(x => x.CPSDetails)
+                    .FirstOrDefaultAsync(x => x.Id == request.ContractID && !x.IsDeleted);
+                if (contract == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract Not Found",
+                        Data = null
+                    };
+                }
+                if (contract.Status != ContractStatus.Active && contract.Status != ContractStatus.Renewed)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Contract is not valid to renew.",
+                        Data = null
+                    };
+                }
+
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(x => x.Account)
+                    .FirstOrDefaultAsync(x => x.Id == request.PatientId && !x.IsDeleted);
+                if (patient == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient Not Found",
+                        Data = null
+                    };
+                }
+
+                var package = await _unitOfWork.Repository<CryoPackage>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == request.CryoPackageId && !x.IsDeleted);
+
+                if (package == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "CryoPackage Not Found",
+                        Data = null
+                    };
+                }
+
+                // Map entity
+                var entity = _mapper.Map<CryoStorageContract>(request);
+
+                // Map CPSDetails if provided
+                int sampleCount = 0;
+                foreach (var c in contract.CPSDetails)
+                {
+                    var sample = await _unitOfWork.Repository<LabSample>()
+                        .AsQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.SampleType == package.SampleType && x.PatientId == patient.Id);
+                    if (sample == null)
+                    {
+                        return new BaseResponse<CryoStorageContractResponse>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = $"Invalid LabSampleId: {c.LabSampleId}",
+                            Data = null
+                        };
+                    }
+                    if(sample.Status != SpecimenStatus.Stored)
+                    {
+                        continue;
+                    }
+                    var cPSDetails = new CPSDetail
+                    {
+                        LabSampleId = c.LabSampleId,
+                        StorageStartDate = contract.EndDate.GetValueOrDefault(),
+                        StorageEndDate = contract.EndDate.GetValueOrDefault().AddMonths(package.DurationMonths),
+                        Status = "Pending",
+                        Notes = c.Notes,
+                        MonthlyFee = package.Price / package.DurationMonths,
+                        CryoStorageContractId = entity.Id,
+                        CryoStorageContract = entity,
+                        LabSample = sample
+                    };
+                    await _unitOfWork.Repository<CPSDetail>().InsertAsync(cPSDetails);
+                    sampleCount++;
+                }
+                if (sampleCount == 0)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Samples in contract is not valid",
+                        Data = null
+                    };
+                }
+                var renewCount = await _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .CountAsync(c => c.RenewFromContractId == contract.Id);
+
+
+                entity.ContractNumber = $"{contract.ContractNumber}-R{(renewCount + 1):D2}";
+                entity.Status = ContractStatus.Draft;
+                entity.TotalAmount = package.Price * sampleCount;
+                entity.StartDate = contract.EndDate.GetValueOrDefault();
+                entity.EndDate = contract.EndDate.GetValueOrDefault().AddMonths(package.DurationMonths);
+                entity.PaidAmount = 0;
+                entity.SignedDate = null;
+                entity.SignedBy = null;
+                entity.IsAutoRenew = false;
+                entity.Notes = request.Notes;
+                entity.RenewFromContractId = contract.Id;
+                entity.RenewFromContract = contract;
                 await _unitOfWork.Repository<CryoStorageContract>().InsertAsync(entity);
                 CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
                 {

@@ -76,6 +76,24 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? 500, result);
         }
 
+        [HttpPost("renew")]
+        [Authorize(Roles = "Receptionist,Doctor,Patient,Admin")] // Only Admin or Receptionist can create
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> RenewContract([FromBody] RenewCryoStorageContractRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = 400,
+                    Message = "Invalid input data"
+                });
+            }
+
+            var result = await _contractService.RenewAsync(request);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
         /// <summary>
         /// Update an existing cryo storage contract
         /// </summary>

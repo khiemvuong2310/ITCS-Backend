@@ -450,16 +450,34 @@ namespace FSCMS.Service.Services
                                 .Include(p => p.CryoPackage)
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             cryoStorageContract.Status = ContractStatus.Active;
-                            cryoStorageContract.StartDate = DateTime.UtcNow;
-                            cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
-                            cryoStorageContract.PaidAmount = vnpAmount / 100;
-                            foreach (var detail in cryoStorageContract.CPSDetails)
+                            if(cryoStorageContract.RenewFromContractId != null)
                             {
-                                detail.StorageStartDate = DateTime.UtcNow;
-                                detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
-                                detail.Status = "Storage";
-                                await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                var mainContract = await _unitOfWork.Repository<CryoStorageContract>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == cryoStorageContract.RenewFromContractId && !p.IsDeleted);
+                                mainContract.Status = ContractStatus.Renewed;
+                                mainContract.EndDate = cryoStorageContract.EndDate;
+                                await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(mainContract, mainContract.Id);
+                                await _unitOfWork.CommitAsync();
+                                foreach (var detail in cryoStorageContract.CPSDetails)
+                                {
+                                    detail.Status = "Storage";
+                                    await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                }
                             }
+                            else
+                            {
+                                cryoStorageContract.StartDate = DateTime.UtcNow;
+                                cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                                foreach (var detail in cryoStorageContract.CPSDetails)
+                                {
+                                    detail.StorageStartDate = DateTime.UtcNow;
+                                    detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                                    detail.Status = "Storage";
+                                    await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                }
+                            }
+                            cryoStorageContract.PaidAmount = vnpAmount / 100;
                             await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
                             await _unitOfWork.CommitAsync();
                             break;
@@ -669,19 +687,38 @@ namespace FSCMS.Service.Services
                                 .Include(p => p.CryoPackage)
                                 .FirstOrDefaultAsync(p => p.Id == transaction.RelatedEntityId && !p.IsDeleted);
                             cryoStorageContract.Status = ContractStatus.Active;
-                            cryoStorageContract.StartDate = DateTime.UtcNow;
-                            cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
-                            cryoStorageContract.PaidAmount = payload.Data.Amount;
-                            foreach (var detail in cryoStorageContract.CPSDetails)
+                            if (cryoStorageContract.RenewFromContractId != null)
                             {
-                                detail.StorageStartDate = DateTime.UtcNow;
-                                detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
-                                detail.Status = "Storage";
-                                await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                var mainContract = await _unitOfWork.Repository<CryoStorageContract>()
+                                .AsQueryable()
+                                .FirstOrDefaultAsync(p => p.Id == cryoStorageContract.RenewFromContractId && !p.IsDeleted);
+                                mainContract.Status = ContractStatus.Renewed;
+                                mainContract.EndDate = cryoStorageContract.EndDate;
+                                await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(mainContract, mainContract.Id);
+                                await _unitOfWork.CommitAsync();
+                                foreach (var detail in cryoStorageContract.CPSDetails)
+                                {
+                                    detail.Status = "Storage";
+                                    await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                }
                             }
+                            else
+                            {
+                                cryoStorageContract.StartDate = DateTime.UtcNow;
+                                cryoStorageContract.EndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                                foreach (var detail in cryoStorageContract.CPSDetails)
+                                {
+                                    detail.StorageStartDate = DateTime.UtcNow;
+                                    detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
+                                    detail.Status = "Storage";
+                                    await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                }
+                            }
+                            cryoStorageContract.PaidAmount = payload.Data.Amount;
                             await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(cryoStorageContract, cryoStorageContract.Id);
                             await _unitOfWork.CommitAsync();
                             break;
+
                         default:
                             break;
                     }

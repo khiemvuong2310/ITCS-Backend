@@ -41,6 +41,16 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.Patient, opt => opt.Ignore())
                 .ForMember(dest => dest.CryoPackage, opt => opt.Ignore());
 
+            CreateMap<RenewCryoStorageContractRequest, CryoStorageContract>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ContractNumber, opt => opt.Ignore()) // sinh tự động trong service
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.PaidAmount, opt => opt.MapFrom(_ => 0))
+                .ForMember(dest => dest.CPSDetails, opt => opt.Ignore())
+                .ForMember(dest => dest.Patient, opt => opt.Ignore())
+                .ForMember(dest => dest.CryoPackage, opt => opt.Ignore());
+
             // Map UpdateCryoStorageContractRequest -> CryoStorageContract (only non-null)
             CreateMap<UpdateCryoStorageContractRequest, CryoStorageContract>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
