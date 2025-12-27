@@ -13,8 +13,11 @@ using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Crypto;
+using ServiceStack;
 using static FSCMS.Service.ReponseModel.CryoStorageContractResponse;
 
 namespace FSCMS.Service.Services
@@ -64,7 +67,7 @@ namespace FSCMS.Service.Services
 
                 if (request.ContractType.HasValue)
                 {
-                    if(request.ContractType == ContractType.MainContract)
+                    if (request.ContractType == ContractType.MainContract)
                     {
                         query = query.Where(x => x.RenewFromContractId == null);
                     }
@@ -494,17 +497,46 @@ namespace FSCMS.Service.Services
                 };
             }
         }
-        
+
         public async Task<BaseResponse<CryoStorageContractResponse>> RenewAsync(RenewCryoStorageContractRequest request)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var renewContracts = await _unitOfWork.Repository<CryoStorageContract>()
+                .AsQueryable()
+                .Where(x => x.RenewFromContractId == request.ContractID && !x.IsDeleted && x.Status != ContractStatus.Terminated)
+                .OrderByDescending(m => m.EndDate)
+                .ToListAsync();
+
+                if (renewContracts.Any())
+                {
+                    var LastRenewContract = renewContracts.First();
+                    if (LastRenewContract.Status == ContractStatus.Pending || LastRenewContract.Status == ContractStatus.Draft)
+                    {
+                        return new BaseResponse<CryoStorageContractResponse>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "Renew Contract is already exist, please sign and payment to complete.",
+                            Data = null
+                        };
+                    }
+                    if(LastRenewContract.StartDate > DateTime.UtcNow)
+                    {
+                        return new BaseResponse<CryoStorageContractResponse>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = "The recent Renew Contract is not start. Can not create more.",
+                            Data = null
+                        };
+                    }
+                }
                 // Validate Patient & Package
+
                 var contract = await _unitOfWork.Repository<CryoStorageContract>()
                     .AsQueryable()
                     .Include(x => x.CPSDetails)
-                    .FirstOrDefaultAsync(x => x.Id == request.ContractID && !x.IsDeleted);
+                    .FirstOrDefaultAsync(x => x.Id == request.ContractID && !x.IsDeleted && x.RenewFromContractId == null);
                 if (contract == null)
                 {
                     return new BaseResponse<CryoStorageContractResponse>
@@ -571,7 +603,7 @@ namespace FSCMS.Service.Services
                             Data = null
                         };
                     }
-                    if(sample.Status != SpecimenStatus.Stored)
+                    if (sample.Status != SpecimenStatus.Stored)
                     {
                         continue;
                     }
@@ -641,112 +673,112 @@ namespace FSCMS.Service.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error creating contract");
+        _logger.LogError(ex, "Error creating contract");
                 return new BaseResponse<CryoStorageContractResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
                     Message = $"An error occurred: {ex.Message}"
                 };
-            }
+}
         }
         #endregion
 
         #region Update
         public async Task<BaseResponse<CryoStorageContractResponse>> UpdateAsync(Guid id, UpdateCryoStorageContractRequest request)
+{
+    using var transaction = await _unitOfWork.BeginTransactionAsync();
+    try
+    {
+        var entity = await _unitOfWork.Repository<CryoStorageContract>()
+            .AsQueryable()
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+        if (entity == null)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
-            try
+            return new BaseResponse<CryoStorageContractResponse>
             {
-                var entity = await _unitOfWork.Repository<CryoStorageContract>()
-                    .AsQueryable()
-                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
-
-                if (entity == null)
-                {
-                    return new BaseResponse<CryoStorageContractResponse>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "Contract not found"
-                    };
-                }
-
-                _mapper.Map(request, entity);
-                entity.UpdatedAt = DateTime.UtcNow;
-
-                await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
-                await _unitOfWork.CommitAsync();
-                await transaction.CommitAsync();
-
-                var data = _mapper.Map<CryoStorageContractResponse>(entity);
-
-                return new BaseResponse<CryoStorageContractResponse>
-                {
-                    Code = StatusCodes.Status200OK,
-                    Message = "Contract updated successfully",
-                    Data = data
-                };
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error updating contract {Id}", id);
-                return new BaseResponse<CryoStorageContractResponse>
-                {
-                    Code = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred: {ex.Message}"
-                };
-            }
+                Code = StatusCodes.Status404NotFound,
+                Message = "Contract not found"
+            };
         }
-        #endregion
 
-        #region Delete (Soft Delete)
-        public async Task<BaseResponse> DeleteAsync(Guid id)
+        _mapper.Map(request, entity);
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
+        await _unitOfWork.CommitAsync();
+        await transaction.CommitAsync();
+
+        var data = _mapper.Map<CryoStorageContractResponse>(entity);
+
+        return new BaseResponse<CryoStorageContractResponse>
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
-            try
+            Code = StatusCodes.Status200OK,
+            Message = "Contract updated successfully",
+            Data = data
+        };
+    }
+    catch (Exception ex)
+    {
+        await transaction.RollbackAsync();
+        _logger.LogError(ex, "Error updating contract {Id}", id);
+        return new BaseResponse<CryoStorageContractResponse>
+        {
+            Code = StatusCodes.Status500InternalServerError,
+            Message = $"An error occurred: {ex.Message}"
+        };
+    }
+}
+#endregion
+
+#region Delete (Soft Delete)
+public async Task<BaseResponse> DeleteAsync(Guid id)
+{
+    using var transaction = await _unitOfWork.BeginTransactionAsync();
+    try
+    {
+        var entity = await _unitOfWork.Repository<CryoStorageContract>()
+        .AsQueryable()
+        .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted && x.Status != ContractStatus.Active && x.Status != ContractStatus.Expired);
+        if (entity == null)
+        {
+            return new BaseResponse
             {
-                var entity = await _unitOfWork.Repository<CryoStorageContract>()
-                .AsQueryable()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted && x.Status != ContractStatus.Active && x.Status != ContractStatus.Expired);
-                if (entity == null)
-                {
-                    return new BaseResponse
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "Contract not found"
-                    };
-                }
-
-                entity.IsDeleted = true;
-                entity.UpdatedAt = DateTime.UtcNow;
-
-                await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
-                CancelltransactionRequest cancellTransactionRequest = new CancelltransactionRequest
-                {
-                    RelatedEntityType = EntityTypeTransaction.CryoStorageContract,
-                    RelatedEntityId = entity.Id
-                };
-                await _transactionService.CancellTransactionAsync(cancellTransactionRequest);
-                await _unitOfWork.CommitAsync();
-                await transaction.CommitAsync();
-
-                return new BaseResponse
-                {
-                    Code = StatusCodes.Status200OK,
-                    Message = "Contract deleted successfully"
-                };
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error deleting contract {Id}", id);
-                return new BaseResponse
-                {
-                    Code = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred: {ex.Message}"
-                };
-            }
+                Code = StatusCodes.Status404NotFound,
+                Message = "Contract not found"
+            };
         }
+
+        entity.IsDeleted = true;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(entity, id);
+        CancelltransactionRequest cancellTransactionRequest = new CancelltransactionRequest
+        {
+            RelatedEntityType = EntityTypeTransaction.CryoStorageContract,
+            RelatedEntityId = entity.Id
+        };
+        await _transactionService.CancellTransactionAsync(cancellTransactionRequest);
+        await _unitOfWork.CommitAsync();
+        await transaction.CommitAsync();
+
+        return new BaseResponse
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "Contract deleted successfully"
+        };
+    }
+    catch (Exception ex)
+    {
+        await transaction.RollbackAsync();
+        _logger.LogError(ex, "Error deleting contract {Id}", id);
+        return new BaseResponse
+        {
+            Code = StatusCodes.Status500InternalServerError,
+            Message = $"An error occurred: {ex.Message}"
+        };
+    }
+}
         #endregion
     }
 }
