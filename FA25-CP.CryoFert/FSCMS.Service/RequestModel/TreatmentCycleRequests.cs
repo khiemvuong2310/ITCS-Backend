@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FSCMS.Core.Enum;
+using FSCMS.Service.ReponseModel;
 
 namespace FSCMS.Service.RequestModel
 {
@@ -80,6 +81,14 @@ namespace FSCMS.Service.RequestModel
     }
 
     // Samples
+    public class GetCycleSamplesRequest : PagingModel
+    {
+        [Required(ErrorMessage = "CycleId is required.")]
+        public Guid CycleId { get; set; }
+        public SampleType? SampleType { get; set; }
+        public string? SearchTerm { get; set; }
+    }
+
     public class AddCycleSampleRequest
     {
         [Required]
