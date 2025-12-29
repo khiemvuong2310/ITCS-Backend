@@ -217,7 +217,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
 
         [HttpGet("{id:guid}/samples")]
         [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
-        [ApiDefaultResponse(typeof(List<object>), UseDynamicWrapper = false)]
+        [ApiDefaultResponse(typeof(List<LabSampleDetailResponse>), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetSamples(Guid id)
         {
             var result = await _service.GetSamplesAsync(id);

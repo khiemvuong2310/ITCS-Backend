@@ -18,7 +18,7 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse<TreatmentCycleResponseModel>> CancelAsync(Guid id, CancelTreatmentCycleRequest request);
         Task<BaseResponse<TreatmentCycleResponseModel>> UpdateStatusByOrderAsync(UpdateTreatmentCycleStatusByOrderRequest request);
 
-        Task<DynamicResponse<LabSampleDetailResponse>> GetSamplesAsync(GetCycleSamplesRequest request);
+        Task<BaseResponse<List<LabSampleDetailResponse>>> GetSamplesAsync(Guid cycleId);
         Task<BaseResponse<object>> AddSampleAsync(Guid id, AddCycleSampleRequest request);
 
         Task<BaseResponse<List<AppointmentSummary>>> GetAppointmentsAsync(Guid id);

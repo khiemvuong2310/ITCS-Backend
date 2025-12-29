@@ -619,65 +619,42 @@ namespace FSCMS.Service.Services
         #region Samples & Appointments
 
         // Returns lab samples tied to the patient of a cycle and all related patients.
-        public async Task<DynamicResponse<LabSampleDetailResponse>> GetSamplesAsync(GetCycleSamplesRequest request)
+        public async Task<BaseResponse<List<LabSampleDetailResponse>>> GetSamplesAsync(Guid cycleId)
         {
             const string methodName = nameof(GetSamplesAsync);
-            _logger.LogInformation("{MethodName} called with request {@Request}", methodName, request);
+            _logger.LogInformation("{MethodName} called with cycleId {CycleId}", methodName, cycleId);
 
             try
             {
-                if (request == null)
+                if (cycleId == Guid.Empty)
                 {
-                    return new DynamicResponse<LabSampleDetailResponse>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "Request cannot be null",
-                        SystemCode = "INVALID_REQUEST",
-                        Data = new List<LabSampleDetailResponse>()
-                    };
+                    return BaseResponse<List<LabSampleDetailResponse>>.CreateError(
+                        "CycleId cannot be empty",
+                        StatusCodes.Status400BadRequest,
+                        "INVALID_ID");
                 }
-
-                if (request.CycleId == Guid.Empty)
-                {
-                    return new DynamicResponse<LabSampleDetailResponse>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "CycleId cannot be empty",
-                        SystemCode = "INVALID_ID",
-                        Data = new List<LabSampleDetailResponse>()
-                    };
-                }
-
-                // Normalize pagination parameters
-                request.Normalize();
 
                 // Get the treatment cycle with its treatment
                 var cycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .AsQueryable()
                     .Include(tc => tc.Treatment)
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(tc => tc.Id == request.CycleId && !tc.IsDeleted);
+                    .FirstOrDefaultAsync(tc => tc.Id == cycleId && !tc.IsDeleted);
 
                 if (cycle == null)
                 {
-                    return new DynamicResponse<LabSampleDetailResponse>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "Treatment cycle not found",
-                        SystemCode = "NOT_FOUND",
-                        Data = new List<LabSampleDetailResponse>()
-                    };
+                    return BaseResponse<List<LabSampleDetailResponse>>.CreateError(
+                        "Treatment cycle not found",
+                        StatusCodes.Status404NotFound,
+                        "NOT_FOUND");
                 }
 
                 if (cycle.Treatment == null)
                 {
-                    return new DynamicResponse<LabSampleDetailResponse>
-                    {
-                        Code = StatusCodes.Status404NotFound,
-                        Message = "Treatment not found for the cycle",
-                        SystemCode = "TREATMENT_NOT_FOUND",
-                        Data = new List<LabSampleDetailResponse>()
-                    };
+                    return BaseResponse<List<LabSampleDetailResponse>>.CreateError(
+                        "Treatment not found for the cycle",
+                        StatusCodes.Status404NotFound,
+                        "TREATMENT_NOT_FOUND");
                 }
 
                 var primaryPatientId = cycle.Treatment.PatientId;
@@ -699,74 +676,32 @@ namespace FSCMS.Service.Services
                 var allPatientIds = new List<Guid> { primaryPatientId };
                 allPatientIds.AddRange(relatedPatientIds);
 
-                // Build query for lab samples
-                var query = _unitOfWork.Repository<LabSample>()
+                // Get all lab samples for the primary patient and all related patients
+                var items = await _unitOfWork.Repository<LabSample>()
                     .AsQueryable()
                     .Include(x => x.LabSampleSperm)
                     .Include(x => x.LabSampleOocyte)
-                    .Where(x => !x.IsDeleted && allPatientIds.Contains(x.PatientId));
-
-                // --- Filtering ---
-                if (request.SampleType.HasValue)
-                    query = query.Where(x => x.SampleType == request.SampleType);
-
-                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-                    query = query.Where(x => x.SampleCode.Contains(request.SearchTerm)
-                                          || (x.Notes != null && x.Notes.Contains(request.SearchTerm)));
-
-                var totalCount = await query.CountAsync();
-
-                // Apply sorting
-                if (!string.IsNullOrWhiteSpace(request.Sort))
-                {
-                    var isDescending = request.Order?.ToLower() == "desc";
-
-                    query = request.Sort.ToLower() switch
-                    {
-                        "collectiondate" => isDescending ? query.OrderByDescending(x => x.CollectionDate) : query.OrderBy(x => x.CollectionDate),
-                        "samplecode" => isDescending ? query.OrderByDescending(x => x.SampleCode) : query.OrderBy(x => x.SampleCode),
-                        _ => query.OrderByDescending(x => x.CreatedAt)
-                    };
-                }
-                else
-                {
-                    query = query.OrderByDescending(x => x.CreatedAt);
-                }
-
-                // Apply pagination
-                var items = await query
-                    .Skip((request.Page - 1) * request.Size)
-                    .Take(request.Size)
+                    .Where(x => !x.IsDeleted && allPatientIds.Contains(x.PatientId))
+                    .OrderByDescending(x => x.CollectionDate)
                     .ToListAsync();
 
                 var data = _mapper.Map<List<LabSampleDetailResponse>>(items);
 
                 _logger.LogInformation("{MethodName} retrieved {Count} samples for cycle {CycleId} (primary patient: {PatientId}, related patients: {RelatedCount})",
-                    methodName, data.Count, request.CycleId, primaryPatientId, relatedPatientIds.Count);
+                    methodName, data.Count, cycleId, primaryPatientId, relatedPatientIds.Count);
 
-                return new DynamicResponse<LabSampleDetailResponse>
-                {
-                    Code = StatusCodes.Status200OK,
-                    Message = "Lab samples retrieved successfully.",
-                    Data = data,
-                    MetaData = new PagingMetaData
-                    {
-                        Page = request.Page,
-                        Size = request.Size,
-                        Total = totalCount
-                    }
-                };
+                return BaseResponse<List<LabSampleDetailResponse>>.CreateSuccess(
+                    data,
+                    "Lab samples retrieved successfully",
+                    StatusCodes.Status200OK);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error getting samples for cycle", methodName);
-                return new DynamicResponse<LabSampleDetailResponse>
-                {
-                    Code = StatusCodes.Status500InternalServerError,
-                    Message = "Internal server error.",
-                    SystemCode = "INTERNAL_ERROR",
-                    Data = new List<LabSampleDetailResponse>()
-                };
+                _logger.LogError(ex, "{MethodName}: Error getting samples for cycle {CycleId}", methodName, cycleId);
+                return BaseResponse<List<LabSampleDetailResponse>>.CreateError(
+                    $"Error: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
+                    "INTERNAL_ERROR");
             }
         }
 
