@@ -475,6 +475,14 @@ namespace FSCMS.Service.Services
                                     detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
                                     detail.Status = "Storage";
                                     await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                    var sample = await _unitOfWork.Repository<LabSample>()
+                                    .AsQueryable()
+                                    .FirstOrDefaultAsync(p => p.Id == detail.LabSampleId && !p.IsDeleted);
+                                    if (sample != null)
+                                    {
+                                        sample.Status = SpecimenStatus.Frozen;
+                                        await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
+                                    }
                                 }
                             }
                             cryoStorageContract.PaidAmount = vnpAmount / 100;
@@ -713,6 +721,14 @@ namespace FSCMS.Service.Services
                                     detail.StorageEndDate = DateTime.UtcNow.AddMonths(cryoStorageContract.CryoPackage.DurationMonths);
                                     detail.Status = "Storage";
                                     await _unitOfWork.Repository<CPSDetail>().UpdateGuid(detail, detail.Id);
+                                    var sample = await _unitOfWork.Repository<LabSample>()
+                                    .AsQueryable()
+                                    .FirstOrDefaultAsync(p => p.Id == detail.LabSampleId && !p.IsDeleted);
+                                    if(sample != null)
+                                    {
+                                        sample.Status = SpecimenStatus.Frozen;
+                                        await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
+                                    }
                                 }
                             }
                             cryoStorageContract.PaidAmount = payload.Data.Amount;

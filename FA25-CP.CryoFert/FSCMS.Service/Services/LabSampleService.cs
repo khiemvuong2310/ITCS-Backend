@@ -268,6 +268,94 @@ namespace FSCMS.Service.Services
             }
         }
 
+        public async Task<DynamicResponse<LabSampleDetailResponse>> GetCoupleSpecimensAsync(GetEligibleLabSamplesRequest request)
+        {
+            const string methodName = nameof(GetAllAsync);
+            _logger.LogInformation("{MethodName} called", methodName);
+
+            try
+            {
+                var relationship = await _unitOfWork.Repository<Relationship>()
+                   .AsQueryable()
+                   .FirstOrDefaultAsync(x => !x.IsDeleted && x.IsActive && (x.Patient1Id == request.PatientId || x.Patient2Id == request.PatientId));
+
+                if (relationship == null)
+                {
+                    return new DynamicResponse<LabSampleDetailResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Relationship not found",
+                        SystemCode = "INVALID_PATIENT",
+                        Data = null
+                    };
+                }
+                var query = _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .Include(x => x.LabSampleSperm)
+                    .Include(x => x.LabSampleOocyte)
+                    .Where(x => !x.IsDeleted);
+
+                // --- Filtering ---
+                if (request.SampleType.HasValue)
+                    query = query.Where(x => x.SampleType == request.SampleType);
+
+                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                    query = query.Where(x => x.SampleCode.Contains(request.SearchTerm)
+                                          || (x.Notes != null && x.Notes.Contains(request.SearchTerm)));
+
+                query = query.Where(x => x.PatientId == relationship.Patient2Id || x.PatientId == relationship.Patient1Id);
+
+                var totalCount = await query.CountAsync();
+
+                // Apply sorting
+                if (!string.IsNullOrWhiteSpace(request.Sort))
+                {
+                    var isDescending = request.Order?.ToLower() == "desc";
+
+                    query = request.Sort.ToLower() switch
+                    {
+                        "collectiondate" => isDescending ? query.OrderByDescending(x => x.CollectionDate) : query.OrderBy(x => x.CollectionDate),
+                        "samplecode" => isDescending ? query.OrderByDescending(x => x.SampleCode) : query.OrderBy(x => x.SampleCode),
+                        _ => query.OrderByDescending(x => x.CreatedAt)
+                    };
+                }
+                else
+                {
+                    query = query.OrderByDescending(u => u.CreatedAt);
+                }
+
+                // Apply pagination
+                var items = await query
+                    .Skip((request.Page - 1) * request.Size)
+                    .Take(request.Size)
+                    .ToListAsync();
+
+                var data = _mapper.Map<List<LabSampleDetailResponse>>(items);
+
+                return new DynamicResponse<LabSampleDetailResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Lab samples retrieved successfully.",
+                    Data = data,
+                    MetaData = new PagingMetaData
+                    {
+                        Page = request.Page,
+                        Size = request.Size,
+                        Total = totalCount
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error getting all lab samples", methodName);
+                return new DynamicResponse<LabSampleDetailResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
         public async Task<DynamicResponse<LabSampleDetailResponse>> GetAllDetailAsync(GetLabSamplesRequestDetail request)
         {
             const string methodName = nameof(GetAllAsync);

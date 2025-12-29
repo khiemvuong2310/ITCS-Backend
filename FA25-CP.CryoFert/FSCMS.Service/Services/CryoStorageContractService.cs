@@ -435,7 +435,7 @@ namespace FSCMS.Service.Services
                                 Data = null
                             };
                         }
-                        sample.Status = SpecimenStatus.Frozen;
+                        sample.Status = SpecimenStatus.Reserved;
                         await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
                         var cPSDetails = new CPSDetail
                         {

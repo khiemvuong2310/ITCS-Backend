@@ -21,5 +21,6 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse> DeleteAsync(Guid id);
         Task<DynamicResponse<LabSampleDetailResponse>> GetAllDetailAsync(GetLabSamplesRequestDetail request);
         Task<DynamicResponse<LabSampleDetailResponse>> GetEligibleLabSamplesAsync(GetEligibleLabSamplesRequest request);
+        Task<DynamicResponse<LabSampleDetailResponse>> GetCoupleSpecimensAsync(GetEligibleLabSamplesRequest request);
     }
 }
