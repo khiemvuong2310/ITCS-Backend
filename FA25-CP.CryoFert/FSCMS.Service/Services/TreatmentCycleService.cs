@@ -615,29 +615,61 @@ namespace FSCMS.Service.Services
 
         #region Samples & Appointments
 
-        // Returns lab samples tied to the patient of a cycle.
+        // Returns lab samples tied to the patient of a cycle and all related patients.
         public async Task<BaseResponse<List<object>>> GetSamplesAsync(Guid id)
         {
+            const string methodName = nameof(GetSamplesAsync);
+            _logger.LogInformation("{MethodName} called with cycle ID {Id}", methodName, id);
+
             try
             {
                 if (id == Guid.Empty)
                     return BaseResponse<List<object>>.CreateError("ID cannot be empty", StatusCodes.Status400BadRequest, "INVALID_ID");
+
+                // Get the treatment cycle with its treatment
                 var cycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
                     .Include(tc => tc.Treatment)
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(tc => tc.Id == id && !tc.IsDeleted);
+
                 if (cycle == null)
                     return BaseResponse<List<object>>.CreateError("Treatment cycle not found", StatusCodes.Status404NotFound, "NOT_FOUND");
 
+                if (cycle.Treatment == null)
+                    return BaseResponse<List<object>>.CreateError("Treatment not found for the cycle", StatusCodes.Status404NotFound, "TREATMENT_NOT_FOUND");
+
+                var primaryPatientId = cycle.Treatment.PatientId;
+
+                // Get all related patient IDs from relationships
+                var relatedPatientIds = await _unitOfWork.Repository<Relationship>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Where(r => !r.IsDeleted 
+                        && r.IsActive 
+                        && r.Status == RelationshipStatus.Approved
+                        && (r.Patient1Id == primaryPatientId || r.Patient2Id == primaryPatientId))
+                    .Select(r => r.Patient1Id == primaryPatientId ? r.Patient2Id : r.Patient1Id)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Combine primary patient ID with all related patient IDs
+                var allPatientIds = new List<Guid> { primaryPatientId };
+                allPatientIds.AddRange(relatedPatientIds);
+
+                // Get all lab samples for the primary patient and all related patients
                 var samples = await _unitOfWork.Repository<LabSample>()
                     .GetQueryable()
                     .AsNoTracking()
-                    .Where(s => s.PatientId == cycle.Treatment!.PatientId && !s.IsDeleted)
+                    .Where(s => allPatientIds.Contains(s.PatientId) && !s.IsDeleted)
                     .OrderByDescending(s => s.CollectionDate)
                     .Select(s => new { s.Id, s.SampleCode, s.SampleType, s.Status, s.CollectionDate })
                     .ToListAsync();
 
-                return BaseResponse<List<object>>.CreateSuccess(samples.Cast<object>().ToList(), "Samples retrieved", StatusCodes.Status200OK);
+                _logger.LogInformation("{MethodName} retrieved {Count} samples for cycle {Id} (primary patient: {PatientId}, related patients: {RelatedCount})", 
+                    methodName, samples.Count, id, primaryPatientId, relatedPatientIds.Count);
+
+                return BaseResponse<List<object>>.CreateSuccess(samples.Cast<object>().ToList(), "Samples retrieved successfully", StatusCodes.Status200OK);
             }
             catch (Exception ex)
             {
