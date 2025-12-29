@@ -75,6 +75,14 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpGet("couple/specimens")]
+        [ApiDefaultResponse(typeof(LabSampleResponse))]
+        public async Task<IActionResult> GetCoupleSpecimens([FromQuery] GetEligibleLabSamplesRequest request)
+        {
+            var result = await _labSampleService.GetCoupleSpecimensAsync(request);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         /// <summary>
         /// Create new sperm sample
         /// </summary>
