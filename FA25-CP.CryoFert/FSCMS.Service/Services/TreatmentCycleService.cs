@@ -501,7 +501,7 @@ namespace FSCMS.Service.Services
         public async Task<BaseResponse<TreatmentCycleResponseModel>> UpdateStatusByOrderAsync(UpdateTreatmentCycleStatusByOrderRequest request)
         {
             const string methodName = nameof(UpdateStatusByOrderAsync);
-            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}, CycleNumber {CycleNumber}, Status {Status}", 
+            _logger.LogInformation("{MethodName} called with TreatmentId {TreatmentId}, CycleNumber {CycleNumber}, Status {Status}",
                 methodName, request.TreatmentId, request.CycleNumber, request.Status);
 
             try
@@ -518,14 +518,14 @@ namespace FSCMS.Service.Services
                 // Find treatment cycle by TreatmentId and CycleNumber
                 var entity = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
-                    .FirstOrDefaultAsync(x => x.TreatmentId == request.TreatmentId 
+                    .FirstOrDefaultAsync(x => x.TreatmentId == request.TreatmentId
                         && x.CycleNumber == request.CycleNumber
                         && !x.IsDeleted);
 
                 if (entity == null)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError(
-                        $"Treatment cycle not found for TreatmentId {request.TreatmentId} and CycleNumber {request.CycleNumber}", 
-                        StatusCodes.Status404NotFound, 
+                        $"Treatment cycle not found for TreatmentId {request.TreatmentId} and CycleNumber {request.CycleNumber}",
+                        StatusCodes.Status404NotFound,
                         "NOT_FOUND");
 
                 // Validate status transition
@@ -553,8 +553,8 @@ namespace FSCMS.Service.Services
                 // Update notes if provided
                 if (!string.IsNullOrWhiteSpace(request.Notes))
                 {
-                    entity.Notes = entity.Notes == null 
-                        ? request.Notes 
+                    entity.Notes = entity.Notes == null
+                        ? request.Notes
                         : entity.Notes + $"\n{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}: {request.Notes}";
                 }
 
@@ -596,17 +596,17 @@ namespace FSCMS.Service.Services
                     .FirstOrDefaultAsync(x => x.Id == entity.Id);
 
                 return BaseResponse<TreatmentCycleResponseModel>.CreateSuccess(
-                    updated!.ToResponseModel(), 
-                    "Treatment cycle status updated successfully", 
+                    updated!.ToResponseModel(),
+                    "Treatment cycle status updated successfully",
                     StatusCodes.Status200OK);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{MethodName}: Error updating treatment cycle status for TreatmentId {TreatmentId}, CycleNumber {CycleNumber}", 
+                _logger.LogError(ex, "{MethodName}: Error updating treatment cycle status for TreatmentId {TreatmentId}, CycleNumber {CycleNumber}",
                     methodName, request?.TreatmentId, request?.CycleNumber);
                 return BaseResponse<TreatmentCycleResponseModel>.CreateError(
-                    $"Error: {ex.Message}", 
-                    StatusCodes.Status500InternalServerError, 
+                    $"Error: {ex.Message}",
+                    StatusCodes.Status500InternalServerError,
                     "INTERNAL_ERROR");
             }
         }
@@ -645,8 +645,8 @@ namespace FSCMS.Service.Services
                 var relatedPatientIds = await _unitOfWork.Repository<Relationship>()
                     .GetQueryable()
                     .AsNoTracking()
-                    .Where(r => !r.IsDeleted 
-                        && r.IsActive 
+                    .Where(r => !r.IsDeleted
+                        && r.IsActive
                         && r.Status == RelationshipStatus.Approved
                         && (r.Patient1Id == primaryPatientId || r.Patient2Id == primaryPatientId))
                     .Select(r => r.Patient1Id == primaryPatientId ? r.Patient2Id : r.Patient1Id)
@@ -661,12 +661,14 @@ namespace FSCMS.Service.Services
                 var samples = await _unitOfWork.Repository<LabSample>()
                     .GetQueryable()
                     .AsNoTracking()
+                       .Include(x => x.LabSampleSperm)
+                    .Include(x => x.LabSampleOocyte)
                     .Where(s => allPatientIds.Contains(s.PatientId) && !s.IsDeleted)
                     .OrderByDescending(s => s.CollectionDate)
                     .Select(s => new { s.Id, s.SampleCode, s.SampleType, s.Status, s.CollectionDate })
                     .ToListAsync();
 
-                _logger.LogInformation("{MethodName} retrieved {Count} samples for cycle {Id} (primary patient: {PatientId}, related patients: {RelatedCount})", 
+                _logger.LogInformation("{MethodName} retrieved {Count} samples for cycle {Id} (primary patient: {PatientId}, related patients: {RelatedCount})",
                     methodName, samples.Count, id, primaryPatientId, relatedPatientIds.Count);
 
                 return BaseResponse<List<object>>.CreateSuccess(samples.Cast<object>().ToList(), "Samples retrieved successfully", StatusCodes.Status200OK);
@@ -891,9 +893,9 @@ namespace FSCMS.Service.Services
             {
                 var nextCycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
-                    .FirstOrDefaultAsync(tc => 
-                        tc.TreatmentId == treatmentId 
-                        && tc.CycleNumber == currentCycleNumber + 1 
+                    .FirstOrDefaultAsync(tc =>
+                        tc.TreatmentId == treatmentId
+                        && tc.CycleNumber == currentCycleNumber + 1
                         && !tc.IsDeleted
                         && tc.Status == TreatmentStatus.Planned);
 
@@ -918,7 +920,7 @@ namespace FSCMS.Service.Services
             catch (Exception ex)
             {
                 // Log error but don't fail the main operation
-                _logger.LogWarning(ex, 
+                _logger.LogWarning(ex,
                     "{CallingMethodName}: Error updating next cycle status for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
                     callingMethodName, treatmentId, currentCycleNumber);
             }
@@ -937,9 +939,9 @@ namespace FSCMS.Service.Services
             {
                 var nextCycle = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
-                    .FirstOrDefaultAsync(tc => 
-                        tc.TreatmentId == treatmentId 
-                        && tc.CycleNumber == currentCycleNumber + 1 
+                    .FirstOrDefaultAsync(tc =>
+                        tc.TreatmentId == treatmentId
+                        && tc.CycleNumber == currentCycleNumber + 1
                         && !tc.IsDeleted
                         && tc.Status == TreatmentStatus.Planned);
 
@@ -966,7 +968,7 @@ namespace FSCMS.Service.Services
             catch (Exception ex)
             {
                 // Log error but don't fail the main operation
-                _logger.LogWarning(ex, 
+                _logger.LogWarning(ex,
                     "{CallingMethodName}: Error updating next cycle status to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
                     callingMethodName, treatmentId, currentCycleNumber);
             }
@@ -986,9 +988,9 @@ namespace FSCMS.Service.Services
             {
                 var subsequentCycles = await _unitOfWork.Repository<TreatmentCycle>()
                     .GetQueryable()
-                    .Where(tc => 
-                        tc.TreatmentId == treatmentId 
-                        && tc.CycleNumber > currentCycleNumber 
+                    .Where(tc =>
+                        tc.TreatmentId == treatmentId
+                        && tc.CycleNumber > currentCycleNumber
                         && !tc.IsDeleted
                         && tc.Status != TreatmentStatus.Completed
                         && tc.Status != TreatmentStatus.Failed
@@ -1004,10 +1006,10 @@ namespace FSCMS.Service.Services
                         cycle.Status = TreatmentStatus.Failed;
                         cycle.UpdatedAt = DateTime.UtcNow;
                         cycle.EndDate ??= DateTime.UtcNow;
-                        cycle.Notes = cycle.Notes == null 
-                            ? $"Failed due to cycle #{currentCycleNumber} cancelled: {reason}" 
+                        cycle.Notes = cycle.Notes == null
+                            ? $"Failed due to cycle #{currentCycleNumber} cancelled: {reason}"
                             : cycle.Notes + $"\nFailed due to cycle #{currentCycleNumber} cancelled: {reason}";
-                        
+
                         await _unitOfWork.Repository<TreatmentCycle>().UpdateGuid(cycle, cycle.Id);
 
                         _logger.LogInformation(
@@ -1029,7 +1031,7 @@ namespace FSCMS.Service.Services
             catch (Exception ex)
             {
                 // Log error but don't fail the main operation
-                _logger.LogWarning(ex, 
+                _logger.LogWarning(ex,
                     "{CallingMethodName}: Error updating subsequent cycles to Failed for Treatment {TreatmentId} after CycleNumber {CycleNumber}. Main operation will continue.",
                     callingMethodName, treatmentId, currentCycleNumber);
             }
