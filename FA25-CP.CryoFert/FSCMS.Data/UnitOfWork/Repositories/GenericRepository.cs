@@ -54,23 +54,17 @@ namespace FSCMS.Data.UnitOfWork.Repositories
         }
         public async Task<T?> GetByIdGuid(Guid Id)
         {
-            return await Table.Where(x => EF.Property<Guid>(x, "Id") == Id)
-                              .Cacheable()
-                              .FirstOrDefaultAsync();
+            return await Table.FindAsync(Id);
         }
 
         public async Task<T?> GetByIdAsync(Guid id)
         {
-            return await Table.Where(x => EF.Property<Guid>(x, "Id") == id)
-                              .Cacheable()
-                              .FirstOrDefaultAsync();   
+            return await GetByIdGuid(id);
         }
 
         public async Task<T?> GetById(int Id)
         {
-            return await Table.Where(x => EF.Property<int>(x, "Id") == Id)
-                              .Cacheable()
-                              .FirstOrDefaultAsync();
+            return await Table.FindAsync(Id);
         }
 
         public async Task HardDeleteGuid(Guid key)
