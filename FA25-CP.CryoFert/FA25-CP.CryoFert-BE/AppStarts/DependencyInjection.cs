@@ -106,7 +106,7 @@ namespace FA25_CP.CryoFert_BE.AppStarts
                 ?? configuration.GetConnectionStringOrThrow("redis");
             
             // Configure FusionCache with Redis
-            services.AddCaching(redisConnectionString);
+            //services.AddCaching(redisConnectionString);
 
             // CryoRequest Services - Service Management System
             services.AddScoped<IServiceCategoryService, ServiceCategoryService>(); // Service category management
