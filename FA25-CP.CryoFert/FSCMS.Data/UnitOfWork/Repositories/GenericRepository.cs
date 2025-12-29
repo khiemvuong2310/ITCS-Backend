@@ -15,8 +15,8 @@ namespace FSCMS.Data.UnitOfWork.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        private static AppDbContext Context;
-        private static DbSet<T> Table { get; set; }
+        private readonly AppDbContext Context;
+        private readonly DbSet<T> Table;
 
         public GenericRepository(AppDbContext context)
         {

@@ -106,25 +106,7 @@ namespace FA25_CP.CryoFert_BE
             });
 
             // 13. Configure database context - MySQL với connection pooling và second level cache
-            //builder.Services.AddDbContextPool<AppDbContext>((serviceProvider, options) =>
-            //{
-            //    var connectionString =
-            //        Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
-            //        ?? builder.Configuration.GetConnectionString("DefaultConnection")
-            //        ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
-            //        ?? builder.Configuration["DB_CONNECTION_STRING"];
-
-            //    if (string.IsNullOrWhiteSpace(connectionString))
-            //        throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
-
-            //    var serverVersion = ServerVersion.AutoDetect(connectionString);
-            //    options.UseMySql(connectionString, serverVersion,
-            //        mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
-
-            //    // Thêm second level cache interceptor để tự động cache queries
-            //    options.AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
-            //});
-            builder.Services.AddDbContext<AppDbContext>(options =>
+            builder.Services.AddDbContextPool<AppDbContext>((serviceProvider, options) =>
             {
                 var connectionString =
                     Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
@@ -138,7 +120,25 @@ namespace FA25_CP.CryoFert_BE
                 var serverVersion = ServerVersion.AutoDetect(connectionString);
                 options.UseMySql(connectionString, serverVersion,
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
+
+                // Thêm second level cache interceptor để tự động cache queries
+                options.AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
             });
+            //builder.Services.AddDbContext<AppDbContext>(options =>
+            //{
+            //    var connectionString =
+            //        Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+            //        ?? builder.Configuration.GetConnectionString("DefaultConnection")
+            //        ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
+            //        ?? builder.Configuration["DB_CONNECTION_STRING"];
+
+            //    if (string.IsNullOrWhiteSpace(connectionString))
+            //        throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
+
+            //    var serverVersion = ServerVersion.AutoDetect(connectionString);
+            //    options.UseMySql(connectionString, serverVersion,
+            //        mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
+            //});
 
             // 14. Install custom dependency injection services (bao gồm caching services)
             builder.Services.InstallService(builder.Configuration);
