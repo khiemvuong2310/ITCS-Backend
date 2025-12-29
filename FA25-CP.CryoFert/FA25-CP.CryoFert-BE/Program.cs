@@ -122,7 +122,7 @@ namespace FA25_CP.CryoFert_BE
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
 
                 // Thêm second level cache interceptor để tự động cache queries
-                options.AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
+                //options.AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
             });
 
             // 14. Install custom dependency injection services (bao gồm caching services)
