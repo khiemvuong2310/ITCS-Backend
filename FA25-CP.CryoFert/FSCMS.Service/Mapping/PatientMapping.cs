@@ -39,7 +39,10 @@ namespace FSCMS.Service.Mapping
                 .ForMember(dest => dest.RelevanceScore, opt => opt.Ignore());
 
             CreateMap<Patient, RelatedPatientInfo>()
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Account != null ? src.Account.Username : null))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => 
+                    src.Account != null 
+                        ? $"{src.Account.FirstName} {src.Account.LastName}".Trim()
+                        : null))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Account != null ? src.Account.Email : null))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Account != null ? src.Account.Phone : null));
 
