@@ -250,10 +250,10 @@ namespace FSCMS.Service.Services
                     return BaseResponse<ServiceRequestDetailResponseModel>.CreateError("Service request detail not found", StatusCodes.Status404NotFound, "SERVICE_REQUEST_DETAIL_NOT_FOUND");
                 }
 
-                if (entity.ServiceRequest!.Status != ServiceRequestStatus.Pending)
+                if (entity.ServiceRequest!.Status == ServiceRequestStatus.Rejected)
                 {
-                    _logger.LogWarning("{MethodName}: Can only update details of pending service requests: {Id}", methodName, id);
-                    return BaseResponse<ServiceRequestDetailResponseModel>.CreateError("Can only update details of pending service requests", StatusCodes.Status400BadRequest, "INVALID_STATUS");
+                    _logger.LogWarning("{MethodName}: Cannot update details of rejected service requests: {Id}", methodName, id);
+                    return BaseResponse<ServiceRequestDetailResponseModel>.CreateError("Cannot update details of rejected service requests", StatusCodes.Status400BadRequest, "INVALID_STATUS");
                 }
 
                 var oldTotalPrice = entity.TotalPrice;
