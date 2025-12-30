@@ -1149,6 +1149,7 @@ namespace FSCMS.Service.Services
                 // 8. Return response
                 var createdRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
                 var response = _mapper.Map<RelationshipResponse>(createdRelationship);
+                HydrateRelationshipResponseFullName(response, createdRelationship);
 
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship request created successfully. A confirmation email has been sent to the recipient.", StatusCodes.Status201Created);
             }
@@ -1207,6 +1208,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var response = _mapper.Map<RelationshipResponse>(relationship);
+                HydrateRelationshipResponseFullName(response, relationship);
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship retrieved successfully");
             }
             catch (Exception ex)
@@ -1314,6 +1316,12 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var responses = _mapper.Map<List<RelationshipResponse>>(relationships);
+                
+                // Hydrate FullName for all relationship responses
+                for (int i = 0; i < responses.Count && i < relationships.Count; i++)
+                {
+                    HydrateRelationshipResponseFullName(responses[i], relationships[i]);
+                }
 
                 var pagingMetaData = new PagingMetaData
                 {
@@ -1461,6 +1469,7 @@ namespace FSCMS.Service.Services
                 // Get updated relationship with patient info
                 var updatedRelationship = await GetRelationshipWithPatientsAsync(relationshipId);
                 var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+                HydrateRelationshipResponseFullName(response, updatedRelationship);
 
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship updated successfully");
             }
@@ -2070,6 +2079,39 @@ namespace FSCMS.Service.Services
                 .FirstOrDefaultAsync();
         }
 
+        /// <summary>
+        /// Hydrates FullName for Patient1Info and Patient2Info in RelationshipResponse from Account FirstName + LastName
+        /// </summary>
+        private static void HydrateRelationshipResponseFullName(RelationshipResponse? response, Relationship? relationship)
+        {
+            if (response == null || relationship == null)
+            {
+                return;
+            }
+
+            // Hydrate Patient1Info FullName
+            if (response.Patient1Info != null && relationship.Patient1?.Account != null)
+            {
+                var account = relationship.Patient1.Account;
+                response.Patient1Info.FullName = $"{account.FirstName} {account.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(response.Patient1Info.FullName))
+                {
+                    response.Patient1Info.FullName = null;
+                }
+            }
+
+            // Hydrate Patient2Info FullName
+            if (response.Patient2Info != null && relationship.Patient2?.Account != null)
+            {
+                var account = relationship.Patient2.Account;
+                response.Patient2Info.FullName = $"{account.FirstName} {account.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(response.Patient2Info.FullName))
+                {
+                    response.Patient2Info.FullName = null;
+                }
+            }
+        }
+
         #endregion
 
         #region Relationship Status Operations
@@ -2196,6 +2238,7 @@ namespace FSCMS.Service.Services
                 // Return response
                 var updatedRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
                 var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+                HydrateRelationshipResponseFullName(response, updatedRelationship);
 
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship approved successfully", StatusCodes.Status200OK);
             }
@@ -2317,6 +2360,7 @@ namespace FSCMS.Service.Services
                 // Return response
                 var updatedRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
                 var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+                HydrateRelationshipResponseFullName(response, updatedRelationship);
 
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship rejected successfully", StatusCodes.Status200OK);
             }
@@ -2413,6 +2457,7 @@ namespace FSCMS.Service.Services
 
                 var updatedRelationship = await GetRelationshipWithPatientsAsync(relationship.Id) ?? relationship;
                 var response = _mapper.Map<RelationshipResponse>(updatedRelationship);
+                HydrateRelationshipResponseFullName(response, updatedRelationship);
 
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship request cancelled successfully", StatusCodes.Status200OK);
             }
@@ -2757,6 +2802,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var response = _mapper.Map<RelationshipResponse>(relationship);
+                HydrateRelationshipResponseFullName(response, relationship);
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship approved successfully", StatusCodes.Status200OK);
             }
             catch (Exception ex)
@@ -2847,6 +2893,7 @@ namespace FSCMS.Service.Services
                 }
 
                 var response = _mapper.Map<RelationshipResponse>(relationship);
+                HydrateRelationshipResponseFullName(response, relationship);
                 return BaseResponse<RelationshipResponse>.CreateSuccess(response, "Relationship rejected successfully", StatusCodes.Status200OK);
             }
             catch (Exception ex)
