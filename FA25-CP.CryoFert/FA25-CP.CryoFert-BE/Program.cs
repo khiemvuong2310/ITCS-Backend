@@ -86,6 +86,8 @@ namespace FA25_CP.CryoFert_BE
                             "https://localhost:5173",
                             "http://localhost:3000",
                             "https://localhost:3000",
+                            "http://localhost:3001",
+                            "https://localhost:3001",
                             "https://localhost",
                             "https://fscms.pages.dev",
                             "https://cryo.devnguyen.xyz",

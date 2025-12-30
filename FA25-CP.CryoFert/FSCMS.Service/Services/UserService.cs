@@ -534,13 +534,6 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                // Store original values to preserve them if not being updated
-                var originalRoleId = account.RoleId;
-                var originalFirstName = account.FirstName;
-                var originalLastName = account.LastName;
-                var originalUsername = account.Username;
-                var originalPhone = account.Phone;
-
                 // Check if new role exists (if role is being updated)
                 if (request.RoleId.HasValue)
                 {
@@ -561,41 +554,55 @@ namespace FSCMS.Service.Services
                     }
                 }
 
-                // Update account
-                _mapper.Map(request, account);
-
-                // Preserve original RoleId if not provided in request
-                // This prevents foreign key constraint violation when RoleId is null in request
-                if (!request.RoleId.HasValue)
+                // Update only fields that are provided (not null)
+                // Only update fields that have values in the request
+                if (request.FirstName != null)
                 {
-                    account.RoleId = originalRoleId;
-                }
-                // If RoleId was provided but somehow became empty after mapping, preserve original
-                else if (account.RoleId == Guid.Empty)
-                {
-                    account.RoleId = originalRoleId;
+                    account.FirstName = request.FirstName;
                 }
 
-                // Ensure required fields are not null or empty
-                // FirstName and LastName are required in database
-                if (string.IsNullOrWhiteSpace(account.FirstName))
+                if (request.LastName != null)
                 {
-                    account.FirstName = originalFirstName;
+                    account.LastName = request.LastName;
                 }
-                if (string.IsNullOrWhiteSpace(account.LastName))
+
+                if (request.UserName != null)
                 {
-                    account.LastName = originalLastName;
+                    account.Username = request.UserName;
                 }
-                // Username is required in database
-                if (string.IsNullOrWhiteSpace(account.Username))
+
+                if (request.BirthDate.HasValue)
                 {
-                    account.Username = originalUsername;
+                    account.BirthDate = request.BirthDate.Value;
                 }
-                // Phone is required in database
-                if (string.IsNullOrWhiteSpace(account.Phone))
+
+                if (request.Gender.HasValue)
                 {
-                    account.Phone = originalPhone;
+                    account.Gender = request.Gender.Value;
                 }
+
+                if (request.Phone != null)
+                {
+                    account.Phone = request.Phone;
+                }
+
+                if (request.Address != null)
+                {
+                    account.Address = request.Address;
+                }
+
+                if (request.RoleId.HasValue)
+                {
+                    account.RoleId = request.RoleId.Value;
+                }
+
+                if (request.Status.HasValue)
+                {
+                    account.IsActive = request.Status.Value;
+                }
+
+                // Note: Country and Image are not directly mapped to Account entity
+                // They might be handled separately or in related entities
 
                 // Save changes
                 await _unitOfWork.Repository<Account>().UpdateGuid(account, account.Id);
