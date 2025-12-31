@@ -102,6 +102,28 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? 500, result);
         }
 
+        [HttpPost("cancel")]
+        [Authorize(Roles = "Patient")] 
+        [ApiDefaultResponse(typeof(CryoStorageContractResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> RenewContract([FromBody] CancelCryoStorageContractRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = 400,
+                    Message = "Invalid input data"
+                });
+            }
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
+            var result = await _contractService.CancelAsync(Guid.Parse(accountId), request);
+            return StatusCode(result.Code ?? 500, result);
+        }
+
         /// <summary>
         /// Update an existing cryo storage contract
         /// </summary>

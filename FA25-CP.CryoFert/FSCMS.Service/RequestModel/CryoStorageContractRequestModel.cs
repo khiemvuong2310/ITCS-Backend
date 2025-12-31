@@ -19,6 +19,11 @@ namespace FSCMS.Service.RequestModel
 
         public List<CreateCPSDetailRequest>? Samples { get; set; }
     }
+    public class CancelCryoStorageContractRequest
+    {
+        [Required(ErrorMessage = "ContractID is required.")]
+        public Guid ContractID { get; set; }
+    }
 
     public class UpdateCryoStorageContractRequest
     {

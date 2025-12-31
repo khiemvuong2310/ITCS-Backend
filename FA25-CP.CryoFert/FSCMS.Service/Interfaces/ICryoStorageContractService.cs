@@ -51,5 +51,6 @@ namespace FSCMS.Service.Interfaces
         Task<BaseResponse> DeleteAsync(Guid id);
         Task<BaseResponse> SendOtpEmailAsync(SentOtpEmailRequest request, Guid patientId);
         Task<BaseResponse<CryoStorageContractResponse>> VerifyOtpAsync(VerifyOtpRequest request, Guid patientId);
+        Task<BaseResponse<CryoStorageContractResponse>> CancelAsync(Guid patientId, CancelCryoStorageContractRequest request);
     }
 }

@@ -245,6 +245,30 @@ namespace FSCMS.Service.Services
                         Message = "Contract not found"
                     };
                 }
+                if (contract.Status == ContractStatus.Active)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract is already active"
+                    };
+                }
+                if (contract.Status == ContractStatus.Pending)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract is already signed"
+                    };
+                }
+                if (contract.Status != ContractStatus.Draft)
+                {
+                    return new BaseResponse
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Can not sign this contract"
+                    };
+                }
                 var account = await _unitOfWork.Repository<Account>()
                     .AsQueryable()
                     .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDeleted);
@@ -347,6 +371,38 @@ namespace FSCMS.Service.Services
                         .AsQueryable()
                         .Include(x => x.CryoPackage)
                         .FirstOrDefaultAsync(x => x.Id == request.ContractId && !x.IsDeleted);
+                if (contract == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract not found"
+                    };
+                }
+                if (contract.Status == ContractStatus.Active)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract is already active"
+                    };
+                }
+                if (contract.Status == ContractStatus.Pending)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract is already signed"
+                    };
+                }
+                if (contract.Status != ContractStatus.Draft)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Can not sign this contract"
+                    };
+                }
                 var patient = await _unitOfWork.Repository<Account>().GetByIdGuid(userId);
                 contract.SignedBy = $"{patient.FirstName} {patient.LastName}";
                 contract.SignedDate = DateTime.UtcNow;
@@ -490,6 +546,110 @@ namespace FSCMS.Service.Services
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating contract");
+                return new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<BaseResponse<CryoStorageContractResponse>> CancelAsync(Guid patientId, CancelCryoStorageContractRequest request)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Validate Patient & Package
+                var patient = await _unitOfWork.Repository<Patient>()
+                    .AsQueryable()
+                    .Include(x => x.Account)
+                    .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDeleted);
+                if (patient == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Patient Not Found",
+                        Data = null
+                    };
+                }
+
+                var contract = await _unitOfWork.Repository<CryoStorageContract>()
+                    .AsQueryable()
+                    .Include(x => x.CPSDetails)
+                    .FirstOrDefaultAsync(x => x.Id == request.ContractID && !x.IsDeleted);
+                if (contract == null)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Contract Not Found",
+                        Data = null
+                    };
+                }
+
+                if(contract.PatientId != patientId)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Contract does not belong to the patient",
+                        Data = null
+                    };
+                }
+
+                if (contract.Status != ContractStatus.Pending && contract.Status != ContractStatus.Draft)
+                {
+                    return new BaseResponse<CryoStorageContractResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Can only cancel the draft contract",
+                        Data = null
+                    };
+                }
+
+                foreach (var c in contract.CPSDetails)
+                {
+                    var sample = await _unitOfWork.Repository<LabSample>()
+                        .AsQueryable()
+                        .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.PatientId == patientId);
+                    if (sample == null)
+                    {
+                        return new BaseResponse<CryoStorageContractResponse>
+                        {
+                            Code = StatusCodes.Status400BadRequest,
+                            Message = $"Invalid LabSampleId: {c.LabSampleId}",
+                            Data = null
+                        };
+                    }
+                    sample.Status = SpecimenStatus.QualityChecked;
+                    sample.UpdatedAt = DateTime.UtcNow;
+                    c.Status = "Canceled";
+                    c.UpdatedAt = DateTime.UtcNow;
+                    await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
+                    await _unitOfWork.Repository<CPSDetail>().UpdateGuid(c, c.Id);
+                }
+
+                contract.Status = ContractStatus.Cancel;
+                contract.UpdatedAt = DateTime.UtcNow;
+                await _unitOfWork.Repository<CryoStorageContract>().UpdateGuid(contract, contract.Id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+
+                var data = _mapper.Map<CryoStorageContractResponse>(contract);
+                data.PatientName = $"{patient.Account.FirstName} {patient.Account.LastName}";
+
+                return new BaseResponse<CryoStorageContractResponse>
+                {
+                    Code = StatusCodes.Status201Created,
+                    Message = "Contract cancel successfully",
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error cancel contract");
                 return new BaseResponse<CryoStorageContractResponse>
                 {
                     Code = StatusCodes.Status500InternalServerError,
