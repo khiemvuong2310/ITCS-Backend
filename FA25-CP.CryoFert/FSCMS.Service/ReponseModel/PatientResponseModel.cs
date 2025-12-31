@@ -175,6 +175,12 @@ namespace FSCMS.Service.ReponseModel
         [JsonPropertyName("relationshipTypeName")]
         public string RelationshipTypeName => RelationshipType.ToString();
 
+        [JsonPropertyName("status")]
+        public RelationshipStatus Status { get; set; }
+
+        [JsonPropertyName("statusName")]
+        public string StatusName => Status.ToString();
+
         [JsonPropertyName("establishedDate")]
         public DateTime? EstablishedDate { get; set; }
 
@@ -183,6 +189,21 @@ namespace FSCMS.Service.ReponseModel
 
         [JsonPropertyName("isActive")]
         public bool IsActive { get; set; }
+
+        [JsonPropertyName("requestedBy")]
+        public Guid? RequestedBy { get; set; }
+
+        [JsonPropertyName("respondedBy")]
+        public Guid? RespondedBy { get; set; }
+
+        [JsonPropertyName("respondedAt")]
+        public DateTime? RespondedAt { get; set; }
+
+        [JsonPropertyName("expiresAt")]
+        public DateTime? ExpiresAt { get; set; }
+
+        [JsonPropertyName("rejectionReason")]
+        public string? RejectionReason { get; set; }
 
         [JsonPropertyName("createdAt")]
         public DateTime CreatedAt { get; set; }
