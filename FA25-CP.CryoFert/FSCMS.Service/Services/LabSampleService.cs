@@ -1076,6 +1076,11 @@ namespace FSCMS.Service.Services
                     entity.Status = SpecimenStatus.QualityChecked;
                 }
 
+                if (request.IsAvailable != null)
+                {
+                    entity.IsAvailable = (bool)request.IsAvailable;
+                }
+
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
@@ -1145,6 +1150,11 @@ namespace FSCMS.Service.Services
                     entity.Status = SpecimenStatus.QualityChecked;
                 }
 
+                if (request.IsAvailable != null)
+                {
+                    entity.IsAvailable = (bool)request.IsAvailable;
+                }
+
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
                 await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
@@ -1209,10 +1219,13 @@ namespace FSCMS.Service.Services
                 if (request.Status != null)
                 {
                     entity.Status = (SpecimenStatus)request.Status;
-                }
-                else
+                } else
                 {
                     entity.Status = SpecimenStatus.QualityChecked;
+                }
+                if (request.IsAvailable != null)
+                {
+                    entity.IsAvailable = (bool)request.IsAvailable;
                 }
 
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);

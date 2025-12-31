@@ -25,6 +25,7 @@ namespace FSCMS.Core.Enums
         /// </summary>
         Renewed = 4,
         Draft = 5,
-        Pending = 6
+        Pending = 6,
+        Cancel = 7,
     }
 }
