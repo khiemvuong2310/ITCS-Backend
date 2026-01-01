@@ -4,6 +4,7 @@ using FSCMS.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FSCMS.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260101083658_UpdateAppointmentRelationship")]
+    partial class UpdateAppointmentRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,7 +112,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010001"),
                             Address = "123 Lê Lợi, Quận 1, TP.HCM",
                             BirthDate = new DateOnly(1985, 1, 1),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6811),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1442),
                             Email = "admin@cryo.com",
                             FirstName = "System",
                             Gender = true,
@@ -128,7 +131,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010002"),
                             Address = "456 Nguyễn Văn Cừ, Quận 5, TP.HCM",
                             BirthDate = new DateOnly(1991, 3, 12),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6825),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1447),
                             Email = "lab@cryo.com",
                             FirstName = "Lab",
                             Gender = false,
@@ -147,7 +150,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010003"),
                             Address = "89 Hai Bà Trưng, Quận 1, TP.HCM",
                             BirthDate = new DateOnly(1996, 7, 9),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6830),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1449),
                             Email = "staff@cryo.com",
                             FirstName = "Front",
                             Gender = false,
@@ -166,7 +169,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010004"),
                             Address = "12 Phan Đăng Lưu, Phú Nhuận, TP.HCM",
                             BirthDate = new DateOnly(1980, 5, 15),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6834),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1451),
                             Email = "doctor1@cryo.com",
                             FirstName = "Nguyễn",
                             Gender = true,
@@ -185,7 +188,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010005"),
                             Address = "34 Cách Mạng Tháng Tám, Quận 3, TP.HCM",
                             BirthDate = new DateOnly(1985, 8, 20),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6841),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1453),
                             Email = "doctor2@cryo.com",
                             FirstName = "Trần",
                             Gender = false,
@@ -204,7 +207,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010009"),
                             Address = "56 Hai Bà Trưng, Quận 1, TP.HCM",
                             BirthDate = new DateOnly(1978, 2, 14),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6845),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1454),
                             Email = "doctor3@cryo.com",
                             FirstName = "Lê",
                             Gender = true,
@@ -223,7 +226,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010010"),
                             Address = "78 Lý Thường Kiệt, Quận 10, TP.HCM",
                             BirthDate = new DateOnly(1982, 11, 30),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6850),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1456),
                             Email = "doctor4@cryo.com",
                             FirstName = "Phạm",
                             Gender = false,
@@ -242,7 +245,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010011"),
                             Address = "90 Nguyễn Huệ, Quận 1, TP.HCM",
                             BirthDate = new DateOnly(1975, 6, 8),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6853),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1457),
                             Email = "doctor5@cryo.com",
                             FirstName = "Võ",
                             Gender = true,
@@ -261,7 +264,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010012"),
                             Address = "145 Trường Chinh, Tân Bình, TP.HCM",
                             BirthDate = new DateOnly(1988, 9, 22),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6856),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1459),
                             Email = "doctor6@cryo.com",
                             FirstName = "Đặng",
                             Gender = false,
@@ -280,7 +283,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010013"),
                             Address = "210 Hoàng Văn Thụ, Tân Bình, TP.HCM",
                             BirthDate = new DateOnly(1983, 4, 5),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6859),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1460),
                             Email = "doctor7@cryo.com",
                             FirstName = "Bùi",
                             Gender = true,
@@ -299,7 +302,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010014"),
                             Address = "315 Trần Hưng Đạo, Quận 1, TP.HCM",
                             BirthDate = new DateOnly(1979, 12, 18),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6862),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1461),
                             Email = "doctor8@cryo.com",
                             FirstName = "Hồ",
                             Gender = false,
@@ -318,7 +321,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010006"),
                             Address = "25 Điện Biên Phủ, Bình Thạnh, TP.HCM",
                             BirthDate = new DateOnly(1990, 3, 10),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6864),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1462),
                             Email = "patient1@cryo.com",
                             FirstName = "Lê",
                             Gender = true,
@@ -337,7 +340,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010007"),
                             Address = "68 Nguyễn Trãi, Quận 5, TP.HCM",
                             BirthDate = new DateOnly(1992, 7, 25),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6946),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1464),
                             Email = "patient2@cryo.com",
                             FirstName = "Phạm",
                             Gender = false,
@@ -356,7 +359,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010008"),
                             Address = "12 Võ Văn Kiệt, Quận 1, TP.HCM",
                             BirthDate = new DateOnly(1988, 11, 5),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6951),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1465),
                             Email = "patient3@cryo.com",
                             FirstName = "Hoàng",
                             Gender = true,
@@ -866,7 +869,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7892),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1854),
                             Description = "Initial fee 8,000,000 VND; storage 8,000,000 VND",
                             DurationMonths = 12,
                             IncludesInsurance = false,
@@ -881,7 +884,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7904),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1861),
                             Description = "Initial fee 8,000,000 VND; storage 20,000,000 VND",
                             DurationMonths = 36,
                             IncludesInsurance = false,
@@ -896,7 +899,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7910),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1863),
                             Description = "Initial fee 8,000,000 VND; storage 30,000,000 VND",
                             DurationMonths = 60,
                             IncludesInsurance = false,
@@ -911,7 +914,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7917),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1865),
                             Description = "Initial fee 2,000,000 VND; storage 3,000,000 VND",
                             DurationMonths = 12,
                             IncludesInsurance = false,
@@ -926,7 +929,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7922),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1867),
                             Description = "Initial fee 2,000,000 VND; storage 7,000,000 VND",
                             DurationMonths = 36,
                             IncludesInsurance = false,
@@ -941,7 +944,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7926),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1869),
                             Description = "Initial fee 2,000,000 VND; storage 10,000,000 VND",
                             DurationMonths = 60,
                             IncludesInsurance = false,
@@ -956,7 +959,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000007"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7930),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1870),
                             Description = "Initial fee 10,000,000 VND; storage 10,000,000 VND",
                             DurationMonths = 12,
                             IncludesInsurance = false,
@@ -971,7 +974,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000008"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7934),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1872),
                             Description = "Initial fee 10,000,000 VND; storage 25,000,000 VND",
                             DurationMonths = 36,
                             IncludesInsurance = false,
@@ -986,7 +989,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000009"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7938),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1873),
                             Description = "Initial fee 10,000,000 VND; storage 35,000,000 VND",
                             DurationMonths = 60,
                             IncludesInsurance = false,
@@ -1125,7 +1128,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010004"),
                             BadgeId = "DOC001",
                             Certificates = "Board Certified in Reproductive Medicine",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7028),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1521),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2010, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1138,7 +1141,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010005"),
                             BadgeId = "DOC002",
                             Certificates = "Specialist in IVF Procedures",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7037),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1524),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2015, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1151,7 +1154,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010009"),
                             BadgeId = "DOC003",
                             Certificates = "Expert in Male Infertility and Microsurgery",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7041),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1525),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2005, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1164,7 +1167,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010010"),
                             BadgeId = "DOC004",
                             Certificates = "Clinical Embryologist, ICSI Specialist",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7044),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1526),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2013, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1177,7 +1180,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010011"),
                             BadgeId = "DOC005",
                             Certificates = "Laparoscopic and Hysteroscopic Surgery Expert",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7047),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1528),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2000, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1190,7 +1193,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010012"),
                             BadgeId = "DOC006",
                             Certificates = "PGT-A/PGT-M Specialist, Genetic Counseling",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7050),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1529),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2017, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1203,7 +1206,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010013"),
                             BadgeId = "DOC007",
                             Certificates = "Oncofertility and Cryopreservation Expert",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7053),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1530),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2011, 4, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1216,7 +1219,7 @@ namespace FSCMS.Core.Migrations
                             Id = new Guid("00000000-0000-0000-0000-000000010014"),
                             BadgeId = "DOC008",
                             Certificates = "Recurrent Pregnancy Loss and Immunotherapy Specialist",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7055),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1531),
                             IsActive = true,
                             IsDeleted = false,
                             JoinDate = new DateTime(2007, 11, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1729,7 +1732,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7715),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1781),
                             Dosage = "50 mg/day (max 150 mg/day)",
                             Form = "Oral",
                             Indication = "Ovarian stimulation D2–D6",
@@ -1741,7 +1744,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7722),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1784),
                             Dosage = "2.5–5 mg/day",
                             Form = "Oral",
                             Indication = "Ovarian stimulation D2–D6, PCOS",
@@ -1753,7 +1756,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7725),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1785),
                             Dosage = "75–150 IU/day",
                             Form = "Subcutaneous injection",
                             Indication = "Ovarian stimulation from D2–D3",
@@ -1765,7 +1768,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7728),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1786),
                             Dosage = "75–150 IU/day",
                             Form = "Subcutaneous injection",
                             Indication = "Ovarian stimulation",
@@ -1777,7 +1780,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7731),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1788),
                             Dosage = "150 IU FSH + 75 IU LH/day",
                             Form = "Subcutaneous injection",
                             Indication = "Stimulation for poor responders",
@@ -1789,7 +1792,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7733),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1789),
                             Dosage = "0.25 mg/day",
                             Form = "Subcutaneous injection",
                             Indication = "Prevent premature ovulation from D5",
@@ -1801,7 +1804,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000007"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7736),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1790),
                             Dosage = "0.25 mg/day",
                             Form = "Subcutaneous injection",
                             Indication = "Prevent premature ovulation from D5",
@@ -1813,7 +1816,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000008"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7740),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1792),
                             Dosage = "250 mcg single dose",
                             Form = "Subcutaneous injection",
                             Indication = "Trigger when follicle is 18–20mm",
@@ -1825,7 +1828,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000009"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7742),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1793),
                             Dosage = "5000–10000 IU single dose",
                             Form = "Intramuscular injection",
                             Indication = "Trigger when follicle is 18–20mm",
@@ -1837,7 +1840,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000010"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7745),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1794),
                             Dosage = "0.1 mg single dose",
                             Form = "Subcutaneous injection",
                             Indication = "Trigger to reduce OHSS risk",
@@ -1849,7 +1852,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000011"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7749),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1795),
                             Dosage = "200 mg x 2–3 times/day",
                             Form = "Vaginal",
                             Indication = "Post IUI/OPU/ET support",
@@ -1861,7 +1864,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000012"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7753),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1797),
                             Dosage = "10 mg x 2–3 times/day",
                             Form = "Oral",
                             Indication = "Luteal phase support",
@@ -1873,7 +1876,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000013"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7755),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1798),
                             Dosage = "1 applicator/day",
                             Form = "Vaginal",
                             Indication = "Support post-ET",
@@ -1885,7 +1888,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000014"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7758),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1799),
                             Dosage = "50 mg x 2–3 times/week",
                             Form = "Intramuscular injection",
                             Indication = "Luteal support post OPU/ET",
@@ -1897,7 +1900,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000015"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7760),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1800),
                             Dosage = "2 mg x 2–3 times/day",
                             Form = "Oral",
                             Indication = "Endometrial thickening",
@@ -1909,7 +1912,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000016"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7763),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1801),
                             Dosage = "50–100 mcg/patch every 2 days",
                             Form = "Transdermal patch",
                             Indication = "Endometrial thickening",
@@ -1921,7 +1924,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000017"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7765),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1802),
                             Dosage = "200–300 mg/day",
                             Form = "Oral",
                             Indication = "Sperm quality improvement",
@@ -1933,7 +1936,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000018"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7768),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1803),
                             Dosage = "400 IU/day",
                             Form = "Oral",
                             Indication = "Antioxidant for sperm",
@@ -1945,7 +1948,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000019"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7770),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1804),
                             Dosage = "25 mg/day",
                             Form = "Oral",
                             Indication = "Spermatogenesis support",
@@ -1957,7 +1960,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000020"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7772),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1805),
                             Dosage = "1500 IU x 2–3 times/week",
                             Form = "Injection",
                             Indication = "Stimulate spermatogenesis",
@@ -1969,7 +1972,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000021"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7818),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1806),
                             Dosage = "150 IU x 2–3 times/week",
                             Form = "Injection",
                             Indication = "Increase sperm production",
@@ -2118,7 +2121,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000010006"),
                             BloodType = "A+",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7115),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1556),
                             EmergencyContact = "Le Van F",
                             EmergencyPhone = "+84900000009",
                             IsActive = true,
@@ -2130,7 +2133,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000010007"),
                             BloodType = "B+",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7123),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1560),
                             EmergencyContact = "Pham Thi G",
                             EmergencyPhone = "+84900000010",
                             IsActive = true,
@@ -2142,7 +2145,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000010008"),
                             BloodType = "O+",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7127),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1561),
                             EmergencyContact = "Hoang Van H",
                             EmergencyPhone = "+84900000011",
                             IsActive = true,
@@ -2354,7 +2357,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6421),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1295),
                             Description = "System administrator",
                             IsDeleted = false,
                             RoleCode = "ADMIN",
@@ -2363,7 +2366,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6433),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1299),
                             Description = "Medical doctor",
                             IsDeleted = false,
                             RoleCode = "DOCTOR",
@@ -2372,7 +2375,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6437),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1300),
                             Description = "Lab technician",
                             IsDeleted = false,
                             RoleCode = "LAB_TECH",
@@ -2381,7 +2384,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6440),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1302),
                             Description = "Front desk staff",
                             IsDeleted = false,
                             RoleCode = "RECEPTIONIST",
@@ -2390,7 +2393,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6443),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1303),
                             Description = "Patient user",
                             IsDeleted = false,
                             RoleCode = "PATIENT",
@@ -2399,7 +2402,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(6446),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1304),
                             Description = "General user",
                             IsDeleted = false,
                             RoleCode = "USER",
@@ -2464,7 +2467,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000101"),
                             Code = "LAB-FSH-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7318),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1642),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "FSH (female)",
@@ -2476,7 +2479,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000102"),
                             Code = "LAB-LH-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7391),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1645),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "LH (female)",
@@ -2488,7 +2491,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000103"),
                             Code = "LAB-E2-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7396),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1647),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Estradiol (E2) (female)",
@@ -2500,7 +2503,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000104"),
                             Code = "LAB-AMH-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7400),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1648),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "AMH (female)",
@@ -2512,7 +2515,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000105"),
                             Code = "LAB-TSH-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7403),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1650),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "TSH (female)",
@@ -2524,7 +2527,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000106"),
                             Code = "LAB-FT-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7407),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1651),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "FT4/FT3 (female)",
@@ -2536,7 +2539,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000107"),
                             Code = "LAB-PRL-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7410),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1672),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Prolactin (female)",
@@ -2548,7 +2551,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000108"),
                             Code = "LAB-P4-F",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7414),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1673),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Progesterone (female)",
@@ -2560,7 +2563,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000109"),
                             Code = "LAB-HIV",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7418),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1674),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "HIV screening",
@@ -2572,7 +2575,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000110"),
                             Code = "LAB-HBSAG",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7421),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1675),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "HBsAg",
@@ -2584,7 +2587,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000111"),
                             Code = "LAB-HCV",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7425),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1677),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Anti-HCV",
@@ -2596,7 +2599,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000112"),
                             Code = "LAB-RPR",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7428),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1678),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "RPR/VDRL (syphilis)",
@@ -2608,7 +2611,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000113"),
                             Code = "LAB-RUB",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7432),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1680),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Rubella IgG/IgM",
@@ -2620,7 +2623,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000114"),
                             Code = "LAB-CMV",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7435),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1681),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "CMV IgG/IgM",
@@ -2632,7 +2635,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000115"),
                             Code = "LAB-CHLA-PCR",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7438),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1682),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Chlamydia PCR",
@@ -2644,7 +2647,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000116"),
                             Code = "LAB-GONO-PCR",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7441),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1684),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Gonorrhea PCR",
@@ -2656,7 +2659,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000117"),
                             Code = "LAB-CBC",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7445),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1685),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Complete blood count (CBC)",
@@ -2668,7 +2671,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000118"),
                             Code = "LAB-GLU",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7448),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1686),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Blood glucose",
@@ -2680,7 +2683,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000119"),
                             Code = "LAB-LFT",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7451),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1688),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "AST/ALT",
@@ -2692,7 +2695,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000120"),
                             Code = "LAB-KFT",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7454),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1689),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Creatinine/Urea",
@@ -2704,7 +2707,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000121"),
                             Code = "LAB-ELEC",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7457),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1690),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Electrolyte panel",
@@ -2716,7 +2719,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000122"),
                             Code = "LAB-ABO",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7460),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1692),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "ABO/Rh blood group",
@@ -2728,7 +2731,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000123"),
                             Code = "LAB-SA",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7463),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1693),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Semen analysis (SA)",
@@ -2740,7 +2743,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000124"),
                             Code = "LAB-SA-REP",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7466),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1694),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Semen analysis repeat",
@@ -2752,7 +2755,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000125"),
                             Code = "LAB-MAR",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7469),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1695),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "MAR test",
@@ -2764,7 +2767,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000126"),
                             Code = "LAB-DFI",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7472),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1696),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "DNA Fragmentation (DFI)",
@@ -2776,7 +2779,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000127"),
                             Code = "LAB-FSH-M",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7475),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1698),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "FSH (male)",
@@ -2788,7 +2791,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000128"),
                             Code = "LAB-LH-M",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7478),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1699),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "LH (male)",
@@ -2800,7 +2803,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000129"),
                             Code = "LAB-TESTO-M",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7481),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1700),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Testosterone (male)",
@@ -2812,7 +2815,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000130"),
                             Code = "LAB-PRL-M",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7484),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1701),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Prolactin (male)",
@@ -2824,7 +2827,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000131"),
                             Code = "LAB-TSH-M",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7488),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1702),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "TSH (male)",
@@ -2836,7 +2839,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000132"),
                             Code = "LAB-KARYO",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7491),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1703),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Karyotype",
@@ -2848,7 +2851,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000133"),
                             Code = "LAB-THALA",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7494),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1705),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Thalassemia test",
@@ -2860,7 +2863,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000134"),
                             Code = "LAB-CFTR",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7497),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1706),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "CFTR (cystic fibrosis)",
@@ -2872,7 +2875,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000135"),
                             Code = "LAB-PGT",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7499),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1707),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "PGT-A/M per embryo",
@@ -2884,7 +2887,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000136"),
                             Code = "LAB-BHCG",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7502),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1708),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "β-hCG",
@@ -2896,7 +2899,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000137"),
                             Code = "LAB-P4-FU",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7505),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1709),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Progesterone follow-up",
@@ -2908,7 +2911,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000138"),
                             Code = "LAB-E2-FU",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7572),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1710),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Estradiol follow-up",
@@ -2920,7 +2923,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000139"),
                             Code = "US-TVS",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7575),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1711),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Transvaginal ultrasound",
@@ -2932,7 +2935,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000140"),
                             Code = "US-ABD",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7579),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1713),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Abdominal ultrasound",
@@ -2944,7 +2947,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000141"),
                             Code = "US-FOLL",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7582),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1714),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Follicular ultrasound",
@@ -2956,7 +2959,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000142"),
                             Code = "IMG-HSG",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7585),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1716),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "HSG (hysterosalpingogram)",
@@ -2968,7 +2971,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000143"),
                             Code = "IMG-HSC",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7588),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1736),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Diagnostic hysteroscopy",
@@ -2980,7 +2983,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000144"),
                             Code = "LAB-SP-COLL",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7591),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1738),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Sperm collection",
@@ -2992,7 +2995,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000145"),
                             Code = "LAB-SP-WASH",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7595),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1739),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Sperm wash",
@@ -3004,7 +3007,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000146"),
                             Code = "LAB-IUI",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7598),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1740),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "IUI procedure",
@@ -3016,7 +3019,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000147"),
                             Code = "LAB-OPU",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7601),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1741),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "OPU (oocyte pickup)",
@@ -3028,7 +3031,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000148"),
                             Code = "LAB-ICSI",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7604),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1743),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "ICSI",
@@ -3040,7 +3043,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000149"),
                             Code = "LAB-EMB-D2D5",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7606),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1744),
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Embryo culture Day2–Day5",
@@ -3093,7 +3096,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000011"),
                             Code = "LAB",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7179),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1585),
                             Description = "Clinical laboratory tests (female/male/post-IVF)",
                             DisplayOrder = 1,
                             IsActive = true,
@@ -3104,7 +3107,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000012"),
                             Code = "IMG",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7184),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1587),
                             Description = "Ultrasound, HSG, hysteroscopy, other imaging",
                             DisplayOrder = 2,
                             IsActive = true,
@@ -3115,7 +3118,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000013"),
                             Code = "GEN",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7187),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1588),
                             Description = "Karyotype, Thalassemia, CFTR, PGT",
                             DisplayOrder = 3,
                             IsActive = true,
@@ -3126,7 +3129,7 @@ namespace FSCMS.Core.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000003"),
                             Code = "PROC",
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7190),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1589),
                             Description = "IUI, OPU, ICSI, sperm prep, embryo culture",
                             DisplayOrder = 4,
                             IsActive = true,
@@ -3264,7 +3267,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7248),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1615),
                             EndTime = new TimeSpan(0, 10, 0, 0, 0),
                             IsDeleted = false,
                             Notes = "Morning Slot 1",
@@ -3273,7 +3276,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7254),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1617),
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
                             IsDeleted = false,
                             Notes = "Morning Slot 2",
@@ -3282,7 +3285,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7257),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1619),
                             EndTime = new TimeSpan(0, 15, 0, 0, 0),
                             IsDeleted = false,
                             Notes = "Afternoon Slot 1",
@@ -3291,7 +3294,7 @@ namespace FSCMS.Core.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 1, 1, 9, 11, 5, 19, DateTimeKind.Utc).AddTicks(7261),
+                            CreatedAt = new DateTime(2026, 1, 1, 8, 36, 56, 510, DateTimeKind.Utc).AddTicks(1620),
                             EndTime = new TimeSpan(0, 17, 0, 0, 0),
                             IsDeleted = false,
                             Notes = "Afternoon Slot 2",

@@ -219,7 +219,7 @@ namespace FSCMS.Service.Services
             {
                 var appointment = await _unitOfWork.Repository<Appointment>()
                                 .AsQueryable()
-                                .Include(p => p.MedicalRecord)
+                                .Include(p => p.MedicalRecords)
                                 .FirstOrDefaultAsync(p => p.Id == request.AppointmentId && !p.IsDeleted);
                 if (appointment == null)
                 {
@@ -230,15 +230,7 @@ namespace FSCMS.Service.Services
                         Data = null
                     };
                 }
-                if (appointment.MedicalRecord != null)
-                {
-                    return new BaseResponse<MedicalRecordResponse>
-                    {
-                        Code = StatusCodes.Status400BadRequest,
-                        Message = "Appointment already have medical record",
-                        Data = null
-                    };
-                }
+                
                 var entity = _mapper.Map<MedicalRecord>(request);
 
                 await _unitOfWork.Repository<MedicalRecord>().InsertAsync(entity);

@@ -228,11 +228,11 @@ namespace FSCMS.Core
                 .HasIndex(ad => new { ad.AppointmentId, ad.DoctorId })
                 .IsUnique();
 
-            // MedicalRecord & Appointment Relationship (One-to-One)
+            // MedicalRecord & Appointment Relationship (Many-to-One)
             modelBuilder.Entity<MedicalRecord>()
                 .HasOne(mr => mr.Appointment)
-                .WithOne(a => a.MedicalRecord)
-                .HasForeignKey<MedicalRecord>(mr => mr.AppointmentId)
+                .WithMany(a => a.MedicalRecords)
+                .HasForeignKey(mr => mr.AppointmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Prescription & MedicalRecord Relationship
