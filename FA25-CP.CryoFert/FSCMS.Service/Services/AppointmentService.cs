@@ -129,7 +129,7 @@ namespace FSCMS.Service.Services
                     .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
                         .ThenInclude(ad => ad.Doctor)
                             .ThenInclude(d => d.Account)
-                    .Include(a => a.MedicalRecord)
+                    .Include(a => a.MedicalRecords.Where(mr => !mr.IsDeleted))
                     .Include(a => a.TreatmentCycle)
                         .ThenInclude(tc => tc.Appointments.Where(ap => !ap.IsDeleted))
                     .Where(a => a.Id == appointmentId && !a.IsDeleted)

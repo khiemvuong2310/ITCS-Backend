@@ -217,16 +217,20 @@ namespace FSCMS.Service.Mapping
                 DoctorCount = baseResponse.DoctorCount
             };
 
-            // Map MedicalRecord
-            if (appointment.MedicalRecord != null)
+            // Map MedicalRecords
+            if (appointment.MedicalRecords != null && appointment.MedicalRecords.Any())
             {
-                detailResponse.MedicalRecord = new AppointmentMedicalRecordInfo
-                {
-                    Id = appointment.MedicalRecord.Id,
-                    RecordDate = appointment.MedicalRecord.CreatedAt,
-                    ChiefComplaint = null, // Add if MedicalRecord has these properties
-                    Diagnosis = null // Add if MedicalRecord has these properties
-                };
+                detailResponse.MedicalRecords = appointment.MedicalRecords
+                    .Where(mr => !mr.IsDeleted)
+                    .Select(mr => new AppointmentMedicalRecordInfo
+                    {
+                        Id = mr.Id,
+                        RecordDate = mr.CreatedAt,
+                        ChiefComplaint = mr.ChiefComplaint,
+                        Diagnosis = mr.Diagnosis
+                    })
+                    .OrderByDescending(mr => mr.RecordDate)
+                    .ToList();
             }
 
             return detailResponse;

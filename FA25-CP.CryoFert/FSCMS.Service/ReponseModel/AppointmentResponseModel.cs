@@ -86,8 +86,8 @@ namespace FSCMS.Service.ReponseModel
     /// </summary>
     public class AppointmentDetailResponse : AppointmentResponse
     {
-        [JsonPropertyName("medicalRecord")]
-        public AppointmentMedicalRecordInfo? MedicalRecord { get; set; }
+        [JsonPropertyName("medicalRecords")]
+        public List<AppointmentMedicalRecordInfo> MedicalRecords { get; set; } = new List<AppointmentMedicalRecordInfo>();
 
         [JsonPropertyName("serviceRequests")]
         public List<AppointmentServiceRequestInfo> ServiceRequests { get; set; } = new List<AppointmentServiceRequestInfo>();

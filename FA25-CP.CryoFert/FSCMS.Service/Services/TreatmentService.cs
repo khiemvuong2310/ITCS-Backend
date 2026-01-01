@@ -302,18 +302,18 @@ namespace FSCMS.Service.Services
                 }
 
                 // Age restriction by treatment type & gender
-                var ageValidation = ValidatePatientAgeForTreatment(
-                    request.TreatmentType,
-                    patient.Account?.Gender,
-                    CalculateAge(patient.Account?.BirthDate, request.StartDate));
+                //var ageValidation = ValidatePatientAgeForTreatment(
+                //    request.TreatmentType,
+                //    patient.Account?.Gender,
+                //    CalculateAge(patient.Account?.BirthDate, request.StartDate));
 
-                if (!ageValidation.IsValid)
-                {
-                    return BaseResponse<TreatmentResponseModel>.CreateError(
-                        ageValidation.Message,
-                        StatusCodes.Status400BadRequest,
-                        ageValidation.SystemCode);
-                }
+                //if (!ageValidation.IsValid)
+                //{
+                //    return BaseResponse<TreatmentResponseModel>.CreateError(
+                //        ageValidation.Message,
+                //        StatusCodes.Status400BadRequest,
+                //        ageValidation.SystemCode);
+                //}
 
                 // Business Rule: Each Patient can only have 1 active Treatment at a time
                 var hasActiveTreatment = await HasActiveTreatmentAsync(request.PatientId);
