@@ -610,23 +610,26 @@ namespace FSCMS.Service.Services
 
                 foreach (var c in contract.CPSDetails)
                 {
-                    var sample = await _unitOfWork.Repository<LabSample>()
+                    if (contract.RenewFromContractId == null)
+                    {
+                        var sample = await _unitOfWork.Repository<LabSample>()
                         .AsQueryable()
                         .FirstOrDefaultAsync(x => x.Id == c.LabSampleId && !x.IsDeleted && x.PatientId == patientId);
-                    if (sample == null)
-                    {
-                        return new BaseResponse<CryoStorageContractResponse>
+                        if (sample == null)
                         {
-                            Code = StatusCodes.Status400BadRequest,
-                            Message = $"Invalid LabSampleId: {c.LabSampleId}",
-                            Data = null
-                        };
+                            return new BaseResponse<CryoStorageContractResponse>
+                            {
+                                Code = StatusCodes.Status400BadRequest,
+                                Message = $"Invalid LabSampleId: {c.LabSampleId}",
+                                Data = null
+                            };
+                        }
+                        sample.Status = SpecimenStatus.QualityChecked;
+                        sample.UpdatedAt = DateTime.UtcNow;
+                        await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
                     }
-                    sample.Status = SpecimenStatus.QualityChecked;
-                    sample.UpdatedAt = DateTime.UtcNow;
                     c.Status = "Canceled";
                     c.UpdatedAt = DateTime.UtcNow;
-                    await _unitOfWork.Repository<LabSample>().UpdateGuid(sample, sample.Id);
                     await _unitOfWork.Repository<CPSDetail>().UpdateGuid(c, c.Id);
                 }
 
