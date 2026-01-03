@@ -68,14 +68,15 @@ namespace FSCMS.Service.Services
             _roleService = roleService;
             _patientService = patientService;
 
-            // Load email configuration from appsettings.json or environment variables
-            _emailSender = configuration["Email:Sender"]
-                ?? Environment.GetEnvironmentVariable("EMAIL_SENDER")
+            // Load email configuration from environment variables or appsettings.json
+            _emailSender = Environment.GetEnvironmentVariable("EMAIL_SENDER")
+                ?? configuration["Email:Sender"]
                 ?? "studentexchangeweb@gmail.com";
-            _emailPassword = configuration["Email:Password"]
-                ?? Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
-                ?? throw new InvalidOperationException("Email password not configured. Please set Email:Password in appsettings.json or EMAIL_PASSWORD environment variable.");
-            _emailSenderName = configuration["Email:SenderName"]
+            _emailPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
+                ?? configuration["Email:Password"]
+                ?? throw new InvalidOperationException("Email password not configured. Please set EMAIL_PASSWORD environment variable or Email:Password in appsettings.json.");
+            _emailSenderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME")
+                ?? configuration["Email:SenderName"]
                 ?? "CryoFert - Fertility Management System";
         }
 
@@ -1190,9 +1191,13 @@ namespace FSCMS.Service.Services
         /// <param name="body">Email body (HTML supported)</param>
         private async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            // Get SMTP configuration from appsettings or use defaults
-            var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
+            // Get SMTP configuration from environment variables or appsettings or use defaults
+            var smtpHost = Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST")
+                ?? _configuration["Email:SmtpHost"]
+                ?? "smtp.gmail.com";
+            var smtpPort = int.Parse(Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT")
+                ?? _configuration["Email:SmtpPort"]
+                ?? "587");
 
             var smtpClient = new SmtpClient(smtpHost)
             {

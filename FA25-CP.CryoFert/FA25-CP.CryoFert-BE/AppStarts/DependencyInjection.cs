@@ -55,19 +55,29 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             // Add UnitOfWork and Repository Pattern
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // Configure MailServiceOptions from configuration
+            // Configure MailServiceOptions from environment variables or configuration
             services.Configure<MailServiceOptions>(options =>
             {
-                configuration.GetSection("Email").Bind(options);
-
-                // Map Email section to MailServiceOptions
-                options.SmtpServer = configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-                options.SmtpPort = int.Parse(configuration["Email:SmtpPort"] ?? "587");
+                // Map Email section to MailServiceOptions (prioritize environment variables)
+                options.SmtpServer = Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST")
+                    ?? configuration["Email:SmtpHost"]
+                    ?? "smtp.gmail.com";
+                options.SmtpPort = int.Parse(Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT")
+                    ?? configuration["Email:SmtpPort"]
+                    ?? "587");
                 options.UseSsl = true;
-                options.SenderEmail = configuration["Email:Sender"] ?? string.Empty;
-                options.SenderName = configuration["Email:SenderName"] ?? "CryoFert - Fertility Management System";
-                options.Username = configuration["Email:Sender"] ?? string.Empty;
-                options.Password = configuration["Email:Password"] ?? string.Empty;
+                options.SenderEmail = Environment.GetEnvironmentVariable("EMAIL_SENDER")
+                    ?? configuration["Email:Sender"]
+                    ?? string.Empty;
+                options.SenderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME")
+                    ?? configuration["Email:SenderName"]
+                    ?? "CryoFert - Fertility Management System";
+                options.Username = Environment.GetEnvironmentVariable("EMAIL_SENDER")
+                    ?? configuration["Email:Sender"]
+                    ?? string.Empty;
+                options.Password = Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
+                    ?? configuration["Email:Password"]
+                    ?? string.Empty;
                 options.TemplatesPath = "Templates"; // Templates folder path
             });
 
