@@ -20,7 +20,19 @@ namespace FA25_CP.CryoFert_BE
         public static void Main(string[] args)
         {
             // 1. Load environment variables từ .env file
-            Env.Load();
+            try
+            {
+                var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+                if (File.Exists(envPath))
+                {
+                    DotNetEnv.Env.Load(envPath);
+                }
+            }
+            catch (Exception)
+            {
+                // Nếu file .env bị lỗi (ví dụ dính ký tự lạ), cứ bỏ qua và chạy tiếp.
+                // Server sẽ dùng Environment Variables trong cấu hình của MonsterASP.
+            }
 
             var builder = WebApplication.CreateBuilder(args);
 
