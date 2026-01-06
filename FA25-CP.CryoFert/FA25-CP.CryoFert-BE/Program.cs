@@ -206,18 +206,28 @@ namespace FA25_CP.CryoFert_BE
             var app = builder.Build();
 
             // 18. Configure middleware pipeline
+
+            // --- FIX LỖI SWAGGER TRÊN PRODUCTION ---
+            // Cho phép Swagger chạy ở mọi môi trường (cả Dev và Prod)
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "FSCMS API v1");
+                // QUAN TRỌNG: Đưa Swagger ra trang chủ để không cần gõ /swagger
+                c.RoutePrefix = string.Empty;
+            });
+
+            // Hiển thị lỗi chi tiết nếu ở Dev, hoặc dùng DeveloperExceptionPage tạm thời để debug lỗi 500.30 trên Prod
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "FSCMS API v1");
-                });
+                app.UseDeveloperExceptionPage();
             }
             else
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                // Tạm thời bật cái này lên để xem lỗi gì trên Azure, sau khi chạy ngon thì đổi lại UseExceptionHandler
+                app.UseDeveloperExceptionPage();
+                // app.UseExceptionHandler("/Error");
+                // app.UseHsts();
             }
 
             app.UseRouting();
