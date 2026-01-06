@@ -206,8 +206,6 @@ namespace FA25_CP.CryoFert_BE
             var app = builder.Build();
 
             // 18. Configure middleware pipeline
-
-            // --- FIX LỖI SWAGGER TRÊN PRODUCTION ---
             // Cho phép Swagger chạy ở mọi môi trường (cả Dev và Prod)
             app.UseSwagger();
             app.UseSwaggerUI(c =>
@@ -217,16 +215,16 @@ namespace FA25_CP.CryoFert_BE
                 c.RoutePrefix = string.Empty;
             });
 
-            // Hiển thị lỗi chi tiết nếu ở Dev, hoặc dùng DeveloperExceptionPage tạm thời để debug lỗi 500.30 trên Prod
+            // Hiển thị lỗi chi tiết nếu ở Dev
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
             else
             {
-                // Tạm thời bật cái này lên để xem lỗi gì trên Azure, sau khi chạy ngon thì đổi lại UseExceptionHandler
-                app.UseDeveloperExceptionPage();
-                // app.UseExceptionHandler("/Error");
+                // Sài UseDeveloperExceptionPage() khi cần debug trên Production
+                //app.UseDeveloperExceptionPage();
+                app.UseExceptionHandler("/Error");
                 // app.UseHsts();
             }
 
