@@ -90,31 +90,42 @@ namespace FA25_CP.CryoFert_BE
             });
 
             // 11. Configure CORS policy "thông minh"
+            //builder.Services.AddCors(options =>
+            //{
+            //    options.AddPolicy("AllowAll", policy =>
+            //    {
+            //        policy.SetIsOriginAllowed(origin =>
+            //        {
+            //            // Nếu origin bị null (ví dụ server gọi server), cho qua luôn
+            //            if (string.IsNullOrWhiteSpace(origin)) return true;
+
+            //            // Cách 1: Cho phép tất cả các thể loại Localhost 
+            //            if (origin.StartsWith("http://localhost") || origin.StartsWith("https://localhost"))
+            //                return true;
+
+            //            // Cách 2: Cho phép theo đuôi tên miền (Production)
+            //            if (origin.EndsWith(".pages.dev")) return true;
+            //            if (origin.EndsWith(".azurewebsites.net")) return true;
+            //            if (origin.EndsWith(".devnguyen.xyz")) return true;
+            //            if (origin.EndsWith(".runasp.net")) return true;
+
+            //            // Mặc định chặn các cái khác
+            //            return false;
+            //        })
+            //        .AllowAnyHeader()
+            //        .AllowAnyMethod()
+            //        .AllowCredentials(); // Quan trọng: Cho phép gửi Cookies/Auth Header
+            //    });
+            //});
+
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.SetIsOriginAllowed(origin =>
-                    {
-                        // Nếu origin bị null (ví dụ server gọi server), cho qua luôn
-                        if (string.IsNullOrWhiteSpace(origin)) return true;
-
-                        // Cách 1: Cho phép tất cả các thể loại Localhost 
-                        if (origin.StartsWith("http://localhost") || origin.StartsWith("https://localhost"))
-                            return true;
-
-                        // Cách 2: Cho phép theo đuôi tên miền (Production)
-                        if (origin.EndsWith(".pages.dev")) return true;
-                        if (origin.EndsWith(".azurewebsites.net")) return true;
-                        if (origin.EndsWith(".devnguyen.xyz")) return true;
-                        if (origin.EndsWith(".runasp.net")) return true;
-
-                        // Mặc định chặn các cái khác
-                        return false;
-                    })
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials(); // Quan trọng: Cho phép gửi Cookies/Auth Header
+                    policy.SetIsOriginAllowed(origin => true)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
                 });
             });
 
