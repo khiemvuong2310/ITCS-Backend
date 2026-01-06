@@ -18,13 +18,26 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Build with dotnet
-        # Tìm file .sln ở mọi nơi
-        run: dotnet build **/*.csproj --configuration Release
+      # BƯỚC QUAN TRỌNG: Liệt kê file để xem cấu trúc thư mục (để debug nếu cần)
+      - name: List files (Debug)
+        run: Get-ChildItem -Recurse
 
+      # BƯỚC SỬA LỖI: Dùng PowerShell tìm chính xác file .csproj đầu tiên tìm thấy
+      - name: Build with dotnet
+        run: |
+          $project = Get-ChildItem -Path . -Filter *.csproj -Recurse | Select-Object -First 1
+          if (-not $project) { 
+            Write-Error "KHONG TIM THAY FILE .CSPROJ NAO!" 
+            exit 1
+          }
+          Write-Host "Da tim thay project: $($project.FullName)"
+          dotnet build $project.FullName --configuration Release
+
+      # Publish đúng file vừa tìm được
       - name: dotnet publish
-        # Publish file .sln tìm thấy
-        run: dotnet publish **/*.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: |
+          $project = Get-ChildItem -Path . -Filter *.csproj -Recurse | Select-Object -First 1
+          dotnet publish $project.FullName -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -35,16 +48,13 @@ jobs:
   deploy:
     runs-on: windows-latest
     needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
+    
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: .net-app
-
+      
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -52,6 +62,5 @@ jobs:
           app-name: 'cryofert'
           slot-name: 'Production'
           package: .
-          # QUAN TRỌNG: Dùng đúng tên Secret thủ công bạn vừa tạo
+          # Dùng key thủ công bạn đã tạo
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-
