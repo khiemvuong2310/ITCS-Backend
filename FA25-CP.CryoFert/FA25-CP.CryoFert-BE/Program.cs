@@ -19,7 +19,7 @@ namespace FA25_CP.CryoFert_BE
     {
         public static void Main(string[] args)
         {
-            // 1. Load environment variables từ .env file
+            // 1. Load environment variables
             try
             {
                 var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
@@ -28,35 +28,36 @@ namespace FA25_CP.CryoFert_BE
                     DotNetEnv.Env.Load(envPath);
                 }
             }
-            catch (Exception)
-            {
-                // Nếu file .env bị lỗi (ví dụ dính ký tự lạ), cứ bỏ qua và chạy tiếp.
-                // Server sẽ dùng Environment Variables trong cấu hình của MonsterASP.
-            }
+            catch (Exception) { }
 
             var builder = WebApplication.CreateBuilder(args);
 
-            // 2. Configure core services - Controllers với JSON options
+            // --- Logging để debug lỗi 500 trên Azure ---
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.AddDebug();
+
+            // 2. Configure core services
             builder.Services.AddControllers().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.ReferenceHandler = null;
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
-            // 3. Add HTTP context accessor để truy cập HttpContext trong services
+            // 3. Add HTTP context accessor
             builder.Services.AddHttpContextAccessor();
 
-            // 4. Add MVC services (Controllers với Views và Razor Pages)
+            // 4. Add MVC services
             builder.Services.AddControllersWithViews();
             builder.Services.AddRazorPages();
 
-            // 5. Add memory cache để tối ưu hiệu suất
+            // 5. Add memory cache
             builder.Services.AddMemoryCache();
 
-            // 6. Add problem details cho exception handling
+            // 6. Add problem details
             builder.Services.AddProblemDetails();
 
-            // 7. Configure SignalR cho real-time communication
+            // 7. Configure SignalR
             builder.Services.AddSignalR();
 
             // 8. Configure Cloudinary settings cho image upload
@@ -67,7 +68,7 @@ namespace FA25_CP.CryoFert_BE
                 options.ApiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_APISECRET") ?? "";
             });
 
-            // 9. Configure VnPay settings cho payment gateway
+            // 9. Configure VnPay
             builder.Services.Configure<VnPayOptions>(options =>
             {
                 options.vnp_Url = Environment.GetEnvironmentVariable("VNPAY_URL") ?? "";
@@ -88,32 +89,36 @@ namespace FA25_CP.CryoFert_BE
                 options.pos_WebhookUrl = Environment.GetEnvironmentVariable("PAYOS_WEBHOOK_URL") ?? "";
             });
 
-            // 11. Configure CORS policy để cho phép frontend truy cập API
+            // 11. Configure CORS policy "thông minh"
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.WithOrigins(
-                            "http://localhost:5173",
-                            "https://localhost:5173",
-                            "http://localhost:3000",
-                            "https://localhost:3000",
-                            "http://localhost:3001",
-                            "https://localhost:3001",
-                            "https://localhost",
-                            "https://fscms.pages.dev",
-                            "https://cryo.devnguyen.xyz",
-                            "https://cryofert.runasp.net",
-                            "http://localhost:5174",
-                            "https://cryofert-mobile-preview.pages.dev"
-                          )
-                          .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials();
+                    policy.SetIsOriginAllowed(origin =>
+                    {
+                        // Nếu origin bị null (ví dụ server gọi server), cho qua luôn
+                        if (string.IsNullOrWhiteSpace(origin)) return true;
+
+                        // Cách 1: Cho phép tất cả các thể loại Localhost 
+                        if (origin.StartsWith("http://localhost") || origin.StartsWith("https://localhost"))
+                            return true;
+
+                        // Cách 2: Cho phép theo đuôi tên miền (Production)
+                        if (origin.EndsWith(".pages.dev")) return true;
+                        if (origin.EndsWith(".azurewebsites.net")) return true;
+                        if (origin.EndsWith(".devnguyen.xyz")) return true;
+                        if (origin.EndsWith(".runasp.net")) return true;
+
+                        // Mặc định chặn các cái khác
+                        return false;
+                    })
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials(); // Quan trọng: Cho phép gửi Cookies/Auth Header
                 });
             });
 
-            // 12. Configure form options - giới hạn upload file 100 MB
+            // 12. Configure form options
             builder.Services.Configure<FormOptions>(options =>
             {
                 options.MultipartBodyLengthLimit = 104857600; // 100 MB
@@ -129,119 +134,78 @@ namespace FA25_CP.CryoFert_BE
                     ?? builder.Configuration["DB_CONNECTION_STRING"];
 
                 if (string.IsNullOrWhiteSpace(connectionString))
-                    throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
+                    Console.WriteLine("WARNING: Connection String is NULL!");
 
-                var serverVersion = ServerVersion.AutoDetect(connectionString);
+                var serverVersion = ServerVersion.AutoDetect(connectionString ?? "server=localhost;");
                 options.UseMySql(connectionString, serverVersion,
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
 
-                // Thêm second level cache interceptor để tự động cache queries
                 options.AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
             });
-            //builder.Services.AddDbContext<AppDbContext>(options =>
-            //{
-            //    var connectionString =
-            //        Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
-            //        ?? builder.Configuration.GetConnectionString("DefaultConnection")
-            //        ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
-            //        ?? builder.Configuration["DB_CONNECTION_STRING"];
 
-            //    if (string.IsNullOrWhiteSpace(connectionString))
-            //        throw new InvalidOperationException("Missing DB_CONNECTION_STRING (.env) or ConnectionStrings:DefaultConnection (appsettings)");
-
-            //    var serverVersion = ServerVersion.AutoDetect(connectionString);
-            //    options.UseMySql(connectionString, serverVersion,
-            //        mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
-            //});
-
-            // 14. Install custom dependency injection services (bao gồm caching services)
+            // 14. Install custom services
             builder.Services.InstallService(builder.Configuration);
 
-            // 15. Configure Authentication & Authorization với JWT
+            // 15. Configure Auth
             builder.Services.ConfigureAuthService(builder.Configuration);
 
-            // 16. Configure Swagger/OpenAPI documentation với JWT authentication
+            // 16. Configure Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.EnableAnnotations();
-
-                // Đăng ký operation filter cho default responses
                 c.OperationFilter<ApiDefaultResponseOperationFilter>();
-
-                // Include XML comments nếu file tồn tại
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "FSCMS API", Version = "v1" });
 
-                c.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Title = "FSCMS API",
-                    Version = "v1"
-                });
-
-                // Configure JWT Bearer authentication cho Swagger
+                // JWT Setup
                 var securitySchema = new OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Description = "JWT Authorization header using the Bearer scheme.",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer",
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
                 };
-
                 c.AddSecurityDefinition("Bearer", securitySchema);
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    { securitySchema, new[] { "Bearer" } }
-                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement { { securitySchema, new[] { "Bearer" } } });
             });
 
             // 17. Build application
             var app = builder.Build();
 
             // 18. Configure middleware pipeline
-            // Cho phép Swagger chạy ở mọi môi trường (cả Dev và Prod)
+
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "FSCMS API v1");
-                // QUAN TRỌNG: Đưa Swagger ra trang chủ để không cần gõ /swagger
                 c.RoutePrefix = string.Empty;
             });
 
-            // Hiển thị lỗi chi tiết nếu ở Dev
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                // Sài UseDeveloperExceptionPage() khi cần debug trên Production
-                //app.UseDeveloperExceptionPage();
-                app.UseExceptionHandler("/Error");
-                // app.UseHsts();
-            }
+            // Sử dụng Developer Exception Page ở mọi nơi tạm thời để debug lỗi 500 Cors Preflight
+            app.UseDeveloperExceptionPage();
 
             app.UseRouting();
-            app.UseExceptionHandler();
-            app.UseHttpsRedirection();
+
+            // CORS PHẢI ĐẶT SAU ROUTING VÀ TRƯỚC AUTH
             app.UseCors("AllowAll");
+
+            app.UseHttpsRedirection();
+
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // 19. Map SignalR hubs cho real-time communication
+            // 19. Map Hubs
             app.MapHub<TransactionHub>("/transactionHub");
             app.MapHub<NotificationHub>("/notificationHub");
 
             app.MapControllers();
 
-            // 20. Run application
+            // 20. Run
             app.Run();
         }
     }
