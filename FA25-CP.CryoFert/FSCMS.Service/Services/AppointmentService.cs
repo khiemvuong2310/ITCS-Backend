@@ -792,8 +792,15 @@ namespace FSCMS.Service.Services
                     request.CheckOutTime,
                     false
                 );
-
                 await _unitOfWork.Repository<Appointment>().InsertAsync(appointment);
+                var noti = new Notification(Guid.NewGuid(), "New Appointment", $"New Appointment {request.AppointmentDate.ToString()}", NotificationType.Appointment);
+                noti.Status = NotificationStatus.Sent;
+                noti.PatientId = request.PatientId;
+                noti.SentTime = DateTime.UtcNow;
+                noti.Channel = "Appointment";
+                noti.RelatedEntityType = "Appointment";
+                noti.RelatedEntityId = appointment.Id;
+                await _unitOfWork.Repository<Notification>().InsertAsync(noti);
                 // Entity will be cached automatically after SaveChanges
 
                 // Add doctors to appointment if provided

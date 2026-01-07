@@ -8,6 +8,7 @@ namespace FSCMS.Core.Enum
         Payment = 4,
         Treatment = 5,
         Relationship = 6,
-        Reminder = 7
+        Reminder = 7,
+        CryoStorageContract = 8,
     }
 }

@@ -278,6 +278,16 @@ namespace FSCMS.Service.Services
                 transaction.ReferenceNumber = transaction.TransactionCode;
 
                 await _unitOfWork.Repository<Transaction>().InsertAsync(transaction);
+
+                var noti = new Notification(Guid.NewGuid(), "New Transaction", $"New Transaction {transaction.TransactionCode}", NotificationType.Payment);
+                noti.Status = NotificationStatus.Sent;
+                noti.PatientId = patientId;
+                noti.SentTime = DateTime.UtcNow;
+                noti.Channel = "Transaction";
+                noti.RelatedEntityType = "Transaction";
+                noti.RelatedEntityId = transaction.Id;
+                await _unitOfWork.Repository<Notification>().InsertAsync(noti);
+
                 await _unitOfWork.CommitAsync();
 
                 var response = _mapper.Map<TransactionResponseModel>(transaction);

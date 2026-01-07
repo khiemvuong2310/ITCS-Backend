@@ -521,6 +521,15 @@ namespace FSCMS.Service.Services
                 entity.IsAutoRenew = false;
                 entity.Notes = request.Notes;
                 await _unitOfWork.Repository<CryoStorageContract>().InsertAsync(entity);
+
+                var noti = new Notification(Guid.NewGuid(), "New Cryo Storage Contract", $"New Cryo Storage Contract {entity.ContractNumber}", NotificationType.CryoStorageContract);
+                noti.Status = NotificationStatus.Sent;
+                noti.PatientId = request.PatientId;
+                noti.SentTime = DateTime.UtcNow;
+                noti.Channel = "Cryo Storage Contract";
+                noti.RelatedEntityType = "CryoStorageContract";
+                noti.RelatedEntityId = entity.Id;
+                await _unitOfWork.Repository<Notification>().InsertAsync(noti);
                 CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
                 {
                     Amount = entity.TotalAmount,
