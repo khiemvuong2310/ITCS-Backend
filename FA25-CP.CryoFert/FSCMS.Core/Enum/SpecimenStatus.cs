@@ -47,5 +47,6 @@ namespace FSCMS.Core.Enum
         /// </summary>
         Thawed = 9,
         Reserved = 10,
+        Expired = 11,
     }
 }

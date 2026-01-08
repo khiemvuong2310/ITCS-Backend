@@ -1313,6 +1313,82 @@ namespace FSCMS.Service.Services
         #endregion
 
         #region DELETE
+
+        public async Task<BaseResponse<LabSampleResponse>> DisposeAsync(Guid id)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            const string methodName = nameof(UpdateOocyteAsync);
+            _logger.LogInformation("{MethodName} called with ID: {Id}", methodName, id);
+
+            if (id == Guid.Empty)
+            {
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid lab sample ID."
+                };
+            }
+            try
+            {
+                var entity = await _unitOfWork.Repository<LabSample>()
+                    .AsQueryable()
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (entity == null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Message = "Oocyte sample not found."
+                    };
+                }
+
+                if (entity.Status != SpecimenStatus.Expired)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "sample has not expired"
+                    };
+                }
+
+                if (entity.CryoLocationId != null)
+                {
+                    return new BaseResponse<LabSampleResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Sample is still in storage and cannot be disposed of"
+                    };
+                }
+
+                entity.Status = SpecimenStatus.Disposed;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<LabSample>().UpdateGuid(entity, entity.Id);
+                await _unitOfWork.CommitAsync();
+                await transaction.CommitAsync();
+
+                var response = _mapper.Map<LabSampleResponse>(entity);
+
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status200OK,
+                    Message = "Sample dispose successfully.",
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "{MethodName}: Error dispose sample {Id}", methodName, id);
+                return new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = "Internal server error."
+                };
+            }
+        }
+
         public async Task<BaseResponse> DeleteAsync(Guid id)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();

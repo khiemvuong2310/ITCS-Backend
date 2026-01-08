@@ -202,9 +202,14 @@ namespace FSCMS.Service.Services
                 }
                 var entity = _mapper.Map<CryoExport>(request);
                 //locationExists.LabSamples = null;
-                labSampleExists.Status = SpecimenStatus.QualityChecked;
+                if(labSampleExists.Status != SpecimenStatus.Expired)
+                {
+                    labSampleExists.Status = SpecimenStatus.QualityChecked;
+                }
+                
                 await DecrementSampleCountAsync(locationExists.Id);
                 labSampleExists.CryoLocationId = null;
+                labSampleExists.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Repository<LabSample>().UpdateGuid(labSampleExists, labSampleExists.Id);
 
                 await _unitOfWork.Repository<CryoExport>().InsertAsync(entity);

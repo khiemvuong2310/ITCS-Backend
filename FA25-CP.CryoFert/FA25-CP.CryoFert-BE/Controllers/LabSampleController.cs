@@ -239,6 +239,24 @@ namespace FA25_CP.CryoFert_BE.Controllers
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 
+        [HttpPut("dispose/{id}")]
+        //[Authorize(Roles = "LaboratoryTechnician")]
+        [ApiDefaultResponse(typeof(LabSampleResponse), UseDynamicWrapper = false)]
+        public async Task<IActionResult> DisposeAsync(Guid id)
+        {
+            if (!ModelState.IsValid || id == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse<LabSampleResponse>
+                {
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid input data or sample ID."
+                });
+            }
+
+            var result = await _labSampleService.DisposeAsync(id);
+            return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
+        }
+
         /// <summary>
         /// Delete a lab sample (soft delete)
         /// </summary>
