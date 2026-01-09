@@ -793,6 +793,7 @@ namespace FSCMS.Service.Services
                     false
                 );
                 await _unitOfWork.Repository<Appointment>().InsertAsync(appointment);
+                
                 var noti = new Notification(Guid.NewGuid(), "New Appointment", $"New Appointment {request.AppointmentDate.ToString()}", NotificationType.Appointment);
                 noti.Status = NotificationStatus.Sent;
                 noti.PatientId = request.PatientId;

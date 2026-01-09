@@ -1078,15 +1078,30 @@ namespace FSCMS.Service.Services
                     return BaseResponse<RelationshipResponse>.CreateError("Patient account information is missing", StatusCodes.Status404NotFound, "RELATIONSHIP_003_ACCOUNT");
                 }
 
-                // 4. Business rules validation - Patient genders and relationship type
-                var validationResult = await ValidateRelationshipBusinessRulesAsync(patient1, patient2, request.RelationshipType);
-                if (!validationResult.IsValid)
+                // 4.Check each patient can only have ONE relationship 
+                var patient1ValidationResult = await ValidatePatientHasNoExistingRelationshipAsync(request.Patient1Id, patient1);
+                if (!patient1ValidationResult.IsValid)
                 {
-                    _logger.LogWarning("{MethodName}: Business rule validation failed - {Error}", methodName, validationResult.ErrorMessage);
-                    return BaseResponse<RelationshipResponse>.CreateError(validationResult.ErrorMessage, StatusCodes.Status400BadRequest, validationResult.ErrorCode);
+                    _logger.LogWarning("{MethodName}: Patient1 validation failed - {Error}", methodName, patient1ValidationResult.ErrorMessage);
+                    return BaseResponse<RelationshipResponse>.CreateError(patient1ValidationResult.ErrorMessage, StatusCodes.Status409Conflict, patient1ValidationResult.ErrorCode);
                 }
 
-                // 5. Check for existing pending/approved relationship
+                var patient2ValidationResult = await ValidatePatientHasNoExistingRelationshipAsync(request.Patient2Id, patient2);
+                if (!patient2ValidationResult.IsValid)
+                {
+                    _logger.LogWarning("{MethodName}: Patient2 validation failed - {Error}", methodName, patient2ValidationResult.ErrorMessage);
+                    return BaseResponse<RelationshipResponse>.CreateError(patient2ValidationResult.ErrorMessage, StatusCodes.Status409Conflict, patient2ValidationResult.ErrorCode);
+                }
+
+                // 5. Patient genders and relationship type
+                var businessRulesValidationResult = await ValidateRelationshipBusinessRulesAsync(patient1, patient2, request.RelationshipType);
+                if (!businessRulesValidationResult.IsValid)
+                {
+                    _logger.LogWarning("{MethodName}: Business rule validation failed - {Error}", methodName, businessRulesValidationResult.ErrorMessage);
+                    return BaseResponse<RelationshipResponse>.CreateError(businessRulesValidationResult.ErrorMessage, StatusCodes.Status400BadRequest, businessRulesValidationResult.ErrorCode);
+                }
+
+                // 6. Check for existing pending/approved relationship between these two specific patients
                 var existingRelationship = await _unitOfWork.Repository<Relationship>()
                     .AsQueryable()
                     .Where(r => ((r.Patient1Id == request.Patient1Id && r.Patient2Id == request.Patient2Id) ||
@@ -1099,16 +1114,16 @@ namespace FSCMS.Service.Services
                     if (existingRelationship.Status == RelationshipStatus.Pending)
                     {
                         _logger.LogWarning("{MethodName}: Relationship request already pending", methodName);
-                        return BaseResponse<RelationshipResponse>.CreateError("A pending relationship request already exists", StatusCodes.Status409Conflict, "RELATIONSHIP_004_PENDING");
+                        return BaseResponse<RelationshipResponse>.CreateError("A pending relationship request already exists between these patients", StatusCodes.Status409Conflict, "RELATIONSHIP_004_PENDING");
                     }
                     else if (existingRelationship.Status == RelationshipStatus.Approved)
                     {
                         _logger.LogWarning("{MethodName}: Relationship already approved", methodName);
-                        return BaseResponse<RelationshipResponse>.CreateError("Relationship already exists and is approved", StatusCodes.Status409Conflict, "RELATIONSHIP_004_APPROVED");
+                        return BaseResponse<RelationshipResponse>.CreateError("Relationship already exists and is approved between these patients", StatusCodes.Status409Conflict, "RELATIONSHIP_004_APPROVED");
                     }
                 }
 
-                // 6. Create relationship with Pending status
+                // 7. Create relationship with Pending status
                 // Generate secure approval token for email-based verification
                 var approvalToken = GenerateSecureToken();
 
@@ -1133,7 +1148,7 @@ namespace FSCMS.Service.Services
 
                 _logger.LogInformation("{MethodName}: Relationship request created successfully with ID: {RelationshipId}", methodName, relationship.Id);
 
-                // 7. Send email confirmation to Patient2
+                // 8. Send email confirmation to Patient2
                 try
                 {
                     await SendRelationshipConfirmationEmailAsync(relationship, patient1, patient2);
@@ -1146,7 +1161,7 @@ namespace FSCMS.Service.Services
                     // Continue - relationship is created, email can be retried later
                 }
 
-                // 8. Return response
+                // 9. Return response
                 var createdRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
                 var response = _mapper.Map<RelationshipResponse>(createdRelationship);
                 HydrateRelationshipResponseFullName(response, createdRelationship);
@@ -2510,7 +2525,65 @@ namespace FSCMS.Service.Services
         }
 
         /// <summary>
-        /// Validates business rules for relationship creation
+        /// Validates that a patient does not have any existing approved relationship (1-1 constraint)
+        /// Each patient can only have ONE relationship with another patient
+        /// </summary>
+        private async Task<(bool IsValid, string ErrorMessage, string ErrorCode)> ValidatePatientHasNoExistingRelationshipAsync(
+            Guid patientId, Patient patient)
+        {
+            // Check if the patient already has ANY approved relationship
+            var existingApprovedRelationship = await _unitOfWork.Repository<Relationship>()
+                .AsQueryable()
+                .Where(r => (r.Patient1Id == patientId || r.Patient2Id == patientId) &&
+                           r.Status == RelationshipStatus.Approved &&
+                           !r.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (existingApprovedRelationship != null)
+            {
+                var patientName = patient.Account != null 
+                    ? $"{patient.Account.FirstName} {patient.Account.LastName}".Trim() 
+                    : patient.PatientCode;
+
+                if (string.IsNullOrWhiteSpace(patientName))
+                {
+                    patientName = patient.PatientCode;
+                }
+
+                return (false, 
+                    $"Patient '{patientName}' already has an approved relationship. Each patient can only have one relationship.", 
+                    "RELATIONSHIP_VALIDATION_ONE_TO_ONE");
+            }
+
+            // Also check for pending relationships to prevent multiple simultaneous requests
+            var existingPendingRelationship = await _unitOfWork.Repository<Relationship>()
+                .AsQueryable()
+                .Where(r => (r.Patient1Id == patientId || r.Patient2Id == patientId) &&
+                           r.Status == RelationshipStatus.Pending &&
+                           !r.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (existingPendingRelationship != null)
+            {
+                var patientName = patient.Account != null 
+                    ? $"{patient.Account.FirstName} {patient.Account.LastName}".Trim() 
+                    : patient.PatientCode;
+
+                if (string.IsNullOrWhiteSpace(patientName))
+                {
+                    patientName = patient.PatientCode;
+                }
+
+                return (false, 
+                    $"Patient '{patientName}' already has a pending relationship request. Please wait for it to be processed.", 
+                    "RELATIONSHIP_VALIDATION_PENDING_EXISTS");
+            }
+
+            return (true, string.Empty, string.Empty);
+        }
+
+        /// <summary>
+        /// Validates business rules for relationship creation (gender compatibility)
         /// </summary>
         private async Task<(bool IsValid, string ErrorMessage, string ErrorCode)> ValidateRelationshipBusinessRulesAsync(
             Patient patient1, Patient patient2, RelationshipType relationshipType)
@@ -2539,7 +2612,7 @@ namespace FSCMS.Service.Services
             // Validate gender compatibility with RelationshipType
             if (relationshipType == RelationshipType.Married)
             {
-                // Married relationship validation - both patients must have different
+                // Married relationship validation - both patients must have different genders
                 if (patient1Gender == patient2Gender)
                 {
                     return (false, "Invalid gender combination for Married relationship. Patients must have different genders.", "RELATIONSHIP_VALIDATION_GENDER_004");
@@ -2547,42 +2620,10 @@ namespace FSCMS.Service.Services
             }
             else if (relationshipType == RelationshipType.Unmarried)
             {
-                // Unmarried relationship validation - both patients must have different
+                // Unmarried relationship validation - both patients must have different genders
                 if (patient1Gender == patient2Gender)
                 {
-                    return (false, "Invalid gender combination for Unmarried relationship. Patients must have different genders .", "RELATIONSHIP_VALIDATION_GENDER_005");
-                }
-            }
-
-            // Spouse relationship validation (1-1 rule)
-            if (relationshipType == RelationshipType.Married || relationshipType == RelationshipType.Unmarried)
-            {
-                // Check if Patient1 already has an approved spouse
-                var existingSpouse1 = await _unitOfWork.Repository<Relationship>()
-                    .AsQueryable()
-                    .Where(r => (r.Patient1Id == patient1.Id || r.Patient2Id == patient1.Id) &&
-                               (r.RelationshipType == RelationshipType.Married || r.RelationshipType == RelationshipType.Unmarried) &&
-                               r.Status == RelationshipStatus.Approved &&
-                               !r.IsDeleted)
-                    .FirstOrDefaultAsync();
-
-                if (existingSpouse1 != null)
-                {
-                    return (false, "Patient already has an approved spouse relationship. Only one spouse relationship is allowed per patient.", "RELATIONSHIP_VALIDATION_001_SPOUSE_1");
-                }
-
-                // Check if Patient2 already has an approved spouse
-                var existingSpouse2 = await _unitOfWork.Repository<Relationship>()
-                    .AsQueryable()
-                    .Where(r => (r.Patient1Id == patient2.Id || r.Patient2Id == patient2.Id) &&
-                               (r.RelationshipType == RelationshipType.Married || r.RelationshipType == RelationshipType.Unmarried) &&
-                               r.Status == RelationshipStatus.Approved &&
-                               !r.IsDeleted)
-                    .FirstOrDefaultAsync();
-
-                if (existingSpouse2 != null)
-                {
-                    return (false, "The other patient already has an approved spouse relationship. Only one spouse relationship is allowed per patient.", "RELATIONSHIP_VALIDATION_001_SPOUSE_2");
+                    return (false, "Invalid gender combination for Unmarried relationship. Patients must have different genders.", "RELATIONSHIP_VALIDATION_GENDER_005");
                 }
             }
 
