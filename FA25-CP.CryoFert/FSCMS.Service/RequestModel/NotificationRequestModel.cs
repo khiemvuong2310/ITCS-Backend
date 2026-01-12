@@ -88,7 +88,6 @@ namespace FSCMS.Service.RequestModel
     }
 
     public enum EntityTypeNotification
-
     {
         MedicalRecord = 0,
         TreatmentCycle = 1,
@@ -100,5 +99,6 @@ namespace FSCMS.Service.RequestModel
         CryoExport = 7,
         ServiceRequest = 8,
         Appointment = 9,
+        Relationship = 10
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Linq;
+using System.Security.Claims;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Data.UnitOfWork;
@@ -21,6 +22,8 @@ namespace FSCMS.Service.Services
         private readonly ILogger<TreatmentService> _logger;
         private readonly ITreatmentIUIService _treatmentIUIService;
         private readonly ITreatmentIVFService _treatmentIVFService;
+        private readonly INotificationService _notificationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         #endregion
 
         #region Constructor
@@ -29,12 +32,16 @@ namespace FSCMS.Service.Services
             IUnitOfWork unitOfWork,
             ILogger<TreatmentService> logger,
             ITreatmentIUIService treatmentIUIService,
-            ITreatmentIVFService treatmentIVFService)
+            ITreatmentIVFService treatmentIVFService,
+            INotificationService notificationService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _treatmentIUIService = treatmentIUIService ?? throw new ArgumentNullException(nameof(treatmentIUIService));
             _treatmentIVFService = treatmentIVFService ?? throw new ArgumentNullException(nameof(treatmentIVFService));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
 
         #endregion
@@ -434,6 +441,12 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.CommitAsync();
                 await transaction.CommitAsync();
 
+                await TryCreateTreatmentNotificationAsync(
+                    entity,
+                    patient,
+                    "Treatment created",
+                    $"Treatment {entity.TreatmentName} has been created and is pending progress.");
+
                 // Retrieve the created treatment with related data
                 var created = await _unitOfWork.Repository<Treatment>()
                     .GetQueryable()
@@ -810,6 +823,58 @@ namespace FSCMS.Service.Services
             }
 
             return age;
+        }
+
+        private Guid? GetCurrentAccountId()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim))
+                {
+                    return null;
+                }
+
+                return Guid.TryParse(userIdClaim, out var accountId) ? accountId : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting current account ID from context");
+                return null;
+            }
+        }
+
+        private async Task TryCreateTreatmentNotificationAsync(Treatment treatment, Patient patient, string title, string content)
+        {
+            try
+            {
+                var accountId = GetCurrentAccountId() ?? patient.Id;
+                if (accountId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Unable to determine accountId for treatment notification {TreatmentId}", nameof(TryCreateTreatmentNotificationAsync), treatment.Id);
+                    return;
+                }
+
+                var request = new CreateNotificationRequest
+                {
+                    Title = title,
+                    Content = content,
+                    Type = NotificationType.Treatment,
+                    RelatedEntityId = treatment.Id,
+                    RelatedEntityType = EntityTypeNotification.Treatment,
+                    Channel = "System"
+                };
+
+                var result = await _notificationService.CreateNotificationAsync(request, accountId);
+                if (!result.Success)
+                {
+                    _logger.LogWarning("{MethodName}: Failed to create notification for treatment {TreatmentId}. Message: {Message}", nameof(TryCreateTreatmentNotificationAsync), treatment.Id, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error creating notification for treatment {TreatmentId}", nameof(TryCreateTreatmentNotificationAsync), treatment.Id);
+            }
         }
 
         /// <summary>

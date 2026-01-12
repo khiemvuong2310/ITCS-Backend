@@ -10,5 +10,6 @@ namespace FSCMS.Core.Enum
         Relationship = 6,
         Reminder = 7,
         CryoStorageContract = 8,
+        Agreement = 9
     }
 }

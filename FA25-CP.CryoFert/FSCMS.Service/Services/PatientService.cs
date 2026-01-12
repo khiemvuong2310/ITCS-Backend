@@ -26,6 +26,7 @@ namespace FSCMS.Service.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMailService _mailService;
         private readonly IEmailTemplateService _emailTemplateService;
+        private readonly INotificationService _notificationService;
 
         public PatientService(
             IUnitOfWork unitOfWork,
@@ -33,7 +34,8 @@ namespace FSCMS.Service.Services
             ILogger<PatientService> logger,
             IHttpContextAccessor httpContextAccessor,
             IMailService mailService,
-            IEmailTemplateService emailTemplateService)
+            IEmailTemplateService emailTemplateService,
+            INotificationService notificationService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -41,6 +43,7 @@ namespace FSCMS.Service.Services
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             _mailService = mailService ?? throw new ArgumentNullException(nameof(mailService));
             _emailTemplateService = emailTemplateService ?? throw new ArgumentNullException(nameof(emailTemplateService));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         }
 
         #region Patient CRUD Operations
@@ -1161,6 +1164,8 @@ namespace FSCMS.Service.Services
                     // Continue - relationship is created, email can be retried later
                 }
 
+                await TryCreateRelationshipNotificationAsync(relationship, patient1, patient2);
+
                 // 9. Return response
                 var createdRelationship = await GetRelationshipWithPatientsAsync(relationship.Id);
                 var response = _mapper.Map<RelationshipResponse>(createdRelationship);
@@ -2124,6 +2129,43 @@ namespace FSCMS.Service.Services
                 {
                     response.Patient2Info.FullName = null;
                 }
+            }
+        }
+
+        private async Task TryCreateRelationshipNotificationAsync(Relationship relationship, Patient patient1, Patient patient2)
+        {
+            try
+            {
+                var accountId = GetCurrentAccountId() ?? patient1.Id;
+                if (accountId == Guid.Empty)
+                {
+                    _logger.LogWarning("{MethodName}: Unable to determine accountId for relationship notification {RelationshipId}", nameof(TryCreateRelationshipNotificationAsync), relationship.Id);
+                    return;
+                }
+
+                var patient1Name = $"{patient1.Account?.FirstName} {patient1.Account?.LastName}".Trim();
+                var patient2Name = $"{patient2.Account?.FirstName} {patient2.Account?.LastName}".Trim();
+
+                var request = new CreateNotificationRequest
+                {
+                    Title = "Relationship request created",
+                    Content = $"A relationship request from {patient1Name} to {patient2Name} has been created.",
+                    Type = NotificationType.Relationship,
+                    RelatedEntityId = relationship.Id,
+                    RelatedEntityType = EntityTypeNotification.Relationship,
+                    Channel = "System",
+                    Notes = relationship.Notes
+                };
+
+                var result = await _notificationService.CreateNotificationAsync(request, accountId);
+                if (!result.Success)
+                {
+                    _logger.LogWarning("{MethodName}: Failed to create notification for relationship {RelationshipId}. Message: {Message}", nameof(TryCreateRelationshipNotificationAsync), relationship.Id, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error creating notification for relationship {RelationshipId}", nameof(TryCreateRelationshipNotificationAsync), relationship.Id);
             }
         }
 
