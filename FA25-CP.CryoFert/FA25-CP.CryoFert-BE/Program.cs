@@ -89,7 +89,7 @@ namespace FA25_CP.CryoFert_BE
                 options.pos_WebhookUrl = Environment.GetEnvironmentVariable("PAYOS_WEBHOOK_URL") ?? "";
             });
 
-            // 11. Configure CORS policy "thông minh"
+            // 11. Configure CORS policy
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
@@ -99,22 +99,26 @@ namespace FA25_CP.CryoFert_BE
                         // Nếu origin bị null (ví dụ server gọi server), cho qua luôn
                         if (string.IsNullOrWhiteSpace(origin)) return true;
 
+                        // Normalize origin để so sánh (lowercase)
+                        var normalizedOrigin = origin.ToLowerInvariant();
+
                         // Cách 1: Cho phép tất cả các thể loại Localhost 
-                        if (origin.StartsWith("http://localhost") || origin.StartsWith("https://localhost"))
+                        if (normalizedOrigin.StartsWith("http://localhost") || normalizedOrigin.StartsWith("https://localhost"))
                             return true;
 
                         // Cách 2: Cho phép theo đuôi tên miền (Production)
-                        if (origin.EndsWith(".pages.dev")) return true;
-                        if (origin.EndsWith(".azurewebsites.net")) return true;
-                        if (origin.EndsWith(".devnguyen.xyz")) return true;
-                        if (origin.EndsWith(".runasp.net")) return true;
+                        if (normalizedOrigin.EndsWith(".pages.dev")) return true;
+                        if (normalizedOrigin.EndsWith(".azurewebsites.net")) return true;
+                        if (normalizedOrigin.EndsWith(".devnguyen.xyz")) return true;
+                        if (normalizedOrigin.EndsWith(".runasp.net")) return true;
 
                         // Mặc định chặn các cái khác
                         return false;
                     })
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowCredentials()
+                    .SetPreflightMaxAge(TimeSpan.FromHours(24)); // Cache preflight requests
                 });
             });
 
@@ -147,7 +151,8 @@ namespace FA25_CP.CryoFert_BE
                 if (string.IsNullOrWhiteSpace(connectionString))
                     Console.WriteLine("WARNING: Connection String is NULL!");
 
-                var serverVersion = ServerVersion.AutoDetect(connectionString ?? "server=localhost;");
+                //var serverVersion = ServerVersion.AutoDetect(connectionString ?? "server=localhost;");
+                var serverVersion = new MySqlServerVersion(new Version(8, 0, 36));
                 options.UseMySql(connectionString, serverVersion,
                     mysqlOptions => mysqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name));
 
@@ -200,10 +205,10 @@ namespace FA25_CP.CryoFert_BE
             // Sử dụng Developer Exception Page ở mọi nơi tạm thời để debug lỗi 500 Cors Preflight
             app.UseDeveloperExceptionPage();
 
-            app.UseRouting();
-
-            // CORS PHẢI ĐẶT SAU ROUTING VÀ TRƯỚC AUTH
+            // CORS PHẢI ĐẶT TRƯỚC ROUTING ĐỂ XỬ LÝ PREFLIGHT REQUESTS
             app.UseCors("AllowAll");
+
+            app.UseRouting();
 
             app.UseHttpsRedirection();
 
