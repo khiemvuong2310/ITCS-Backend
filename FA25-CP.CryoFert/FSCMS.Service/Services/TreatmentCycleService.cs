@@ -410,13 +410,13 @@ namespace FSCMS.Service.Services
                 if (entity.Status == TreatmentStatus.Completed)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("Treatment cycle is already completed", StatusCodes.Status400BadRequest, "ALREADY_COMPLETED");
 
-                if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
-                {
-                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
-                        $"Cannot complete cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
-                        StatusCodes.Status409Conflict,
-                        "PREVIOUS_CYCLE_INCOMPLETE");
-                }
+                //if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                //{
+                //    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                //        $"Cannot complete cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                //        StatusCodes.Status409Conflict,
+                //        "PREVIOUS_CYCLE_INCOMPLETE");
+                //}
 
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 
@@ -466,13 +466,13 @@ namespace FSCMS.Service.Services
                 if (entity.Status == TreatmentStatus.Completed)
                     return BaseResponse<TreatmentCycleResponseModel>.CreateError("Cannot cancel a completed cycle", StatusCodes.Status400BadRequest, "CYCLE_COMPLETED");
 
-                if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
-                {
-                    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
-                        $"Cannot cancel cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
-                        StatusCodes.Status409Conflict,
-                        "PREVIOUS_CYCLE_INCOMPLETE");
-                }
+                //if (!await IsPreviousCycleCompletedAsync(entity.TreatmentId, entity.CycleNumber, methodName))
+                //{
+                //    return BaseResponse<TreatmentCycleResponseModel>.CreateError(
+                //        $"Cannot cancel cycle #{entity.CycleNumber} because the previous cycle has not been completed.",
+                //        StatusCodes.Status409Conflict,
+                //        "PREVIOUS_CYCLE_INCOMPLETE");
+                //}
 
                 var oldValues = JsonSerializer.Serialize(entity.ToResponseModel());
 

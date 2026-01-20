@@ -29,13 +29,133 @@ namespace FSCMS.Service.Services
         private readonly ITransactionService _transactionService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger, ITransactionService transactionService, IHttpContextAccessor httpContextAccessor)
+        public AppointmentService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ILogger<AppointmentService> logger,
+            ITransactionService transactionService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        }
+
+        /// <summary>
+        /// Returns the base query for appointments with the common.
+        /// </summary>
+        private IQueryable<Appointment> GetBaseAppointmentQuery(bool asTracking = false)
+        {
+            var query = _unitOfWork.Repository<Appointment>()
+                .AsQueryable();
+
+            query = asTracking ? query : query.AsNoTracking();
+
+            return query
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.Account)
+                .Include(a => a.TreatmentCycle)
+                    .ThenInclude(tc => tc.Treatment)
+                        .ThenInclude(t => t.Patient)
+                            .ThenInclude(p => p.Account)
+                .Include(a => a.Slot)
+                    .ThenInclude(s => s.DoctorSchedules)
+                        .ThenInclude(ds => ds.Doctor)
+                            .ThenInclude(d => d.Account)
+                .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
+                    .ThenInclude(ad => ad.Doctor)
+                        .ThenInclude(d => d.Account);
+        }
+
+        /// <summary>
+        /// Applies common filters (type, status, date range, search term) to an appointment query.
+        /// </summary>
+        private static IQueryable<Appointment> ApplyAppointmentFilters(
+            IQueryable<Appointment> query,
+            GetAppointmentsRequest request)
+        {
+            if (request.Type.HasValue)
+            {
+                query = query.Where(a => a.Type == request.Type.Value);
+            }
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(a => a.Status == request.Status.Value);
+            }
+
+            if (request.AppointmentDateFrom.HasValue)
+            {
+                var fromDate = request.AppointmentDateFrom.Value;
+                query = query.Where(a => a.AppointmentDate >= fromDate);
+            }
+
+            if (request.AppointmentDateTo.HasValue)
+            {
+                var toDate = request.AppointmentDateTo.Value;
+                query = query.Where(a => a.AppointmentDate <= toDate);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
+                query = query.Where(a =>
+                    (a.Reason != null && a.Reason.ToLower().Contains(searchTerm)) ||
+                    (a.Notes != null && a.Notes.ToLower().Contains(searchTerm)) ||
+                    (a.TreatmentCycle != null && a.TreatmentCycle.CycleName.ToLower().Contains(searchTerm)) ||
+                    // Search in Patient directly (for Booking appointments without TreatmentCycle)
+                    (a.Patient != null && a.Patient.Account != null &&
+                     (a.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
+                      a.Patient.Account.LastName.ToLower().Contains(searchTerm))) ||
+                    // Search in Patient through TreatmentCycle (for appointments with TreatmentCycle)
+                    (a.TreatmentCycle != null && a.TreatmentCycle.Treatment != null &&
+                     a.TreatmentCycle.Treatment.Patient != null &&
+                     a.TreatmentCycle.Treatment.Patient.Account != null &&
+                     (a.TreatmentCycle.Treatment.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
+                      a.TreatmentCycle.Treatment.Patient.Account.LastName.ToLower().Contains(searchTerm))));
+            }
+
+            return query;
+        }
+
+        /// <summary>
+        /// Applies sorting to an appointment query based on request.Sort/Order.
+        /// </summary>
+        private static IQueryable<Appointment> ApplyAppointmentSorting(
+            IQueryable<Appointment> query,
+            GetAppointmentsRequest request)
+        {
+            var isDescending = request.Order?.ToLower() == "desc";
+
+            if (!string.IsNullOrWhiteSpace(request.Sort))
+            {
+                query = request.Sort.ToLower() switch
+                {
+                    "appointmentdate" => isDescending
+                        ? query.OrderByDescending(a => a.AppointmentDate)
+                        : query.OrderBy(a => a.AppointmentDate),
+                    "type" => isDescending
+                        ? query.OrderByDescending(a => a.Type)
+                        : query.OrderBy(a => a.Type),
+                    "status" => isDescending
+                        ? query.OrderByDescending(a => a.Status)
+                        : query.OrderBy(a => a.Status),
+                    "createdat" => isDescending
+                        ? query.OrderByDescending(a => a.CreatedAt)
+                        : query.OrderBy(a => a.CreatedAt),
+                    _ => isDescending
+                        ? query.OrderByDescending(a => a.CreatedAt)
+                        : query.OrderBy(a => a.CreatedAt)
+                };
+            }
+            else
+            {
+                query = query.OrderByDescending(a => a.AppointmentDate);
+            }
+
+            return query;
         }
 
         #region Appointment CRUD Operations
@@ -60,22 +180,7 @@ namespace FSCMS.Service.Services
                 var appointmentEntity = await _unitOfWork.Repository<Appointment>().GetByIdAsync(appointmentId);
                 
                 // Load with includes for response mapping
-                var appointment = await _unitOfWork.Repository<Appointment>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
-                    .Include(a => a.TreatmentCycle)
-                        .ThenInclude(tc => tc.Treatment)
-                            .ThenInclude(t => t.Patient)
-                                .ThenInclude(p => p.Account)
-                    .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedules)
-                            .ThenInclude(ds => ds.Doctor)
-                                .ThenInclude(d => d.Account)
-                    .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
-                        .ThenInclude(ad => ad.Doctor)
-                            .ThenInclude(d => d.Account)
+                var appointment = await GetBaseAppointmentQuery()
                     .Where(a => a.Id == appointmentId && !a.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -213,26 +318,11 @@ namespace FSCMS.Service.Services
 
                 request.Normalize();
 
-                // Build base query
-                var query = _unitOfWork.Repository<Appointment>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
-                    .Include(a => a.TreatmentCycle)
-                        .ThenInclude(tc => tc.Treatment)
-                            .ThenInclude(t => t.Patient)
-                                .ThenInclude(p => p.Account)
-                    .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedules)
-                            .ThenInclude(ds => ds.Doctor)
-                                .ThenInclude(d => d.Account)
-                    .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
-                        .ThenInclude(ad => ad.Doctor)
-                            .ThenInclude(d => d.Account)
+                // Build base query with common includes
+                var query = GetBaseAppointmentQuery()
                     .Where(a => !a.IsDeleted);
 
-                // Apply filters
+                // Apply filters that are specific to this endpoint
                 if (request.TreatmentCycleId.HasValue)
                 {
                     query = query.Where(a => a.TreatmentCycleId == request.TreatmentCycleId.Value);
@@ -248,67 +338,14 @@ namespace FSCMS.Service.Services
                     query = query.Where(a => a.SlotId == request.SlotId.Value);
                 }
 
-                if (request.Type.HasValue)
-                {
-                    query = query.Where(a => a.Type == request.Type.Value);
-                }
-
-                if (request.Status.HasValue)
-                {
-                    query = query.Where(a => a.Status == request.Status.Value);
-                }
-
-                if (request.AppointmentDateFrom.HasValue)
-                {
-                    var fromDate = request.AppointmentDateFrom.Value;
-                    query = query.Where(a => a.AppointmentDate >= fromDate);
-                }
-
-                if (request.AppointmentDateTo.HasValue)
-                {
-                    var toDate = request.AppointmentDateTo.Value;
-                    query = query.Where(a => a.AppointmentDate <= toDate);
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-                {
-                    var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
-                    query = query.Where(a =>
-                        (a.Reason != null && a.Reason.ToLower().Contains(searchTerm)) ||
-                        (a.Notes != null && a.Notes.ToLower().Contains(searchTerm)) ||
-                        (a.TreatmentCycle != null && a.TreatmentCycle.CycleName.ToLower().Contains(searchTerm)) ||
-                        // Search in Patient directly (for Booking appointments without TreatmentCycle)
-                        (a.Patient != null && a.Patient.Account != null &&
-                         (a.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
-                          a.Patient.Account.LastName.ToLower().Contains(searchTerm))) ||
-                        // Search in Patient through TreatmentCycle (for appointments with TreatmentCycle)
-                        (a.TreatmentCycle != null && a.TreatmentCycle.Treatment != null &&
-                         a.TreatmentCycle.Treatment.Patient != null &&
-                         a.TreatmentCycle.Treatment.Patient.Account != null &&
-                         (a.TreatmentCycle.Treatment.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
-                          a.TreatmentCycle.Treatment.Patient.Account.LastName.ToLower().Contains(searchTerm))));
-                }
+                // Apply common filters (type, status, date range, search term)
+                query = ApplyAppointmentFilters(query, request);
 
                 // Get total count
                 var totalCount = await query.CountAsync();
 
                 // Apply sorting
-                if (!string.IsNullOrWhiteSpace(request.Sort))
-                {
-                    var isDescending = request.Order?.ToLower() == "desc";
-                    query = request.Sort.ToLower() switch
-                    {
-                        "appointmentdate" => isDescending ? query.OrderByDescending(a => a.AppointmentDate) : query.OrderBy(a => a.AppointmentDate),
-                        "type" => isDescending ? query.OrderByDescending(a => a.Type) : query.OrderBy(a => a.Type),
-                        "status" => isDescending ? query.OrderByDescending(a => a.Status) : query.OrderBy(a => a.Status),
-                        "createdat" => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt),
-                        _ => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt)
-                    };
-                }
-                else
-                {
-                    query = query.OrderByDescending(a => a.AppointmentDate);
-                }
+                query = ApplyAppointmentSorting(query, request);
 
                 // Apply pagination
                 var appointments = await query
@@ -527,78 +564,17 @@ namespace FSCMS.Service.Services
                 request.Normalize();
 
                 // Build query for booking appointments of the patient
+                var query = GetBaseAppointmentQuery()
+                    .Where(a => !a.IsDeleted && a.PatientId == patientId);
 
-
-                var query = _unitOfWork.Repository<Appointment>()
-                    .AsQueryable()
-                    .AsNoTracking()
-                    .Include(a => a.Patient)
-                        .ThenInclude(p => p.Account)
-                    .Include(a => a.TreatmentCycle)
-                        .ThenInclude(tc => tc.Treatment)
-                            .ThenInclude(t => t.Patient)
-                                .ThenInclude(p => p.Account)
-                    .Include(a => a.Slot)
-                        .ThenInclude(s => s.DoctorSchedules)
-                            .ThenInclude(ds => ds.Doctor)
-                                .ThenInclude(d => d.Account)
-                    .Include(a => a.Slot)
-                    .Include(a => a.AppointmentDoctors.Where(ad => !ad.IsDeleted))
-                        .ThenInclude(ad => ad.Doctor)
-                            .ThenInclude(d => d.Account)
-                    .Where(a => !a.IsDeleted
-                        && a.PatientId == patientId);
-
-                // Apply additional filters from request
-                if (request.Type.HasValue)
-                {
-                    query = query.Where(a => a.Type == request.Type.Value);
-                }
-                if (request.Status.HasValue)
-                {
-                    query = query.Where(a => a.Status == request.Status.Value);
-                }
-
-                if (request.AppointmentDateFrom.HasValue)
-                {
-                    query = query.Where(a => a.AppointmentDate >= request.AppointmentDateFrom.Value);
-                }
-
-                if (request.AppointmentDateTo.HasValue)
-                {
-                    query = query.Where(a => a.AppointmentDate <= request.AppointmentDateTo.Value);
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-                {
-                    var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
-                    query = query.Where(a =>
-                        (a.Reason != null && a.Reason.ToLower().Contains(searchTerm)) ||
-                        (a.Notes != null && a.Notes.ToLower().Contains(searchTerm)) ||
-                        (a.Patient != null && a.Patient.Account != null &&
-                         (a.Patient.Account.FirstName.ToLower().Contains(searchTerm) ||
-                          a.Patient.Account.LastName.ToLower().Contains(searchTerm))));
-                }
+                // Apply common filters (type, status, date range, search term)
+                query = ApplyAppointmentFilters(query, request);
 
                 // Get total count
                 var totalCount = await query.CountAsync();
 
                 // Apply sorting
-                if (!string.IsNullOrWhiteSpace(request.Sort))
-                {
-                    var isDescending = request.Order?.ToLower() == "desc";
-                    query = request.Sort.ToLower() switch
-                    {
-                        "appointmentdate" => isDescending ? query.OrderByDescending(a => a.AppointmentDate) : query.OrderBy(a => a.AppointmentDate),
-                        "status" => isDescending ? query.OrderByDescending(a => a.Status) : query.OrderBy(a => a.Status),
-                        "createdat" => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt),
-                        _ => isDescending ? query.OrderByDescending(a => a.CreatedAt) : query.OrderBy(a => a.CreatedAt)
-                    };
-                }
-                else
-                {
-                    query = query.OrderByDescending(a => a.AppointmentDate);
-                }
+                query = ApplyAppointmentSorting(query, request);
 
                 // Apply pagination
                 var appointments = await query
