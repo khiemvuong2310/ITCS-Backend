@@ -33,14 +33,24 @@ namespace FSCMS.Service.Services
             _configuration = configuration;
 
             // Load email configuration from appsettings.json or environment variables
-            _emailSender = configuration["Email:Sender"]
-                ?? Environment.GetEnvironmentVariable("EMAIL_SENDER")
-                ?? "studentexchangeweb@gmail.com";
-            _emailPassword = configuration["Email:Password"]
-                ?? Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
-                ?? throw new InvalidOperationException("Email password not configured. Please set Email:Password in appsettings.json or EMAIL_PASSWORD environment variable.");
-            _emailSenderName = configuration["Email:SenderName"]
-                ?? "CryoFert - Fertility Management System";
+            var senderFromConfig = configuration["Email:Sender"];
+            _emailSender = !string.IsNullOrWhiteSpace(senderFromConfig)
+                ? senderFromConfig
+                : (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("EMAIL_SENDER"))
+                    ? Environment.GetEnvironmentVariable("EMAIL_SENDER")
+                    : "khiemnguyenvuong@gmail.com");
+
+            var passwordFromConfig = configuration["Email:Password"];
+            _emailPassword = !string.IsNullOrWhiteSpace(passwordFromConfig)
+                ? passwordFromConfig
+                : (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("EMAIL_PASSWORD"))
+                    ? Environment.GetEnvironmentVariable("EMAIL_PASSWORD")
+                    : throw new InvalidOperationException("Email password not configured. Please set Email:Password in appsettings.json or EMAIL_PASSWORD environment variable."));
+
+            var senderNameFromConfig = configuration["Email:SenderName"];
+            _emailSenderName = !string.IsNullOrWhiteSpace(senderNameFromConfig)
+                ? senderNameFromConfig
+                : "CryoFert - Fertility Management System";
         }
 
         #endregion
