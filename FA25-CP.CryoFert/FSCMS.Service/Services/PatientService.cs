@@ -1336,7 +1336,7 @@ namespace FSCMS.Service.Services
                     .ToListAsync();
 
                 var responses = _mapper.Map<List<RelationshipResponse>>(relationships);
-                
+
                 // Hydrate FullName for all relationship responses
                 for (int i = 0; i < responses.Count && i < relationships.Count; i++)
                 {
@@ -2583,8 +2583,8 @@ namespace FSCMS.Service.Services
 
             if (existingApprovedRelationship != null)
             {
-                var patientName = patient.Account != null 
-                    ? $"{patient.Account.FirstName} {patient.Account.LastName}".Trim() 
+                var patientName = patient.Account != null
+                    ? $"{patient.Account.FirstName} {patient.Account.LastName}".Trim()
                     : patient.PatientCode;
 
                 if (string.IsNullOrWhiteSpace(patientName))
@@ -2592,8 +2592,8 @@ namespace FSCMS.Service.Services
                     patientName = patient.PatientCode;
                 }
 
-                return (false, 
-                    $"Patient '{patientName}' already has an approved relationship. Each patient can only have one relationship.", 
+                return (false,
+                    $"Patient '{patientName}' already has an approved relationship. Each patient can only have one relationship.",
                     "RELATIONSHIP_VALIDATION_ONE_TO_ONE");
             }
 
@@ -2607,8 +2607,8 @@ namespace FSCMS.Service.Services
 
             if (existingPendingRelationship != null)
             {
-                var patientName = patient.Account != null 
-                    ? $"{patient.Account.FirstName} {patient.Account.LastName}".Trim() 
+                var patientName = patient.Account != null
+                    ? $"{patient.Account.FirstName} {patient.Account.LastName}".Trim()
                     : patient.PatientCode;
 
                 if (string.IsNullOrWhiteSpace(patientName))
@@ -2616,8 +2616,8 @@ namespace FSCMS.Service.Services
                     patientName = patient.PatientCode;
                 }
 
-                return (false, 
-                    $"Patient '{patientName}' already has a pending relationship request. Please wait for it to be processed.", 
+                return (false,
+                    $"Patient '{patientName}' already has a pending relationship request. Please wait for it to be processed.",
                     "RELATIONSHIP_VALIDATION_PENDING_EXISTS");
             }
 

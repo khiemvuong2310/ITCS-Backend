@@ -388,7 +388,7 @@ namespace FSCMS.Core
                 .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // ========================================
+// ========================================
             // Seed Data: Roles
             // ========================================
             modelBuilder.Entity<Role>().HasData(
@@ -407,6 +407,7 @@ namespace FSCMS.Core
             var roleReceptionistId = new Guid("00000000-0000-0000-0000-000000000004");
             var roleDoctorId = new Guid("00000000-0000-0000-0000-000000000002");
             var rolePatientId = new Guid("00000000-0000-0000-0000-000000000005");
+            
             // Password for all seed accounts: "12345678"
             // Generated using: BCrypt.Net.BCrypt.HashPassword("12345678")
             const string defaultPwdHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S";
@@ -417,35 +418,40 @@ namespace FSCMS.Core
             var receptionistAccountId = new Guid("00000000-0000-0000-0000-000000010003");
             var doctor1AccountId = new Guid("00000000-0000-0000-0000-000000010004");
             var doctor2AccountId = new Guid("00000000-0000-0000-0000-000000010005");
-            var doctor3AccountId = new Guid("00000000-0000-0000-0000-000000010009");
-            var doctor4AccountId = new Guid("00000000-0000-0000-0000-000000010010");
-            var doctor5AccountId = new Guid("00000000-0000-0000-0000-000000010011");
-            var doctor6AccountId = new Guid("00000000-0000-0000-0000-000000010012");
-            var doctor7AccountId = new Guid("00000000-0000-0000-0000-000000010013");
-            var doctor8AccountId = new Guid("00000000-0000-0000-0000-000000010014");
-            var patient1AccountId = new Guid("00000000-0000-0000-0000-000000010006");
-            var patient2AccountId = new Guid("00000000-0000-0000-0000-000000010007");
-            var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010008");
+            var doctor3AccountId = new Guid("00000000-0000-0000-0000-000000010006");
+            var doctor4AccountId = new Guid("00000000-0000-0000-0000-000000010007");
+            var doctor5AccountId = new Guid("00000000-0000-0000-0000-000000010008");
+            var doctor6AccountId = new Guid("00000000-0000-0000-0000-000000010009");
+            var doctor7AccountId = new Guid("00000000-0000-0000-0000-000000010010");
+            var doctor8AccountId = new Guid("00000000-0000-0000-0000-000000010011");
+            var patient1AccountId = new Guid("00000000-0000-0000-0000-000000010012");
+            var patient2AccountId = new Guid("00000000-0000-0000-0000-000000010013");
+            var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010014");
             
             modelBuilder.Entity<Account>().HasData(
-                // Giữ lại các tài khoản hệ thống quan trọng: Admin, Staff (Receptionist), Lab
-                new Account(adminAccountId, "System", "Admin", new DateOnly(1985, 1, 1), "admin@cryo.com", "admin", defaultPwdHash, "+84901234567", "192.168.1.10", true, true, true, "123 Lê Lợi, Quận 1, TP.HCM", null) { RoleId = roleAdminId },
-                new Account(labAccountId, "Lab", "Technician", new DateOnly(1991, 3, 12), "lab@cryo.com", "lab", defaultPwdHash, "+84901234568", "192.168.1.20", false, true, true, "456 Nguyễn Văn Cừ, Quận 5, TP.HCM", null) { RoleId = roleLabId },
-                new Account(receptionistAccountId, "Front", "Receptionist", new DateOnly(1996, 7, 9), "staff@cryo.com", "receptionist", defaultPwdHash, "+84901234569", "192.168.1.30", false, true, true, "89 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleReceptionistId },
+                // 1. Quản trị hệ thống (Admin)
+                new Account(adminAccountId, "Nguyễn", "Quốc Quản", new DateOnly(1985, 1, 1), "quan.nguyen@cryo.com", "admin", defaultPwdHash, "+84901234567", "192.168.1.10", true, true, true, "123 Lê Lợi, Quận 1, TP.HCM", null) { RoleId = roleAdminId },
+                
+                // 2. Kỹ thuật viên phòng Lab (Lab Technician)
+                new Account(labAccountId, "Trần", "Thị Mỹ Lan", new DateOnly(1991, 3, 12), "lan.tran@cryo.com", "lab_lan", defaultPwdHash, "+84901234568", "192.168.1.20", false, true, true, "456 Nguyễn Văn Cừ, Quận 5, TP.HCM", null) { RoleId = roleLabId },
+                
+                // 3. Lễ tân (Receptionist)
+                new Account(receptionistAccountId, "Lê", "Thị Thu Hà", new DateOnly(1996, 7, 9), "ha.le@cryo.com", "receptionist_ha", defaultPwdHash, "+84901234569", "192.168.1.30", false, true, true, "89 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleReceptionistId },
 
-                // Doctor accounts
-                new Account(doctor1AccountId, "Nguyễn", "Văn An", new DateOnly(1980, 5, 15), "doctor1@cryo.com", "doctor1", defaultPwdHash, "+84900000004", "10.0.0.11", true, true, true, "12 Phan Đăng Lưu, Phú Nhuận, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor2AccountId, "Trần", "Thị Bình", new DateOnly(1985, 8, 20), "doctor2@cryo.com", "doctor2", defaultPwdHash, "+84900000005", "10.0.0.12", false, true, true, "34 Cách Mạng Tháng Tám, Quận 3, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor3AccountId, "Lê", "Minh Cường", new DateOnly(1978, 2, 14), "doctor3@cryo.com", "doctor3", defaultPwdHash, "+84900000012", "10.0.0.13", true, true, true, "56 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor4AccountId, "Phạm", "Thị Dung", new DateOnly(1982, 11, 30), "doctor4@cryo.com", "doctor4", defaultPwdHash, "+84900000013", "10.0.0.14", false, true, true, "78 Lý Thường Kiệt, Quận 10, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor5AccountId, "Võ", "Hoàng Em", new DateOnly(1975, 6, 8), "doctor5@cryo.com", "doctor5", defaultPwdHash, "+84900000014", "10.0.0.15", true, true, true, "90 Nguyễn Huệ, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor6AccountId, "Đặng", "Thị Phương", new DateOnly(1988, 9, 22), "doctor6@cryo.com", "doctor6", defaultPwdHash, "+84900000015", "10.0.0.16", false, true, true, "145 Trường Chinh, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor7AccountId, "Bùi", "Quốc Gia", new DateOnly(1983, 4, 5), "doctor7@cryo.com", "doctor7", defaultPwdHash, "+84900000016", "10.0.0.17", true, true, true, "210 Hoàng Văn Thụ, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
-                new Account(doctor8AccountId, "Hồ", "Thị Hạnh", new DateOnly(1979, 12, 18), "doctor8@cryo.com", "doctor8", defaultPwdHash, "+84900000017", "10.0.0.18", false, true, true, "315 Trần Hưng Đạo, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
-                // Patient accounts
-                new Account(patient1AccountId, "Lê", "Văn Cảnh", new DateOnly(1990, 3, 10), "patient1@cryo.com", "patient1", defaultPwdHash, "+84900000006", "10.0.1.11", true, true, true, "25 Điện Biên Phủ, Bình Thạnh, TP.HCM", null) { RoleId = rolePatientId },
-                new Account(patient2AccountId, "Phạm", "Thị Duyên", new DateOnly(1992, 7, 25), "patient2@cryo.com", "patient2", defaultPwdHash, "+84900000007", "10.0.1.12", false, true, true, "68 Nguyễn Trãi, Quận 5, TP.HCM", null) { RoleId = rolePatientId },
-                new Account(patient3AccountId, "Hoàng", "Văn Êm", new DateOnly(1988, 11, 5), "patient3@cryo.com", "patient3", defaultPwdHash, "+84900000008", "10.0.1.13", true, true, true, "12 Võ Văn Kiệt, Quận 1, TP.HCM", null) { RoleId = rolePatientId }
+                // 4. Bác sĩ (Doctors) - Đổi email/username theo tên thật
+                new Account(doctor1AccountId, "Nguyễn", "Văn An", new DateOnly(1980, 5, 15), "an.nguyen@cryo.com", "dr.an", defaultPwdHash, "+84900000004", "10.0.0.11", true, true, true, "12 Phan Đăng Lưu, Phú Nhuận, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor2AccountId, "Trần", "Thị Bình", new DateOnly(1985, 8, 20), "binh.tran@cryo.com", "dr.binh", defaultPwdHash, "+84900000005", "10.0.0.12", false, true, true, "34 Cách Mạng Tháng Tám, Quận 3, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor3AccountId, "Lê", "Minh Cường", new DateOnly(1978, 2, 14), "cuong.le@cryo.com", "dr.cuong", defaultPwdHash, "+84900000012", "10.0.0.13", true, true, true, "56 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor4AccountId, "Phạm", "Thị Dung", new DateOnly(1982, 11, 30), "dung.pham@cryo.com", "dr.dung", defaultPwdHash, "+84900000013", "10.0.0.14", false, true, true, "78 Lý Thường Kiệt, Quận 10, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor5AccountId, "Võ", "Hoàng Em", new DateOnly(1975, 6, 8), "em.vo@cryo.com", "dr.voem", defaultPwdHash, "+84900000014", "10.0.0.15", true, true, true, "90 Nguyễn Huệ, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor6AccountId, "Đặng", "Thị Phương", new DateOnly(1988, 9, 22), "phuong.dang@cryo.com", "dr.phuong", defaultPwdHash, "+84900000015", "10.0.0.16", false, true, true, "145 Trường Chinh, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor7AccountId, "Bùi", "Quốc Gia", new DateOnly(1983, 4, 5), "gia.bui@cryo.com", "dr.gia", defaultPwdHash, "+84900000016", "10.0.0.17", true, true, true, "210 Hoàng Văn Thụ, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
+                new Account(doctor8AccountId, "Hồ", "Thị Hạnh", new DateOnly(1979, 12, 18), "hanh.ho@cryo.com", "dr.hanh", defaultPwdHash, "+84900000017", "10.0.0.18", false, true, true, "315 Trần Hưng Đạo, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
+                
+                // 5. Bệnh nhân (Patients) - Đổi email sang Gmail để thực tế hơn
+                new Account(patient1AccountId, "Lê", "Văn Cảnh", new DateOnly(1990, 3, 10), "levancanh1990@gmail.com", "canh.le", defaultPwdHash, "+84900000006", "10.0.1.11", true, true, true, "25 Điện Biên Phủ, Bình Thạnh, TP.HCM", null) { RoleId = rolePatientId },
+                new Account(patient2AccountId, "Phạm", "Thị Duyên", new DateOnly(1992, 7, 25), "ptduyen92@gmail.com", "duyen.pham", defaultPwdHash, "+84900000007", "10.0.1.12", false, true, true, "68 Nguyễn Trãi, Quận 5, TP.HCM", null) { RoleId = rolePatientId },
+                new Account(patient3AccountId, "Hoàng", "Văn Êm", new DateOnly(1988, 11, 5), "hoangvanem88@gmail.com", "em.hoang", defaultPwdHash, "+84900000008", "10.0.1.13", true, true, true, "12 Võ Văn Kiệt, Quận 1, TP.HCM", null) { RoleId = rolePatientId }
             );
 
             // Seed Doctors
@@ -521,20 +527,20 @@ namespace FSCMS.Core
                 new Patient(
                     patient1AccountId,
                     "PAT001",
-                    "001234567890"
-                ) { BloodType = "A+", EmergencyContact = "Le Van F", EmergencyPhone = "+84900000009" },
+                    "079090123456" // Cập nhật CCCD thực tế hơn (12 số)
+                ) { BloodType = "A+", EmergencyContact = "Lê Văn An", EmergencyPhone = "+84900000009" },
                 new Patient(
                     patient2AccountId,
                     "PAT002",
-                    "001234567891"
-                ) { BloodType = "B+", EmergencyContact = "Pham Thi G", EmergencyPhone = "+84900000010" },
+                    "079092123457"
+                ) { BloodType = "B+", EmergencyContact = "Phạm Thị Giang", EmergencyPhone = "+84900000010" },
                 new Patient(
                     patient3AccountId,
                     "PAT003",
-                    "001234567892"
-                ) { BloodType = "O+", EmergencyContact = "Hoang Van H", EmergencyPhone = "+84900000011" }
+                    "079088123458"
+                ) { BloodType = "O+", EmergencyContact = "Hoàng Văn Hùng", EmergencyPhone = "+84900000011" }
             );
-
+            
             // ========================================
             // Seed Data: Service Categories & Services
             // (điều chỉnh theo file "Các service.docx")
