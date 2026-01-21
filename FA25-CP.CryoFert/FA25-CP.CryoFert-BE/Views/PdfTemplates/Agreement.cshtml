@@ -80,10 +80,6 @@
             <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(@Model.Treatment.Goals) ? @Model.Treatment.Goals : "N/A")</td>
         </tr>
         <tr>
-            <th style="border:1px solid #ccc; padding:8px;">Notes</th>
-            <td style="border:1px solid #ccc; padding:8px;">@(!string.IsNullOrEmpty(@Model.Treatment.Notes) ? @Model.Treatment.Notes : "N/A")</td>
-        </tr>
-        <tr>
             <th style="border:1px solid #ccc; padding:8px;">Start Date</th>
             <td style="border:1px solid #ccc; padding:8px;">
                 @(Model.Agreement.StartDate != null ? Model.Treatment.StartDate.ToString("dd/MM/yyyy") : "Pending")
