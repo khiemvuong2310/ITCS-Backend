@@ -390,7 +390,7 @@ namespace FSCMS.Core
                 .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-// ========================================
+            // ========================================
             // Seed Data: Roles
             // ========================================
             modelBuilder.Entity<Role>().HasData(
@@ -409,11 +409,11 @@ namespace FSCMS.Core
             var roleReceptionistId = new Guid("00000000-0000-0000-0000-000000000004");
             var roleDoctorId = new Guid("00000000-0000-0000-0000-000000000002");
             var rolePatientId = new Guid("00000000-0000-0000-0000-000000000005");
-            
+
             // Password for all seed accounts: "12345678"
             // Generated using: BCrypt.Net.BCrypt.HashPassword("12345678")
             const string defaultPwdHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S";
-            
+
             // Account IDs
             var adminAccountId = new Guid("00000000-0000-0000-0000-000000010001");
             var labAccountId = new Guid("00000000-0000-0000-0000-000000010002");
@@ -429,14 +429,14 @@ namespace FSCMS.Core
             var patient1AccountId = new Guid("00000000-0000-0000-0000-000000010012");
             var patient2AccountId = new Guid("00000000-0000-0000-0000-000000010013");
             var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010014");
-            
+
             modelBuilder.Entity<Account>().HasData(
                 // 1. Quản trị hệ thống (Admin)
                 new Account(adminAccountId, "Nguyễn", "Quốc Quản", new DateOnly(1985, 1, 1), "quan.nguyen@cryo.com", "admin", defaultPwdHash, "+84901234567", "192.168.1.10", true, true, true, "123 Lê Lợi, Quận 1, TP.HCM", null) { RoleId = roleAdminId },
-                
+
                 // 2. Kỹ thuật viên phòng Lab (Lab Technician)
                 new Account(labAccountId, "Trần", "Thị Mỹ Lan", new DateOnly(1991, 3, 12), "lan.tran@cryo.com", "lab_lan", defaultPwdHash, "+84901234568", "192.168.1.20", false, true, true, "456 Nguyễn Văn Cừ, Quận 5, TP.HCM", null) { RoleId = roleLabId },
-                
+
                 // 3. Lễ tân (Receptionist)
                 new Account(receptionistAccountId, "Lê", "Thị Thu Hà", new DateOnly(1996, 7, 9), "ha.le@cryo.com", "receptionist_ha", defaultPwdHash, "+84901234569", "192.168.1.30", false, true, true, "89 Hai Bà Trưng, Quận 1, TP.HCM", null) { RoleId = roleReceptionistId },
 
@@ -449,7 +449,7 @@ namespace FSCMS.Core
                 new Account(doctor6AccountId, "Đặng", "Thị Phương", new DateOnly(1988, 9, 22), "phuong.dang@cryo.com", "dr.phuong", defaultPwdHash, "+84900000015", "10.0.0.16", false, true, true, "145 Trường Chinh, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
                 new Account(doctor7AccountId, "Bùi", "Quốc Gia", new DateOnly(1983, 4, 5), "gia.bui@cryo.com", "dr.gia", defaultPwdHash, "+84900000016", "10.0.0.17", true, true, true, "210 Hoàng Văn Thụ, Tân Bình, TP.HCM", null) { RoleId = roleDoctorId },
                 new Account(doctor8AccountId, "Hồ", "Thị Hạnh", new DateOnly(1979, 12, 18), "hanh.ho@cryo.com", "dr.hanh", defaultPwdHash, "+84900000017", "10.0.0.18", false, true, true, "315 Trần Hưng Đạo, Quận 1, TP.HCM", null) { RoleId = roleDoctorId },
-                
+
                 // 5. Bệnh nhân (Patients) - Đổi email sang Gmail để thực tế hơn
                 new Account(patient1AccountId, "Lê", "Văn Cảnh", new DateOnly(1990, 3, 10), "levancanh1990@gmail.com", "canh.le", defaultPwdHash, "+84900000006", "10.0.1.11", true, true, true, "25 Điện Biên Phủ, Bình Thạnh, TP.HCM", null) { RoleId = rolePatientId },
                 new Account(patient2AccountId, "Phạm", "Thị Duyên", new DateOnly(1992, 7, 25), "ptduyen92@gmail.com", "duyen.pham", defaultPwdHash, "+84900000007", "10.0.1.12", false, true, true, "68 Nguyễn Trãi, Quận 5, TP.HCM", null) { RoleId = rolePatientId },
@@ -465,7 +465,8 @@ namespace FSCMS.Core
                     15,
                     new DateTime(2010, 1, 1),
                     true
-                ) { LicenseNumber = "LIC-DOC-001", Certificates = "Board Certified in Reproductive Medicine" },
+                )
+                { LicenseNumber = "LIC-DOC-001", Certificates = "Board Certified in Reproductive Medicine" },
                 new Doctor(
                     doctor2AccountId,
                     "DOC002",
@@ -473,7 +474,8 @@ namespace FSCMS.Core
                     10,
                     new DateTime(2015, 6, 1),
                     true
-                ) { LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" },
+                )
+                { LicenseNumber = "LIC-DOC-002", Certificates = "Specialist in IVF Procedures" },
                 new Doctor(
                     doctor3AccountId,
                     "DOC003",
@@ -481,7 +483,8 @@ namespace FSCMS.Core
                     20,
                     new DateTime(2005, 3, 15),
                     true
-                ) { LicenseNumber = "LIC-DOC-003", Certificates = "Expert in Male Infertility and Microsurgery" },
+                )
+                { LicenseNumber = "LIC-DOC-003", Certificates = "Expert in Male Infertility and Microsurgery" },
                 new Doctor(
                     doctor4AccountId,
                     "DOC004",
@@ -489,7 +492,8 @@ namespace FSCMS.Core
                     12,
                     new DateTime(2013, 7, 1),
                     true
-                ) { LicenseNumber = "LIC-DOC-004", Certificates = "Clinical Embryologist, ICSI Specialist" },
+                )
+                { LicenseNumber = "LIC-DOC-004", Certificates = "Clinical Embryologist, ICSI Specialist" },
                 new Doctor(
                     doctor5AccountId,
                     "DOC005",
@@ -497,7 +501,8 @@ namespace FSCMS.Core
                     25,
                     new DateTime(2000, 1, 10),
                     true
-                ) { LicenseNumber = "LIC-DOC-005", Certificates = "Laparoscopic and Hysteroscopic Surgery Expert" },
+                )
+                { LicenseNumber = "LIC-DOC-005", Certificates = "Laparoscopic and Hysteroscopic Surgery Expert" },
                 new Doctor(
                     doctor6AccountId,
                     "DOC006",
@@ -505,7 +510,8 @@ namespace FSCMS.Core
                     8,
                     new DateTime(2017, 9, 1),
                     true
-                ) { LicenseNumber = "LIC-DOC-006", Certificates = "PGT-A/PGT-M Specialist, Genetic Counseling" },
+                )
+                { LicenseNumber = "LIC-DOC-006", Certificates = "PGT-A/PGT-M Specialist, Genetic Counseling" },
                 new Doctor(
                     doctor7AccountId,
                     "DOC007",
@@ -513,7 +519,8 @@ namespace FSCMS.Core
                     14,
                     new DateTime(2011, 4, 20),
                     true
-                ) { LicenseNumber = "LIC-DOC-007", Certificates = "Oncofertility and Cryopreservation Expert" },
+                )
+                { LicenseNumber = "LIC-DOC-007", Certificates = "Oncofertility and Cryopreservation Expert" },
                 new Doctor(
                     doctor8AccountId,
                     "DOC008",
@@ -521,7 +528,8 @@ namespace FSCMS.Core
                     18,
                     new DateTime(2007, 11, 5),
                     true
-                ) { LicenseNumber = "LIC-DOC-008", Certificates = "Recurrent Pregnancy Loss and Immunotherapy Specialist" }
+                )
+                { LicenseNumber = "LIC-DOC-008", Certificates = "Recurrent Pregnancy Loss and Immunotherapy Specialist" }
             );
 
             // Seed Patients
@@ -530,19 +538,22 @@ namespace FSCMS.Core
                     patient1AccountId,
                     "PAT001",
                     "079090123456" // Cập nhật CCCD thực tế hơn (12 số)
-                ) { BloodType = "A+", EmergencyContact = "Lê Văn An", EmergencyPhone = "+84900000009" },
+                )
+                { BloodType = "A+", EmergencyContact = "Lê Văn An", EmergencyPhone = "+84900000009" },
                 new Patient(
                     patient2AccountId,
                     "PAT002",
                     "079092123457"
-                ) { BloodType = "B+", EmergencyContact = "Phạm Thị Giang", EmergencyPhone = "+84900000010" },
+                )
+                { BloodType = "B+", EmergencyContact = "Phạm Thị Giang", EmergencyPhone = "+84900000010" },
                 new Patient(
                     patient3AccountId,
                     "PAT003",
                     "079088123458"
-                ) { BloodType = "O+", EmergencyContact = "Hoàng Văn Hùng", EmergencyPhone = "+84900000011" }
+                )
+                { BloodType = "O+", EmergencyContact = "Hoàng Văn Hùng", EmergencyPhone = "+84900000011" }
             );
-            
+
             // ========================================
             // Seed Data: Service Categories & Services
             // (điều chỉnh theo file "Các service.docx")
@@ -636,7 +647,10 @@ namespace FSCMS.Core
                 new Service(new Guid("20000000-0000-0000-0000-000000000146"), "IUI procedure", 3500000m, catLabProcedures) { Code = "LAB-IUI", Unit = "procedure" },
                 new Service(new Guid("20000000-0000-0000-0000-000000000147"), "OPU (oocyte pickup)", 11500000m, catLabProcedures) { Code = "LAB-OPU", Unit = "procedure" },
                 new Service(new Guid("20000000-0000-0000-0000-000000000148"), "ICSI", 9000000m, catLabProcedures) { Code = "LAB-ICSI", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" }
+                new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" },
+
+                // New Appointment Service
+                new Service(new Guid("60000000-0000-0000-0000-000000000001"), "Appointment", 100000m, catLabTests) { Code = "SERV-APPOINT", Unit = "service" }
             );
 
 
