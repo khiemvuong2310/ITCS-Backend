@@ -109,12 +109,8 @@ namespace FA25_CP.CryoFert_BE.AppStarts
             services.AddScoped<IMedicalRecordService, MedicalRecordService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOTPService, OTPService>();
-<<<<<<< Updated upstream
             services.AddScoped<IHospitalDataService, HospitalDataService>();
-            services.AddHostedService<ExpiredContractBackgroundService>();
-=======
             services.AddHostedService<ExpiredBackgroundService>();
->>>>>>> Stashed changes
 
 
             // Get Redis connection string from environment variable (.env) or configuration as fallback
