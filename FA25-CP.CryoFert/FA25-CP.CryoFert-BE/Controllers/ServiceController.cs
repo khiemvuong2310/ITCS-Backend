@@ -1,11 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using FSCMS.Service.Interfaces;
-using FSCMS.Service.RequestModel;
-using FSCMS.Service.ReponseModel;
+using System.Security.Claims;
 using FA25_CP.CryoFert_BE.AppStarts;
 using FA25_CP.CryoFert_BE.Common.Attributes;
+using FSCMS.Service.Interfaces;
+using FSCMS.Service.ReponseModel;
+using FSCMS.Service.RequestModel;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FA25_CP.CryoFert_BE.Controllers
 {
@@ -34,8 +35,12 @@ namespace FA25_CP.CryoFert_BE.Controllers
         {
             if (request == null)
                 request = new GetServicesRequest();
-
-            var result = await _serviceService.GetAllAsync(request);
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (accountId == null)
+            {
+                return Unauthorized(new { message = "Cannot detect user identity" });
+            }
+            var result = await _serviceService.GetAllAsync(request, Guid.Parse(accountId));
             return StatusCode(result.Code ?? StatusCodes.Status500InternalServerError, result);
         }
 

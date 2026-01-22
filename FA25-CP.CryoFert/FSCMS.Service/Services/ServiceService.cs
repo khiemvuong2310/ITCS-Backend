@@ -1,14 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+﻿using FSCMS.Core.Entities;
+using FSCMS.Core.Interfaces;
+using FSCMS.Core.Models;
 using FSCMS.Data.UnitOfWork;
 using FSCMS.Service.Interfaces;
-using FSCMS.Service.ReponseModel;
-using FSCMS.Service.RequestModel;
 using FSCMS.Service.Mapping;
-using FSCMS.Core.Models;
-using FSCMS.Core.Entities;
-using FSCMS.Core.Interfaces;
+using FSCMS.Service.ReponseModel;
+using FSCMS.Service.ReponseModel.FSCMS.Service.ReponseModel;
+using FSCMS.Service.RequestModel;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FSCMS.Service.Services
 {
@@ -33,13 +34,29 @@ namespace FSCMS.Service.Services
 
         #region CRUD Operations
 
-        public async Task<DynamicResponse<ServiceResponseModel>> GetAllAsync(GetServicesRequest request)
+        public async Task<DynamicResponse<ServiceResponseModel>> GetAllAsync(GetServicesRequest request, Guid? accountId)
         {
             const string methodName = nameof(GetAllAsync);
             _logger.LogInformation("{MethodName} called with request: {@Request}", methodName, request);
 
             try
             {
+                bool isAdmin = false;
+                if (accountId != null)
+                {
+                    var account = await _unitOfWork.Repository<Account>()
+                        .AsQueryable()
+                        .Where(s => s.Id == accountId && !s.IsDeleted)
+                        .Include(s => s.Role)
+                        .FirstOrDefaultAsync();
+                    isAdmin = account != null && account.Role != null && account.Role.RoleCode == "ADMIN";
+                    if (account == null)
+                        return new DynamicResponse<ServiceResponseModel>
+                        {
+                            Code = StatusCodes.Status401Unauthorized,
+                            Message = "UnAuthorize."
+                        };
+                }
                 // 1. Validate và Normalize request trước để đảm bảo dữ liệu nhất quán
                 if (request == null)
                 {
@@ -62,11 +79,17 @@ namespace FSCMS.Service.Services
 
                 // Tạo key đại diện cho toàn bộ tham số filter (Search, Sort, Page, Price...)
                 // Key format: services_p{Page}_s{Size}_{Search}_{Category}_{Active}_{Sort}_{Order}...
-                var query = _unitOfWork.Repository<Core.Entities.Service>()
+
+                var query = isAdmin? _unitOfWork.Repository<Core.Entities.Service>()
                     .GetQueryable()
                     .AsNoTracking()
                     .Include(s => s.ServiceCategory)
-                    .Where(s => !s.IsDeleted);
+                    .Where(s => !s.IsDeleted)
+                    : _unitOfWork.Repository<Core.Entities.Service>()
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(s => s.ServiceCategory)
+                    .Where(s => !s.IsDeleted && s.Code != "SERV-APPOINT");
 
                 // Apply filters
                 if (!string.IsNullOrWhiteSpace(request.SearchTerm))
