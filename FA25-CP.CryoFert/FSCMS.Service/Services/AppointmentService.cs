@@ -823,9 +823,19 @@ namespace FSCMS.Service.Services
                 }
 
                 // No direct slot booking flag; booking is inferred by Appointment presence
+                var service = await _unitOfWork.Repository<Core.Entities.Service>()
+                            .GetQueryable()
+                        .AsNoTracking()
+                        .Where(s => s.Code == "SERV-APPOINT" && !s.IsDeleted)
+                        .FirstOrDefaultAsync();
+                var amountAppointment = 100000;
+                if (service != null)
+                {
+                    amountAppointment = (int)service.Price;
+                }
                 CreateTransactionRequest createTransactionRequest = new CreateTransactionRequest
                 {
-                    Amount = 100000,
+                    Amount = amountAppointment,
                     RelatedEntityType = EntityTypeTransaction.Appointment,
                     RelatedEntityId = appointment.Id
                 };

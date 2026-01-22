@@ -14,14 +14,14 @@ using Microsoft.Extensions.Logging;
 
 namespace FSCMS.Service.Services
 {
-    public class ExpiredContractBackgroundService : BackgroundService
+    public class ExpiredBackgroundService : BackgroundService
     {
-        private readonly ILogger<ExpiredContractBackgroundService> _logger;
+        private readonly ILogger<ExpiredBackgroundService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly TimeSpan _interval = TimeSpan.FromDays(1);
 
-        public ExpiredContractBackgroundService(
-            ILogger<ExpiredContractBackgroundService> logger,
+        public ExpiredBackgroundService(
+            ILogger<ExpiredBackgroundService> logger,
             IServiceProvider serviceProvider)
         {
             _logger = logger;
@@ -40,6 +40,7 @@ namespace FSCMS.Service.Services
                     {
                         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                         await ProcessExpiredContracts(unitOfWork);
+                        await ProcessExpiredAppoinments(unitOfWork);
                     }
                 }
                 catch (Exception ex)
@@ -113,6 +114,55 @@ namespace FSCMS.Service.Services
                 await unitOfWork.CommitAsync();
                 var expiredCount = contracts.Count(c => c.Status == ContractStatus.Expired);
                 _logger.LogInformation($"{expiredCount} contracts expired and updated.");
+            }
+        }
+
+        private async Task ProcessExpiredAppoinments(IUnitOfWork unitOfWork)
+        {
+            var now = DateTime.UtcNow;
+            var today = DateOnly.FromDateTime(now);
+
+            var appointments = await unitOfWork.Repository<Appointment>()
+                .AsQueryable()
+                .Where(c => c.Status == AppointmentStatus.Scheduled &&
+                            !c.IsDeleted)
+                .ToListAsync();
+
+            foreach (var appointment in appointments)
+            {
+                bool isExpired = appointment.AppointmentDate < today;
+                if (isExpired)
+                {
+                    appointment.Status = AppointmentStatus.Cancelled;
+                    appointment.UpdatedAt = now;
+                }
+                else
+                {
+                    var daysToAppointment = appointment.AppointmentDate.DayNumber - today.DayNumber;
+
+                    if (daysToAppointment < 3 && daysToAppointment >= 0)
+                    {
+                        var noti = new Notification(
+            Guid.NewGuid(),
+            "Upcoming Appointment",
+            $"Your appointment is in {daysToAppointment} day(s) on {appointment.AppointmentDate:dd/MM/yyyy}. Please prepare accordingly.",
+            NotificationType.Appointment);
+                        noti.Status = NotificationStatus.Sent;
+                        noti.PatientId = appointment.PatientId;
+                        noti.SentTime = DateTime.UtcNow;
+                        noti.Channel = "Appointment";
+                        noti.RelatedEntityType = "Appointment";
+                        noti.RelatedEntityId = appointment.Id;
+                        await unitOfWork.Repository<Notification>().InsertAsync(noti);
+                    }
+                }
+            }
+
+            if (appointments.Any())
+            {
+                await unitOfWork.CommitAsync();
+                var expiredCount = appointments.Count(c => c.Status == AppointmentStatus.Cancelled);
+                _logger.LogInformation($"{expiredCount} appointments expired and updated.");
             }
         }
     }
