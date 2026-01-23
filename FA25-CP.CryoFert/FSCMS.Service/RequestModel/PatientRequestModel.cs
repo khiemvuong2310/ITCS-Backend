@@ -229,15 +229,16 @@ namespace FSCMS.Service.RequestModel
     /// <summary>
     /// Request model for creating a new relationship between patients
     /// </summary>
+    /// <summary>
+    /// Request model for creating a new relationship between patients
+    /// Uses PatientCode instead of Guid for better user experience
+    /// </summary>
     public class CreateRelationshipRequest
     {
-        [JsonPropertyName("patient1Id")]
-        [Required(ErrorMessage = "Patient 1 ID is required.")]
-        public Guid Patient1Id { get; set; }
-
-        [JsonPropertyName("patient2Id")]
-        [Required(ErrorMessage = "Patient 2 ID is required.")]
-        public Guid Patient2Id { get; set; }
+        [JsonPropertyName("patient2Code")]
+        [Required(ErrorMessage = "Partner's patient code is required.")]
+        [StringLength(50, ErrorMessage = "Patient code cannot exceed 50 characters.")]
+        public string Patient2Code { get; set; } = default!;
 
         [JsonPropertyName("relationshipType")]
         [Required(ErrorMessage = "Relationship type is required.")]

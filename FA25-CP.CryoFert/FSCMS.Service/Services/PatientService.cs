@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using FSCMS.Core.Interfaces;
@@ -1010,6 +1010,7 @@ namespace FSCMS.Service.Services
 
         /// <summary>
         /// Creates a new relationship between patients with email confirmation workflow
+        /// Uses PatientCode for easier partner identification
         /// </summary>
         public async Task<BaseResponse<RelationshipResponse>> CreateRelationshipAsync(CreateRelationshipRequest request)
         {
@@ -1025,11 +1026,14 @@ namespace FSCMS.Service.Services
                     return BaseResponse<RelationshipResponse>.CreateError("Request cannot be null", StatusCodes.Status400BadRequest, "RELATIONSHIP_001");
                 }
 
-                if (request.Patient1Id == request.Patient2Id)
+                // Validate and sanitize Patient2Code
+                if (string.IsNullOrWhiteSpace(request.Patient2Code))
                 {
-                    _logger.LogWarning("{MethodName}: Patient cannot have relationship with themselves", methodName);
-                    return BaseResponse<RelationshipResponse>.CreateError("Patient cannot have relationship with themselves", StatusCodes.Status400BadRequest, "RELATIONSHIP_002");
+                    _logger.LogWarning("{MethodName}: Patient2Code is empty", methodName);
+                    return BaseResponse<RelationshipResponse>.CreateError("Partner's patient code is required", StatusCodes.Status400BadRequest, "RELATIONSHIP_001_CODE");
                 }
+
+                var patient2Code = request.Patient2Code.Trim();
 
                 // 2. Authorization check - Only Patient can create their own relationship requests
                 var currentAccountId = GetCurrentAccountId();
@@ -1048,31 +1052,40 @@ namespace FSCMS.Service.Services
                 }
 
                 var currentPatientId = currentPatientResult.Data.Id;
-
-                // Verify that Patient1Id matches current patient (only patients can create requests for themselves)
-                if (request.Patient1Id != currentPatientId)
-                {
-                    _logger.LogWarning("{MethodName}: Patient {CurrentPatientId} attempted to create relationship for another patient {Patient1Id}", methodName, currentPatientId, request.Patient1Id);
-                    return BaseResponse<RelationshipResponse>.CreateError("Unauthorized: You can only create relationship requests for yourself", StatusCodes.Status403Forbidden, "RELATIONSHIP_403_FORBIDDEN");
-                }
+                var currentPatientCode = currentPatientResult.Data.PatientCode;
 
                 // 3. Verify both patients exist with account information
+                // Patient1 is the current logged-in patient
                 var patient1 = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
                     .Include(p => p.Account)
-                    .Where(p => p.Id == request.Patient1Id && !p.IsDeleted)
+                    .Where(p => p.Id == currentPatientId && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
+                // Patient2 is found by PatientCode from request
                 var patient2 = await _unitOfWork.Repository<Patient>()
                     .AsQueryable()
                     .Include(p => p.Account)
-                    .Where(p => p.Id == request.Patient2Id && !p.IsDeleted)
+                    .Where(p => p.PatientCode == patient2Code && !p.IsDeleted)
                     .FirstOrDefaultAsync();
 
-                if (patient1 == null || patient2 == null)
+                if (patient1 == null)
                 {
-                    _logger.LogWarning("{MethodName}: One or both patients not found - Patient1: {Patient1Id}, Patient2: {Patient2Id}", methodName, request.Patient1Id, request.Patient2Id);
-                    return BaseResponse<RelationshipResponse>.CreateError("One or both patients not found", StatusCodes.Status404NotFound, "RELATIONSHIP_003");
+                    _logger.LogWarning("{MethodName}: Current patient not found with ID: {PatientId}", methodName, currentPatientId);
+                    return BaseResponse<RelationshipResponse>.CreateError("Current patient not found", StatusCodes.Status404NotFound, "RELATIONSHIP_003_PATIENT1");
+                }
+
+                if (patient2 == null)
+                {
+                    _logger.LogWarning("{MethodName}: Partner patient not found with code: {PatientCode}", methodName, patient2Code);
+                    return BaseResponse<RelationshipResponse>.CreateError($"Partner patient with code '{patient2Code}' not found", StatusCodes.Status404NotFound, "RELATIONSHIP_003_PATIENT2");
+                }
+
+                // Verify patient is not trying to create relationship with themselves
+                if (patient1.Id == patient2.Id || currentPatientCode.Equals(patient2Code, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("{MethodName}: Patient {PatientCode} attempted to create relationship with themselves", methodName, currentPatientCode);
+                    return BaseResponse<RelationshipResponse>.CreateError("You cannot create a relationship with yourself", StatusCodes.Status400BadRequest, "RELATIONSHIP_002");
                 }
 
                 if (patient1.Account == null || patient2.Account == null)
@@ -1081,18 +1094,18 @@ namespace FSCMS.Service.Services
                     return BaseResponse<RelationshipResponse>.CreateError("Patient account information is missing", StatusCodes.Status404NotFound, "RELATIONSHIP_003_ACCOUNT");
                 }
 
-                // 4.Check each patient can only have ONE relationship 
-                var patient1ValidationResult = await ValidatePatientHasNoExistingRelationshipAsync(request.Patient1Id, patient1);
+                // 4. Check each patient can only have ONE relationship 
+                var patient1ValidationResult = await ValidatePatientHasNoExistingRelationshipAsync(patient1.Id, patient1);
                 if (!patient1ValidationResult.IsValid)
                 {
-                    _logger.LogWarning("{MethodName}: Patient1 validation failed - {Error}", methodName, patient1ValidationResult.ErrorMessage);
+                    _logger.LogWarning("{MethodName}: Patient1 ({PatientCode}) validation failed - {Error}", methodName, currentPatientCode, patient1ValidationResult.ErrorMessage);
                     return BaseResponse<RelationshipResponse>.CreateError(patient1ValidationResult.ErrorMessage, StatusCodes.Status409Conflict, patient1ValidationResult.ErrorCode);
                 }
 
-                var patient2ValidationResult = await ValidatePatientHasNoExistingRelationshipAsync(request.Patient2Id, patient2);
+                var patient2ValidationResult = await ValidatePatientHasNoExistingRelationshipAsync(patient2.Id, patient2);
                 if (!patient2ValidationResult.IsValid)
                 {
-                    _logger.LogWarning("{MethodName}: Patient2 validation failed - {Error}", methodName, patient2ValidationResult.ErrorMessage);
+                    _logger.LogWarning("{MethodName}: Patient2 ({PatientCode}) validation failed - {Error}", methodName, patient2Code, patient2ValidationResult.ErrorMessage);
                     return BaseResponse<RelationshipResponse>.CreateError(patient2ValidationResult.ErrorMessage, StatusCodes.Status409Conflict, patient2ValidationResult.ErrorCode);
                 }
 
@@ -1107,8 +1120,8 @@ namespace FSCMS.Service.Services
                 // 6. Check for existing pending/approved relationship between these two specific patients
                 var existingRelationship = await _unitOfWork.Repository<Relationship>()
                     .AsQueryable()
-                    .Where(r => ((r.Patient1Id == request.Patient1Id && r.Patient2Id == request.Patient2Id) ||
-                                (r.Patient1Id == request.Patient2Id && r.Patient2Id == request.Patient1Id)) &&
+                    .Where(r => ((r.Patient1Id == patient1.Id && r.Patient2Id == patient2.Id) ||
+                                (r.Patient1Id == patient2.Id && r.Patient2Id == patient1.Id)) &&
                                r.RelationshipType == request.RelationshipType && !r.IsDeleted)
                     .FirstOrDefaultAsync();
 
@@ -1116,12 +1129,12 @@ namespace FSCMS.Service.Services
                 {
                     if (existingRelationship.Status == RelationshipStatus.Pending)
                     {
-                        _logger.LogWarning("{MethodName}: Relationship request already pending", methodName);
+                        _logger.LogWarning("{MethodName}: Relationship request already pending between {Patient1Code} and {Patient2Code}", methodName, currentPatientCode, patient2Code);
                         return BaseResponse<RelationshipResponse>.CreateError("A pending relationship request already exists between these patients", StatusCodes.Status409Conflict, "RELATIONSHIP_004_PENDING");
                     }
                     else if (existingRelationship.Status == RelationshipStatus.Approved)
                     {
-                        _logger.LogWarning("{MethodName}: Relationship already approved", methodName);
+                        _logger.LogWarning("{MethodName}: Relationship already approved between {Patient1Code} and {Patient2Code}", methodName, currentPatientCode, patient2Code);
                         return BaseResponse<RelationshipResponse>.CreateError("Relationship already exists and is approved between these patients", StatusCodes.Status409Conflict, "RELATIONSHIP_004_APPROVED");
                     }
                 }
@@ -1132,8 +1145,8 @@ namespace FSCMS.Service.Services
 
                 var relationship = new Relationship(
                     Guid.NewGuid(),
-                    request.Patient1Id,
-                    request.Patient2Id,
+                    patient1.Id,
+                    patient2.Id,
                     request.RelationshipType
                 )
                 {
@@ -1149,7 +1162,8 @@ namespace FSCMS.Service.Services
                 await _unitOfWork.Repository<Relationship>().InsertAsync(relationship);
                 await _unitOfWork.CommitAsync();
 
-                _logger.LogInformation("{MethodName}: Relationship request created successfully with ID: {RelationshipId}", methodName, relationship.Id);
+                _logger.LogInformation("{MethodName}: Relationship request created successfully between {Patient1Code} and {Patient2Code}, RelationshipId: {RelationshipId}", 
+                    methodName, currentPatientCode, patient2Code, relationship.Id);
 
                 // 8. Send email confirmation to Patient2
                 try
