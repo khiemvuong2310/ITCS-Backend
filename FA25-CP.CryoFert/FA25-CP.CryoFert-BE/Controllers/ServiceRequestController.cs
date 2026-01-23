@@ -28,7 +28,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Pagination and filtering request</param>
         /// <returns>Paginated service requests</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin,Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel))]
         public async Task<IActionResult> GetAll([FromQuery] GetServiceRequestsRequest request)
         {
@@ -45,7 +44,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service request ID</param>
         /// <returns>Service request response</returns>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin,Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceRequestResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetById(Guid id)
         {
