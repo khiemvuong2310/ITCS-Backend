@@ -18,7 +18,7 @@ namespace FSCMS.Service.RequestModel
         public Guid? ImportedBy { get; set; }
         public Guid? WitnessedBy { get; set; }
 
-        [Range(-100, 100, ErrorMessage = "Temperature must be between -100 and 100.")]
+        [Range(-200, 0, ErrorMessage = "Temperature must be between -200 and 0.")]
         public decimal? Temperature { get; set; }
 
         [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters.")]
