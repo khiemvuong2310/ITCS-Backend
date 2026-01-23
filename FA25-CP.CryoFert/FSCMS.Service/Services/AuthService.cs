@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using System.Net.Mail;
 using System.Net;
@@ -198,6 +198,7 @@ namespace FSCMS.Service.Services
                     return new BaseResponseForLogin<LoginResponseModel>
                     {
                         Code = StatusCodes.Status403Forbidden,
+                        SystemCode = "Need-OTP",
                         Message = "Please verify your email before logging in. A new verification code has been sent to your email.",
                         Data = new LoginResponseModel
                         {

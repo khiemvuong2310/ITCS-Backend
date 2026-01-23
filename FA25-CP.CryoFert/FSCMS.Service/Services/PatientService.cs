@@ -8,6 +8,7 @@ using FSCMS.Service.ReponseModel;
 using FSCMS.Service.RequestModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,7 @@ namespace FSCMS.Service.Services
         private readonly IMailService _mailService;
         private readonly IEmailTemplateService _emailTemplateService;
         private readonly INotificationService _notificationService;
+        private readonly IConfiguration _configuration;
 
         public PatientService(
             IUnitOfWork unitOfWork,
@@ -35,7 +37,8 @@ namespace FSCMS.Service.Services
             IHttpContextAccessor httpContextAccessor,
             IMailService mailService,
             IEmailTemplateService emailTemplateService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IConfiguration configuration)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -44,6 +47,7 @@ namespace FSCMS.Service.Services
             _mailService = mailService ?? throw new ArgumentNullException(nameof(mailService));
             _emailTemplateService = emailTemplateService ?? throw new ArgumentNullException(nameof(emailTemplateService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         #region Patient CRUD Operations
@@ -2713,7 +2717,20 @@ namespace FSCMS.Service.Services
             var relationshipTypeName = relationship.RelationshipType.ToString();
 
             var subject = $"Relationship Request from {patient1Name}";
-            var baseUrl = _httpContextAccessor.HttpContext?.Request?.Scheme + "://" + _httpContextAccessor.HttpContext?.Request?.Host;
+            
+            // Get BaseUrl from configuration (Azure domain for production, localhost for development)
+            var baseUrl = _configuration["AppSettings:BaseUrl"];
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                // Fallback to HttpContext if not configured
+                baseUrl = _httpContextAccessor.HttpContext?.Request?.Scheme + "://" + _httpContextAccessor.HttpContext?.Request?.Host;
+                _logger.LogWarning("BaseUrl not configured in appsettings, using HttpContext: {BaseUrl}", baseUrl);
+            }
+            else
+            {
+                _logger.LogInformation("Using configured BaseUrl for email links: {BaseUrl}", baseUrl);
+            }
+            
             // Include token in URL for email-based verification
             var approvalUrl = $"{baseUrl}/api/relationship/email-approve/{relationship.Id}?token={relationship.ApprovalToken}";
             var rejectionUrl = $"{baseUrl}/api/relationship/email-reject/{relationship.Id}?token={relationship.ApprovalToken}";
