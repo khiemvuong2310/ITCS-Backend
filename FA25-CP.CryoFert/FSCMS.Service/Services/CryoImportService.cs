@@ -173,6 +173,16 @@ namespace FSCMS.Service.Services
                     }; 
                 }
 
+                if (locationExists.SampleCount != 0)
+                {
+                    return new BaseResponse<CryoImportResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Slot is already storage.",
+                        Data = null
+                    };
+                }
+
                 if (locationExists.SampleType != labSampleExists.SampleType) 
                 { 
                     return new BaseResponse<CryoImportResponse> 
