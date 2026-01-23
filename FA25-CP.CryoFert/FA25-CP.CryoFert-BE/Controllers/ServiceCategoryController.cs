@@ -71,7 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service category creation request</param>
         /// <returns>Created service category response</returns>
         [HttpPost]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceCategoryResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] ServiceCategoryRequestModel request)
         {
@@ -95,7 +95,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service category update request</param>
         /// <returns>Updated service category response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceCategoryResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceCategoryRequestModel request)
         {
@@ -118,7 +118,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service category ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {

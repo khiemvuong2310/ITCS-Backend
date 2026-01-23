@@ -91,6 +91,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="searchTerm">Search term</param>
         /// <returns>List of matching services</returns>
         [HttpGet("search")]
+        [Authorize(Roles = "Admin,Receptionist,Doctor,Laboratory Technician")]
         [ApiDefaultResponse(typeof(List<ServiceResponseModel>), UseDynamicWrapper = false)]
         public async Task<IActionResult> Search([FromQuery] string searchTerm)
         {
@@ -113,7 +114,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service creation request</param>
         /// <returns>Created service response</returns>
         [HttpPost]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] ServiceCreateRequestModel request)
         {
@@ -137,7 +138,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="request">Service update request (all fields are optional - only provided fields will be updated)</param>
         /// <returns>Updated service response</returns>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(ServiceResponseModel), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] ServiceUpdateRequestModel request)
         {
@@ -160,7 +161,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <param name="id">Service ID</param>
         /// <returns>Operation result</returns>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
