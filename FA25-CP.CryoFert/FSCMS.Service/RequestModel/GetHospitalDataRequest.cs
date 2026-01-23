@@ -1,4 +1,4 @@
-﻿using FSCMS.Service.ReponseModel;
+using FSCMS.Service.ReponseModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -8,13 +8,24 @@ using System.Threading.Tasks;
 
 namespace FSCMS.Service.RequestModel
 {
-    public class GetHospitalDataRequest :PagingModel
+    /// <summary>
+    /// Request model for getting hospital data with pagination and filtering
+    /// </summary>
+    public class GetHospitalDataRequest : PagingModel
     {
-        public decimal value {  get; set; }
-    }
+        /// <summary>
+        /// Optional filter by minimum value
+        /// </summary>
+        public decimal? MinValue { get; set; }
 
-    public class GetHospitalDataValue
-    {
-        public decimal value { get; set; }
+        /// <summary>
+        /// Optional filter by maximum value
+        /// </summary>
+        public decimal? MaxValue { get; set; }
+
+        /// <summary>
+        /// Optional search term for filtering
+        /// </summary>
+        public string? SearchTerm { get; set; }
     }
 }

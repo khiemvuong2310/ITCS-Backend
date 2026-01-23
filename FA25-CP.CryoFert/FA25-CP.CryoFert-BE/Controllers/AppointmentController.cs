@@ -34,8 +34,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get appointment by ID
         /// </summary>
-        /// <param name="id">Appointment ID</param>
-        /// <returns>Appointment information</returns>
         [HttpGet("{id:guid}")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentById(Guid id)
@@ -47,8 +45,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get detailed appointment by ID with related data
         /// </summary>
-        /// <param name="id">Appointment ID</param>
-        /// <returns>Detailed appointment information</returns>
         [HttpGet("{id:guid}/details")]
         [ApiDefaultResponse(typeof(AppointmentDetailResponse), UseDynamicWrapper = false)]
         public async Task<IActionResult> GetAppointmentDetails(Guid id)
@@ -60,8 +56,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get all appointments with pagination and filtering
         /// </summary>
-        /// <param name="request">Filter and pagination parameters</param>
-        /// <returns>Paginated list of appointments</returns>
         [HttpGet]
         [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
@@ -74,9 +68,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get appointments by treatment cycle ID
         /// </summary>
-        /// <param name="treatmentCycleId">Treatment cycle ID</param>
-        /// <param name="request">Filter and pagination parameters</param>
-        /// <returns>Paginated list of appointments</returns>
         [HttpGet("treatment-cycle/{treatmentCycleId:guid}")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsByTreatmentCycleId(Guid treatmentCycleId, [FromQuery] GetAppointmentsRequest request)
@@ -88,9 +79,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get appointments by doctor ID
         /// </summary>
-        /// <param name="doctorId">Doctor ID</param>
-        /// <param name="request">Filter and pagination parameters</param>
-        /// <returns>Paginated list of appointments</returns>
         [HttpGet("doctor/{doctorId:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
@@ -103,9 +91,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get history appointments by patient ID
         /// </summary>
-        /// <param name="patientId">Patient ID</param>
-        /// <param name="request">Filter and pagination parameters</param>
-        /// <returns>Paginated list of Type appointments</returns>
         [HttpGet("patient/{patientId:guid}/history")]
         [ApiDefaultResponse(typeof(AppointmentResponse))]
         public async Task<IActionResult> GetAppointmentsHistory(Guid patientId, [FromQuery] GetAppointmentsRequest request)
@@ -117,8 +102,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Get appointment by slot ID
         /// </summary>
-        /// <param name="slotId">Slot ID</param>
-        /// <returns>Appointment information</returns>
         [HttpGet("slot/{slotId:guid}")]
         [Authorize(Roles = "Admin,Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
@@ -131,8 +114,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Create new appointment
         /// </summary>
-        /// <param name="request">Appointment creation request</param>
-        /// <returns>Created appointment information</returns>
         [HttpPost]
         [Authorize(Roles = "Doctor,Receptionist,Patient,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
@@ -155,9 +136,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Update existing appointment
         /// </summary>
-        /// <param name="id">Appointment ID</param>
-        /// <param name="request">Appointment update request</param>
-        /// <returns>Updated appointment information</returns>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(AppointmentResponse), UseDynamicWrapper = false)]
@@ -180,8 +158,6 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// <summary>
         /// Delete appointment (soft delete)
         /// </summary>
-        /// <param name="id">Appointment ID</param>
-        /// <returns>Success or error response</returns>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Doctor,Receptionist,Laboratory Technician")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
