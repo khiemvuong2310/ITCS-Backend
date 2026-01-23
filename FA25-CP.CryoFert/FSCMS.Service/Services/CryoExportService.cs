@@ -161,6 +161,16 @@ namespace FSCMS.Service.Services
                     };
                 }
 
+                if (locationExists.SampleCount == 0)
+                {
+                    return new BaseResponse<CryoExportResponse>
+                    {
+                        Code = StatusCodes.Status400BadRequest,
+                        Message = "Slot is empty.",
+                        Data = null
+                    };
+                }
+
                 var labSampleExists = await _unitOfWork.Repository<LabSample>()
                     .AsQueryable()
                     .Where(r => r.Id == request.LabSampleId && !r.IsDeleted && r.CryoLocationId == locationExists.Id && r.Status == SpecimenStatus.Stored)
