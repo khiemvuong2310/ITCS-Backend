@@ -198,7 +198,7 @@ namespace FSCMS.Service.Services
                     return new BaseResponseForLogin<LoginResponseModel>
                     {
                         Code = StatusCodes.Status403Forbidden,
-                        SystemCode = "Need-OTP",
+                        SystemCode = "NEED_OTP",
                         Message = "Please verify your email before logging in. A new verification code has been sent to your email.",
                         Data = new LoginResponseModel
                         {
