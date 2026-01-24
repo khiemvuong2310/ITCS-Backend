@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using System.Net.Mail;
 using System.Net;
@@ -87,9 +87,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Authenticates a user with email and password
         /// </summary>
-        /// <param name="email">User's email address</param>
-        /// <param name="password">User's password</param>
-        /// <param name="mobile">Indicates if the request is from a mobile device (affects token expiration)</param>
         /// <returns>Login response containing token, refresh token, and user details</returns>
         public async Task<BaseResponseForLogin<LoginResponseModel>> AuthenticateAsync(string email, string password, bool? mobile = false)
         {
@@ -268,7 +265,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Logs out a user by clearing their refresh token
         /// </summary>
-        /// <param name="userId">User's unique identifier</param>
         /// <returns>Response indicating success or failure</returns>
         public async Task<BaseResponse> LogoutAsync(Guid userId)
         {
@@ -469,10 +465,10 @@ namespace FSCMS.Service.Services
                     };
                 }
 
-                // Validate role exists
+                // Validate role exists and get role details
                 var role = await _unitOfWork.Repository<Role>()
                     .AsQueryable()
-                    .Where(u => u.Id == adminCreateAccountModel.RoleId && !u.IsDeleted)
+                    .Where(r => r.Id == adminCreateAccountModel.RoleId && !r.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (role == null)
@@ -492,7 +488,7 @@ namespace FSCMS.Service.Services
                     Address = adminCreateAccountModel.Location,
                     PasswordHash = PasswordTools.HashPassword("12345678"), // Default password
                     Phone = adminCreateAccountModel.Phone,
-                    IsActive = true,
+                    IsActive = adminCreateAccountModel.Status ?? true,
                     IsVerified = true, // Admin-created accounts are pre-verified
                     RoleId = adminCreateAccountModel.RoleId
                 };
@@ -500,6 +496,12 @@ namespace FSCMS.Service.Services
                 // Insert account into database
                 await _unitOfWork.Repository<Account>().InsertAsync(account);
                 await _unitOfWork.CommitAsync();
+
+                // If role is Doctor, create Doctor entity
+                if (IsDoctorRole(role))
+                {
+                    await CreateDoctorEntityAsync(account.Id);
+                }
 
                 // Send account credentials email
                 await SendEmailAsync(
@@ -818,7 +820,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Handles forgot password request by generating a new password and sending it via email
         /// </summary>
-        /// <param name="request">Forgot password request containing email address</param>
         /// <returns>Response indicating success or failure</returns>
         public async Task<BaseResponse> ForgotPassword(ForgotPasswordRequest request)
         {
@@ -873,8 +874,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Changes a user's password after verifying the current password
         /// </summary>
-        /// <param name="userId">User's unique identifier</param>
-        /// <param name="request">Change password request containing current and new password</param>
         /// <returns>Response indicating success or failure</returns>
         public async Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
         {
@@ -942,10 +941,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Generates a JWT token for authentication
         /// </summary>
-        /// <param name="email">User's email address</param>
-        /// <param name="roleNames">Comma-separated role names</param>
-        /// <param name="userId">User's unique identifier</param>
-        /// <param name="mobile">Indicates if the request is from a mobile device (affects token expiration)</param>
         /// <returns>JWT token string</returns>
         public string GenerateJwtToken(string email, string roleNames, Guid userId, bool? mobile)
         {
@@ -993,7 +988,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Refreshes an access token using a refresh token
         /// </summary>
-        /// <param name="refreshToken">Refresh token string</param>
         /// <returns>Response containing new access token and refresh token</returns>
         public async Task<BaseResponse<TokenModel>> RefreshTokenAsync(string refreshToken)
         {
@@ -1251,6 +1245,47 @@ namespace FSCMS.Service.Services
         private async Task<string> GetVerificationEmailTemplate(string verificationCode)
         {
             return await _emailTemplateService.GetVerificationEmailTemplateAsync(verificationCode);
+        }
+
+        /// <summary>
+        /// Checks if the given role is a Doctor role
+        /// </summary>
+        /// <returns>True if role is Doctor, false otherwise</returns>
+        private static bool IsDoctorRole(Role role)
+        {
+            return role.RoleName.Equals("Doctor", StringComparison.OrdinalIgnoreCase) ||
+                   role.RoleCode.Equals("Doctor", StringComparison.OrdinalIgnoreCase) ||
+                   role.RoleCode.Equals("DOC", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Creates a Doctor entity for the given account ID
+        /// </summary>
+        /// <returns>Task representing the async operation</returns>
+        private async Task CreateDoctorEntityAsync(Guid accountId)
+        {
+            var doctor = new Doctor(
+                id: accountId, // Use the same ID as Account for 1-1 relationship
+                badgeId: GenerateDoctorBadgeId(),
+                specialty: "General Practice", // Default specialty
+                yearsOfExperience: 0, // Default experience
+                joinDate: DateTime.UtcNow,
+                isActive: true
+            );
+
+            await _unitOfWork.Repository<Doctor>().InsertAsync(doctor);
+            await _unitOfWork.CommitAsync();
+        }
+
+        /// <summary>
+        /// Generates a unique badge ID for a new doctor
+        /// </summary>
+        /// <returns>Generated badge ID string</returns>
+        private static string GenerateDoctorBadgeId()
+        {
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var random = new Random().Next(100, 999);
+            return $"DOC{timestamp}{random}";
         }
 
         #endregion

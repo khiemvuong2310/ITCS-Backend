@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using FSCMS.Core.Entities;
 using FSCMS.Core.Enum;
 using System;
@@ -415,20 +415,20 @@ namespace FSCMS.Core
             const string defaultPwdHash = "$2a$11$.JgDmowGQmD2u2cMhrPnZO4VExs1s7hQIPdTJKcPfPRxKnoFRUO6S";
 
             // Account IDs
-            var adminAccountId = new Guid("00000000-0000-0000-0000-000000010001");
-            var labAccountId = new Guid("00000000-0000-0000-0000-000000010002");
-            var receptionistAccountId = new Guid("00000000-0000-0000-0000-000000010003");
-            var doctor1AccountId = new Guid("00000000-0000-0000-0000-000000010004");
-            var doctor2AccountId = new Guid("00000000-0000-0000-0000-000000010005");
-            var doctor3AccountId = new Guid("00000000-0000-0000-0000-000000010006");
-            var doctor4AccountId = new Guid("00000000-0000-0000-0000-000000010007");
-            var doctor5AccountId = new Guid("00000000-0000-0000-0000-000000010008");
-            var doctor6AccountId = new Guid("00000000-0000-0000-0000-000000010009");
-            var doctor7AccountId = new Guid("00000000-0000-0000-0000-000000010010");
-            var doctor8AccountId = new Guid("00000000-0000-0000-0000-000000010011");
-            var patient1AccountId = new Guid("00000000-0000-0000-0000-000000010012");
-            var patient2AccountId = new Guid("00000000-0000-0000-0000-000000010013");
-            var patient3AccountId = new Guid("00000000-0000-0000-0000-000000010014");
+            var adminAccountId = new Guid("00000000-0000-0000-0000-000000010001"); // Keep admin unchanged
+            var labAccountId = new Guid("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+            var receptionistAccountId = new Guid("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+            var doctor1AccountId = new Guid("6ba7b811-9dad-11d1-80b4-00c04fd430c8");
+            var doctor2AccountId = new Guid("550e8400-e29b-41d4-a716-446655440000");
+            var doctor3AccountId = new Guid("6ba7b814-9dad-11d1-80b4-00c04fd430c8");
+            var doctor4AccountId = new Guid("f47ac10b-58cc-4372-a567-0e02b2c3d473");
+            var doctor5AccountId = new Guid("6ba7b816-9dad-11d1-80b4-00c04fd430c8");
+            var doctor6AccountId = new Guid("550e8400-e29b-41d4-a716-446655440003");
+            var doctor7AccountId = new Guid("f47ac10b-58cc-4372-a567-0e02b2c3d471");
+            var doctor8AccountId = new Guid("6ba7b819-9dad-11d1-80b4-00c04fd430c8");
+            var patient1AccountId = new Guid("550e8400-e29b-41d4-a716-446655440008");
+            var patient2AccountId = new Guid("f47ac10b-58cc-4372-a567-0e02b2c3d456");
+            var patient3AccountId = new Guid("6ba7b81c-9dad-11d1-80b4-00c04fd430c8");
 
             modelBuilder.Entity<Account>().HasData(
                 // 1. Quản trị hệ thống (Admin)
