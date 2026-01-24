@@ -71,7 +71,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Create a new medicine
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(Medicine), UseDynamicWrapper = false)]
         public async Task<IActionResult> Create([FromBody] CreateMedicineRequest request)
         {
@@ -103,7 +103,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Update a medicine
         /// </summary>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(Medicine), UseDynamicWrapper = false)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMedicineRequest request)
         {
@@ -136,7 +136,7 @@ namespace FA25_CP.CryoFert_BE.Controllers
         /// Delete (soft delete) a medicine
         /// </summary>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Doctor,Receptionist")]
+        [Authorize(Roles = "Admin,Doctor,Receptionist")]
         [ApiDefaultResponse(typeof(object), UseDynamicWrapper = false)]
         public async Task<IActionResult> Delete(Guid id)
         {
