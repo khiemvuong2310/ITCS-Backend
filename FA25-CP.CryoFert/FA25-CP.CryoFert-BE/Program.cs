@@ -107,7 +107,8 @@ namespace FA25_CP.CryoFert_BE
                             // Cách 1: Cho phép tất cả các thể loại Localhost 
                             if (normalizedOrigin.StartsWith("http://localhost") || normalizedOrigin.StartsWith("https://localhost"))
                                 return true;
-
+                            if(normalizedOrigin.StartsWith("http://www.cryofert.mom")|| normalizedOrigin.StartsWith("https://www.cryofert.mom"))
+                                return true;
                             // Cách 2: Cho phép theo đuôi tên miền (Production)
                             if (normalizedOrigin.EndsWith(".pages.dev")) return true;
                             if (normalizedOrigin.EndsWith(".azurewebsites.net")) return true;
