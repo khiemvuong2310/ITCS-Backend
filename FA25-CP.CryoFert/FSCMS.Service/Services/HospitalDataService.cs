@@ -31,13 +31,13 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Validates the request object and returns validation errors if any
         /// </summary>
-        private List<ValidationResult> ValidateRequest<T>(T request)
+        private List<System.ComponentModel.DataAnnotations.ValidationResult> ValidateRequest<T>(T request)
         {
-            var validationResults = new List<ValidationResult>();
+            var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
             if (request != null)
             {
-                var validationContext = new ValidationContext(request);
-                Validator.TryValidateObject(request, validationContext, validationResults, true);
+                var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(request);
+                System.ComponentModel.DataAnnotations.Validator.TryValidateObject(request, validationContext, validationResults, true);
             }
             return validationResults;
         }
