@@ -562,12 +562,14 @@ namespace FSCMS.Core
             var catImaging = new Guid("10000000-0000-0000-0000-000000000012"); // Imaging (siêu âm, HSG, HSC)
             var catGenetic = new Guid("10000000-0000-0000-0000-000000000013"); // Genetic testing (Karyotype, PGT, CFTR...)
             var catLabProcedures = new Guid("10000000-0000-0000-0000-000000000003"); // Lab procedures (IUI, OPU, ICSI, etc.)
+            var catConsultation = new Guid("10000000-0000-0000-0000-000000000014"); // Consultation & Clinical Examination
 
             modelBuilder.Entity<ServiceCategory>().HasData(
-                new ServiceCategory(catLabTests, "Laboratory Tests") { Code = "LAB", Description = "Clinical laboratory tests (female/male/post-IVF)", DisplayOrder = 1 },
-                new ServiceCategory(catImaging, "Imaging & Diagnostic Procedures") { Code = "IMG", Description = "Ultrasound, HSG, hysteroscopy, other imaging", DisplayOrder = 2 },
-                new ServiceCategory(catGenetic, "Genetic Testing") { Code = "GEN", Description = "Karyotype, Thalassemia, CFTR, PGT", DisplayOrder = 3 },
-                new ServiceCategory(catLabProcedures, "Laboratory Procedures / IVF-IUI") { Code = "PROC", Description = "IUI, OPU, ICSI, sperm prep, embryo culture", DisplayOrder = 4 }
+                new ServiceCategory(catConsultation, "Consultation & Clinical Examination") { Code = "CONS", Description = "Medical consultation, clinical examination, and counseling services", DisplayOrder = 1 },
+                new ServiceCategory(catLabTests, "Laboratory Tests") { Code = "LAB", Description = "Clinical laboratory tests (female/male/post-IVF)", DisplayOrder = 2 },
+                new ServiceCategory(catImaging, "Imaging & Diagnostic Procedures") { Code = "IMG", Description = "Ultrasound, HSG, hysteroscopy, other imaging", DisplayOrder = 3 },
+                new ServiceCategory(catGenetic, "Genetic Testing") { Code = "GEN", Description = "Karyotype, Thalassemia, CFTR, PGT", DisplayOrder = 4 },
+                new ServiceCategory(catLabProcedures, "Laboratory Procedures / IVF-IUI") { Code = "PROC", Description = "IUI, OPU, ICSI, sperm prep, embryo culture", DisplayOrder = 5 }
             );
 
             // --- Slots giữ nguyên (nếu cần) ---
@@ -580,77 +582,223 @@ namespace FSCMS.Core
 
             // --- Services (category assignments updated) ---
             modelBuilder.Entity<Service>().HasData(
-                // A. Lab test – Nữ: Bộ nội tiết (điền vào LAB)
-                new Service(new Guid("20000000-0000-0000-0000-000000000101"), "FSH (female)", 200000m, catLabTests) { Code = "LAB-FSH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000102"), "LH (female)", 200000m, catLabTests) { Code = "LAB-LH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000103"), "Estradiol (E2) (female)", 200000m, catLabTests) { Code = "LAB-E2-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000104"), "AMH (female)", 775000m, catLabTests) { Code = "LAB-AMH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000105"), "TSH (female)", 200000m, catLabTests) { Code = "LAB-TSH-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000106"), "FT4/FT3 (female)", 200000m, catLabTests) { Code = "LAB-FT-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000107"), "Prolactin (female)", 185000m, catLabTests) { Code = "LAB-PRL-F", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000108"), "Progesterone (female)", 200000m, catLabTests) { Code = "LAB-P4-F", Unit = "test" },
+                //// A. Lab test – Nữ: Bộ nội tiết (điền vào LAB)
+                //new Service(new Guid("20000000-0000-0000-0000-000000000101"), "FSH (female)", 200000m, catLabTests) { Code = "LAB-FSH-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000102"), "LH (female)", 200000m, catLabTests) { Code = "LAB-LH-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000103"), "Estradiol (E2) (female)", 200000m, catLabTests) { Code = "LAB-E2-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000104"), "AMH (female)", 775000m, catLabTests) { Code = "LAB-AMH-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000105"), "TSH (female)", 200000m, catLabTests) { Code = "LAB-TSH-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000106"), "FT4/FT3 (female)", 200000m, catLabTests) { Code = "LAB-FT-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000107"), "Prolactin (female)", 185000m, catLabTests) { Code = "LAB-PRL-F", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000108"), "Progesterone (female)", 200000m, catLabTests) { Code = "LAB-P4-F", Unit = "test" },
 
-                // A. Miễn dịch – bệnh truyền nhiễm -> LAB
-                new Service(new Guid("20000000-0000-0000-0000-000000000109"), "HIV screening", 150000m, catLabTests) { Code = "LAB-HIV", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000110"), "HBsAg", 125000m, catLabTests) { Code = "LAB-HBSAG", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000111"), "Anti-HCV", 185000m, catLabTests) { Code = "LAB-HCV", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000112"), "RPR/VDRL (syphilis)", 160000m, catLabTests) { Code = "LAB-RPR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000113"), "Rubella IgG/IgM", 400000m, catLabTests) { Code = "LAB-RUB", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000114"), "CMV IgG/IgM", 400000m, catLabTests) { Code = "LAB-CMV", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000115"), "Chlamydia PCR", 575000m, catLabTests) { Code = "LAB-CHLA-PCR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000116"), "Gonorrhea PCR", 575000m, catLabTests) { Code = "LAB-GONO-PCR", Unit = "test" },
+                //// A. Miễn dịch – bệnh truyền nhiễm -> LAB
+                //new Service(new Guid("20000000-0000-0000-0000-000000000109"), "HIV screening", 150000m, catLabTests) { Code = "LAB-HIV", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000110"), "HBsAg", 125000m, catLabTests) { Code = "LAB-HBSAG", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000111"), "Anti-HCV", 185000m, catLabTests) { Code = "LAB-HCV", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000112"), "RPR/VDRL (syphilis)", 160000m, catLabTests) { Code = "LAB-RPR", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000113"), "Rubella IgG/IgM", 400000m, catLabTests) { Code = "LAB-RUB", Unit = "panel" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000114"), "CMV IgG/IgM", 400000m, catLabTests) { Code = "LAB-CMV", Unit = "panel" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000115"), "Chlamydia PCR", 575000m, catLabTests) { Code = "LAB-CHLA-PCR", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000116"), "Gonorrhea PCR", 575000m, catLabTests) { Code = "LAB-GONO-PCR", Unit = "test" },
 
-                // A. Sinh hóa – huyết học -> LAB
-                new Service(new Guid("20000000-0000-0000-0000-000000000117"), "Complete blood count (CBC)", 100000m, catLabTests) { Code = "LAB-CBC", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000118"), "Blood glucose", 65000m, catLabTests) { Code = "LAB-GLU", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000119"), "AST/ALT", 65000m, catLabTests) { Code = "LAB-LFT", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000120"), "Creatinine/Urea", 65000m, catLabTests) { Code = "LAB-KFT", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000121"), "Electrolyte panel", 160000m, catLabTests) { Code = "LAB-ELEC", Unit = "panel" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000122"), "ABO/Rh blood group", 115000m, catLabTests) { Code = "LAB-ABO", Unit = "test" },
+                //// A. Sinh hóa – huyết học -> LAB
+                //new Service(new Guid("20000000-0000-0000-0000-000000000117"), "Complete blood count (CBC)", 100000m, catLabTests) { Code = "LAB-CBC", Unit = "panel" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000118"), "Blood glucose", 65000m, catLabTests) { Code = "LAB-GLU", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000119"), "AST/ALT", 65000m, catLabTests) { Code = "LAB-LFT", Unit = "panel" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000120"), "Creatinine/Urea", 65000m, catLabTests) { Code = "LAB-KFT", Unit = "panel" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000121"), "Electrolyte panel", 160000m, catLabTests) { Code = "LAB-ELEC", Unit = "panel" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000122"), "ABO/Rh blood group", 115000m, catLabTests) { Code = "LAB-ABO", Unit = "test" },
 
-                // B. Nam: Tinh dịch đồ -> LAB
-                new Service(new Guid("20000000-0000-0000-0000-000000000123"), "Semen analysis (SA)", 350000m, catLabTests) { Code = "LAB-SA", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000124"), "Semen analysis repeat", 250000m, catLabTests) { Code = "LAB-SA-REP", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000125"), "MAR test", 525000m, catLabTests) { Code = "LAB-MAR", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000126"), "DNA Fragmentation (DFI)", 2500000m, catLabTests) { Code = "LAB-DFI", Unit = "test" },
+                //// B. Nam: Tinh dịch đồ -> LAB
+                //new Service(new Guid("20000000-0000-0000-0000-000000000123"), "Semen analysis (SA)", 350000m, catLabTests) { Code = "LAB-SA", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000124"), "Semen analysis repeat", 250000m, catLabTests) { Code = "LAB-SA-REP", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000125"), "MAR test", 525000m, catLabTests) { Code = "LAB-MAR", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000126"), "DNA Fragmentation (DFI)", 2500000m, catLabTests) { Code = "LAB-DFI", Unit = "test" },
 
-                // B. Nam: Nội tiết nam -> LAB
-                new Service(new Guid("20000000-0000-0000-0000-000000000127"), "FSH (male)", 200000m, catLabTests) { Code = "LAB-FSH-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000128"), "LH (male)", 200000m, catLabTests) { Code = "LAB-LH-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000129"), "Testosterone (male)", 200000m, catLabTests) { Code = "LAB-TESTO-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000130"), "Prolactin (male)", 185000m, catLabTests) { Code = "LAB-PRL-M", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000131"), "TSH (male)", 200000m, catLabTests) { Code = "LAB-TSH-M", Unit = "test" },
+                //// B. Nam: Nội tiết nam -> LAB
+                //new Service(new Guid("20000000-0000-0000-0000-000000000127"), "FSH (male)", 200000m, catLabTests) { Code = "LAB-FSH-M", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000128"), "LH (male)", 200000m, catLabTests) { Code = "LAB-LH-M", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000129"), "Testosterone (male)", 200000m, catLabTests) { Code = "LAB-TESTO-M", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000130"), "Prolactin (male)", 185000m, catLabTests) { Code = "LAB-PRL-M", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000131"), "TSH (male)", 200000m, catLabTests) { Code = "LAB-TSH-M", Unit = "test" },
 
-                // C. Xét nghiệm di truyền -> chuyển vào GEN
-                new Service(new Guid("20000000-0000-0000-0000-000000000132"), "Karyotype", 1350000m, catGenetic) { Code = "LAB-KARYO", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000133"), "Thalassemia test", 950000m, catGenetic) { Code = "LAB-THALA", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000134"), "CFTR (cystic fibrosis)", 3000000m, catGenetic) { Code = "LAB-CFTR", Unit = "test" },
+                //// C. Xét nghiệm di truyền -> chuyển vào GEN
+                //new Service(new Guid("20000000-0000-0000-0000-000000000132"), "Karyotype", 1350000m, catGenetic) { Code = "LAB-KARYO", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000133"), "Thalassemia test", 950000m, catGenetic) { Code = "LAB-THALA", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000134"), "CFTR (cystic fibrosis)", 3000000m, catGenetic) { Code = "LAB-CFTR", Unit = "test" },
 
-                // PGT-A/M per embryo -> đặt vào Genetic (file liệt kê PGT như xét nghiệm di truyền)
-                new Service(new Guid("20000000-0000-0000-0000-000000000135"), "PGT-A/M per embryo", 19000000m, catGenetic) { Code = "LAB-PGT", Unit = "embryo" },
+                //// PGT-A/M per embryo -> đặt vào Genetic (file liệt kê PGT như xét nghiệm di truyền)
+                //new Service(new Guid("20000000-0000-0000-0000-000000000135"), "PGT-A/M per embryo", 19000000m, catGenetic) { Code = "LAB-PGT", Unit = "embryo" },
 
-                // D. Lab tests sau IVF/IUI -> LAB
-                new Service(new Guid("20000000-0000-0000-0000-000000000136"), "β-hCG", 150000m, catLabTests) { Code = "LAB-BHCG", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000137"), "Progesterone follow-up", 200000m, catLabTests) { Code = "LAB-P4-FU", Unit = "test" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000138"), "Estradiol follow-up", 200000m, catLabTests) { Code = "LAB-E2-FU", Unit = "test" },
+                //// D. Lab tests sau IVF/IUI -> LAB
+                //new Service(new Guid("20000000-0000-0000-0000-000000000136"), "β-hCG", 150000m, catLabTests) { Code = "LAB-BHCG", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000137"), "Progesterone follow-up", 200000m, catLabTests) { Code = "LAB-P4-FU", Unit = "test" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000138"), "Estradiol follow-up", 200000m, catLabTests) { Code = "LAB-E2-FU", Unit = "test" },
 
-                // Dịch vụ chẩn đoán hình ảnh -> chuyển sang IMAGING
-                new Service(new Guid("20000000-0000-0000-0000-000000000139"), "Transvaginal ultrasound", 225000m, catImaging) { Code = "US-TVS", Unit = "scan" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000140"), "Abdominal ultrasound", 200000m, catImaging) { Code = "US-ABD", Unit = "scan" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000141"), "Follicular ultrasound", 225000m, catImaging) { Code = "US-FOLL", Unit = "scan" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000142"), "HSG (hysterosalpingogram)", 1500000m, catImaging) { Code = "IMG-HSG", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000143"), "Diagnostic hysteroscopy", 4500000m, catImaging) { Code = "IMG-HSC", Unit = "procedure" },
+                //// Dịch vụ chẩn đoán hình ảnh -> chuyển sang IMAGING
+                //new Service(new Guid("20000000-0000-0000-0000-000000000139"), "Transvaginal ultrasound", 225000m, catImaging) { Code = "US-TVS", Unit = "scan" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000140"), "Abdominal ultrasound", 200000m, catImaging) { Code = "US-ABD", Unit = "scan" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000141"), "Follicular ultrasound", 225000m, catImaging) { Code = "US-FOLL", Unit = "scan" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000142"), "HSG (hysterosalpingogram)", 1500000m, catImaging) { Code = "IMG-HSG", Unit = "procedure" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000143"), "Diagnostic hysteroscopy", 4500000m, catImaging) { Code = "IMG-HSC", Unit = "procedure" },
 
-                // Thủ thuật / procedures (IUI/OPU/ICSI/...) -> giữ ở LAB PROCEDURES
-                new Service(new Guid("20000000-0000-0000-0000-000000000144"), "Sperm collection", 150000m, catLabProcedures) { Code = "LAB-SP-COLL", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000145"), "Sperm wash", 650000m, catLabProcedures) { Code = "LAB-SP-WASH", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000146"), "IUI procedure", 3500000m, catLabProcedures) { Code = "LAB-IUI", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000147"), "OPU (oocyte pickup)", 11500000m, catLabProcedures) { Code = "LAB-OPU", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000148"), "ICSI", 9000000m, catLabProcedures) { Code = "LAB-ICSI", Unit = "procedure" },
-                new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" },
+                //// Thủ thuật / procedures (IUI/OPU/ICSI/...) -> giữ ở LAB PROCEDURES
+                //new Service(new Guid("20000000-0000-0000-0000-000000000144"), "Sperm collection", 150000m, catLabProcedures) { Code = "LAB-SP-COLL", Unit = "procedure" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000145"), "Sperm wash", 650000m, catLabProcedures) { Code = "LAB-SP-WASH", Unit = "procedure" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000146"), "IUI procedure", 3500000m, catLabProcedures) { Code = "LAB-IUI", Unit = "procedure" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000147"), "OPU (oocyte pickup)", 11500000m, catLabProcedures) { Code = "LAB-OPU", Unit = "procedure" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000148"), "ICSI", 9000000m, catLabProcedures) { Code = "LAB-ICSI", Unit = "procedure" },
+                //new Service(new Guid("20000000-0000-0000-0000-000000000149"), "Embryo culture Day2–Day5", 8500000m, catLabProcedures) { Code = "LAB-EMB-D2D5", Unit = "cycle" },
 
                 // New Appointment Service
-                new Service(new Guid("60000000-0000-0000-0000-000000000001"), "Appointment", 100000m, catLabTests) { Code = "SERV-APPOINT", Unit = "service" }
+                new Service(new Guid("60000000-0000-0000-0000-000000000001"), "Appointment", 100000m, catLabTests) { Code = "SERV-APPOINT", Unit = "service" },
+
+                // ========================================
+                // Thêm các dịch vụ chuyên khoa vô sinh hiếm muộn
+                // ========================================
+
+                // Initial Consultation Services
+                new Service(new Guid("70000000-0000-0000-0000-000000000001"), "Initial Female Infertility Consultation", 500000m, catConsultation)
+                {
+                    Code = "CONS-INFERT-F",
+                    Unit = "consultation",
+                    Description = "Initial infertility examination and consultation for female patients, including clinical exam, medical history, and treatment planning"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000002"), "Initial Male Infertility Consultation", 500000m, catConsultation)
+                {
+                    Code = "CONS-INFERT-M",
+                    Unit = "consultation",
+                    Description = "Initial infertility examination and consultation for male patients, including clinical exam, male factor assessment, and counseling"
+                },
+
+                // Specialized Ultrasound (Supplementing existing scans)
+                new Service(new Guid("70000000-0000-0000-0000-000000000003"), "Ovarian Reserve Assessment Ultrasound", 300000m, catImaging)
+                {
+                    Code = "US-OVARIAN-RESERVE",
+                    Unit = "scan",
+                    Description = "Ultrasound for Antral Follicle Count (AFC) and ovarian reserve assessment, often combined with AMH testing"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000004"), "Follicular Tracking Ultrasound", 250000m, catImaging)
+                {
+                    Code = "US-OVULATION-MONITOR",
+                    Unit = "scan",
+                    Description = "Ultrasound monitoring of natural ovulation or stimulated cycles"
+                },
+
+                // Sample Collection and Quality Assessment
+                new Service(new Guid("70000000-0000-0000-0000-000000000005"), "Sperm Collection and Analysis", 400000m, catLabProcedures)
+                {
+                    Code = "SPERM-COLLECTION-EVAL",
+                    Unit = "procedure",
+                    Description = "Sperm collection and quality assessment including concentration, motility, and morphology"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000006"), "Post-OPU Oocyte Quality Assessment", 800000m, catLabProcedures)
+                {
+                    Code = "OOCYTE-QUALITY-EVAL",
+                    Unit = "procedure",
+                    Description = "Assessment of oocyte quality and maturity following Ovum Pick-Up (OPU)"
+                },
+
+                // Khanh Linh Procedure (Specialized Technique)
+                new Service(new Guid("70000000-0000-0000-0000-000000000007"), "Khanh Linh Protocol", 1200000m, catLabProcedures)
+                {
+                    Code = "KHANH-LINH-PROC",
+                    Unit = "procedure",
+                    Description = "Special Khanh Linh Protocol - an advanced technique in sample processing or fertilization"
+                },
+
+                // IUI Procedure
+                new Service(new Guid("70000000-0000-0000-0000-000000000008"), "Intrauterine Insemination (IUI)", 2800000m, catLabProcedures)
+                {
+                    Code = "IUI-INSEMINATION",
+                    Unit = "procedure",
+                    Description = "Procedure for injecting washed sperm into the uterus (IUI)"
+                },
+
+                // Embryo Grading and Assessment
+                new Service(new Guid("70000000-0000-0000-0000-000000000009"), "Day 3 Embryo Grading", 1500000m, catLabProcedures)
+                {
+                    Code = "EMBRYO-EVAL-D3",
+                    Unit = "procedure",
+                    Description = "Morphological assessment and quality grading of cleavage-stage embryos (Day 3)"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000010"), "Blastocyst Grading", 2000000m, catLabProcedures)
+                {
+                    Code = "EMBRYO-EVAL-BLAST",
+                    Unit = "procedure",
+                    Description = "Morphological assessment and quality grading of blastocysts (Day 5-6)"
+                },
+
+                // Conventional IVF (Distinct from ICSI)
+                new Service(new Guid("70000000-0000-0000-0000-000000000011"), "Conventional IVF Fertilization", 6000000m, catLabProcedures)
+                {
+                    Code = "CONVENTIONAL-IVF",
+                    Unit = "procedure",
+                    Description = "Conventional fertilization by co-incubating sperm and eggs naturally in a culture dish"
+                },
+
+                // Embryo Transfer
+                new Service(new Guid("70000000-0000-0000-0000-000000000012"), "Fresh Embryo Transfer", 3500000m, catLabProcedures)
+                {
+                    Code = "FRESH-ET",
+                    Unit = "procedure",
+                    Description = "Procedure for transferring fresh embryos into the uterus during an IVF cycle"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000013"), "Frozen Embryo Transfer (FET)", 3800000m, catLabProcedures)
+                {
+                    Code = "FROZEN-ET",
+                    Unit = "procedure",
+                    Description = "Procedure for transferring thawed embryos during a FET cycle"
+                },
+
+                // Luteal Support (Post-transfer care)
+                new Service(new Guid("70000000-0000-0000-0000-000000000014"), "Post-Transfer Luteal Support", 800000m, catLabTests)
+                {
+                    Code = "LUTEAL-SUPPORT-POST-ET",
+                    Unit = "service",
+                    Description = "Monitoring and pharmacological luteal support following embryo transfer, including consultation and prescription"
+                },
+
+                // Beta hCG Tests
+                new Service(new Guid("70000000-0000-0000-0000-000000000015"), "Quantitative Beta hCG Test", 180000m, catLabTests)
+                {
+                    Code = "BETA-HCG-QUANT",
+                    Unit = "test",
+                    Description = "Quantitative Beta hCG test to confirm pregnancy after IUI/IVF"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000016"), "Follow-up Beta hCG Test", 150000m, catLabTests)
+                {
+                    Code = "BETA-HCG-FOLLOWUP",
+                    Unit = "test",
+                    Description = "Follow-up Beta hCG test to monitor pregnancy progression"
+                },
+
+                // Additional Important Services
+                new Service(new Guid("70000000-0000-0000-0000-000000000017"), "Prenatal Genetic Counseling", 600000m, catConsultation)
+                {
+                    Code = "GENETIC-COUNSELING",
+                    Unit = "consultation",
+                    Description = "Genetic counseling for couples with high genetic risk factors"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000018"), "Early Pregnancy Ultrasound (Post-IVF)", 400000m, catImaging)
+                {
+                    Code = "US-EARLY-PREGNANCY",
+                    Unit = "scan",
+                    Description = "Ultrasound to confirm gestational sac and fetal heartbeat following successful IVF/IUI"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000019"), "Additional Embryo Cryopreservation", 2500000m, catLabProcedures)
+                {
+                    Code = "ADDITIONAL-FREEZING",
+                    Unit = "procedure",
+                    Description = "Cryopreservation of additional good-quality embryos after an IVF cycle"
+                },
+                new Service(new Guid("70000000-0000-0000-0000-000000000020"), "TESA/PESA Procedure", 8500000m, catLabProcedures)
+                {
+                    Code = "TESA-PESA",
+                    Unit = "procedure",
+                    Description = "Sperm retrieval from the testis or epididymis for azoospermia cases"
+                }
             );
 
 

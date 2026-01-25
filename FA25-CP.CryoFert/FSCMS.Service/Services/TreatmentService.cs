@@ -48,6 +48,7 @@ namespace FSCMS.Service.Services
 
         #region CRUD Operations
 
+        // Returns paginated treatments filtered by request parameters.
         public async Task<DynamicResponse<TreatmentResponseModel>> GetAllAsync(GetTreatmentsRequest request)
         {
             const string methodName = nameof(GetAllAsync);
@@ -208,7 +209,6 @@ namespace FSCMS.Service.Services
         /// <summary>
         /// Retrieves a treatment by its unique identifier with all related data (IVF/IUI, Agreements)
         /// </summary>
-        /// <param name="id">The unique identifier of the treatment</param>
         /// <returns>BaseResponse containing TreatmentDetailResponseModel with all related information</returns>
         public async Task<BaseResponse<TreatmentDetailResponseModel>> GetByIdAsync(Guid id)
         {
@@ -261,6 +261,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Creates a new treatment based on the request.
         public async Task<BaseResponse<TreatmentResponseModel>> CreateAsync(TreatmentCreateUpdateRequest request)
         {
             const string methodName = nameof(CreateAsync);
@@ -308,19 +309,15 @@ namespace FSCMS.Service.Services
                     return BaseResponse<TreatmentResponseModel>.CreateError("Doctor not found", StatusCodes.Status404NotFound, "DOCTOR_NOT_FOUND");
                 }
 
-                // Age restriction by treatment type & gender
-                //var ageValidation = ValidatePatientAgeForTreatment(
-                //    request.TreatmentType,
-                //    patient.Account?.Gender,
-                //    CalculateAge(patient.Account?.BirthDate, request.StartDate));
-
-                //if (!ageValidation.IsValid)
-                //{
-                //    return BaseResponse<TreatmentResponseModel>.CreateError(
-                //        ageValidation.Message,
-                //        StatusCodes.Status400BadRequest,
-                //        ageValidation.SystemCode);
-                //}
+                // Gender and relationship validation for treatment eligibility
+                var genderValidation = await ValidateGenderAndRelationshipForTreatmentAsync(patient, request.TreatmentType);
+                if (!genderValidation.IsValid)
+                {
+                    return BaseResponse<TreatmentResponseModel>.CreateError(
+                        genderValidation.Message,
+                        StatusCodes.Status400BadRequest,
+                        genderValidation.SystemCode);
+                }
 
                 // Business Rule: Each Patient can only have 1 active Treatment at a time
                 var hasActiveTreatment = await HasActiveTreatmentAsync(request.PatientId);
@@ -366,7 +363,7 @@ namespace FSCMS.Service.Services
                     var iuiRequest = request.IUI ?? new TreatmentIUICreateUpdateRequest
                     {
                         TreatmentId = entity.Id,
-                        Protocol = "Default IUI Protocol" // Default protocol if not provided
+                        Protocol = "Default IUI Protocol" 
                     };
 
                     // Ensure TreatmentId matches the created Treatment
@@ -492,6 +489,7 @@ namespace FSCMS.Service.Services
             }
         }
 
+        // Updates an existing treatment based on the request.
         public async Task<BaseResponse<TreatmentResponseModel>> UpdateAsync(Guid id, TreatmentUpdateRequest request)
         {
             const string methodName = nameof(UpdateAsync);
@@ -1022,7 +1020,6 @@ namespace FSCMS.Service.Services
         /// Active treatments are: Planned, InProgress, Scheduled, OnHold
         /// Non-active treatments are: Completed, Cancelled, Failed
         /// </summary>
-        /// <param name="patientId">The patient ID to check</param>
         /// <returns>True if patient has an active treatment, false otherwise</returns>
         private async Task<bool> HasActiveTreatmentAsync(Guid patientId)
         {
@@ -1039,11 +1036,81 @@ namespace FSCMS.Service.Services
         /// Active statuses: Planned, InProgress, Scheduled, OnHold
         /// Non-active statuses: Completed, Cancelled, Failed
         /// </summary>
-        /// <param name="status">The treatment status to check</param>
         /// <returns>True if status is active, false otherwise</returns>
         private static bool IsActiveStatus(TreatmentStatus status)
         {
             return ActiveTreatmentStatuses.Contains(status);
+        }
+
+        /// <summary>
+        /// Validates if a patient is eligible for IUI/IVF treatment based on gender and relationship status.
+        /// Business Rules:
+        /// - Female patients (Gender = false) can always receive IUI/IVF treatments
+        /// - Male patients (Gender = true) can only receive IUI/IVF treatments if they have an active relationship (Married or Unmarried)
+        /// - Patients with no gender specified (Gender = null) are treated as potentially eligible
+        /// </summary>
+        private async Task<ValidationResult> ValidateGenderAndRelationshipForTreatmentAsync(Patient patient, TreatmentType treatmentType)
+        {
+            const string methodName = nameof(ValidateGenderAndRelationshipForTreatmentAsync);
+            
+            try
+            {
+                // Check if treatment type requires fertility validation
+                if (treatmentType != TreatmentType.IUI && treatmentType != TreatmentType.IVF)
+                {
+                    return ValidationResult.Valid();
+                }
+
+                // If gender is not specified, allow treatment (assuming system flexibility)
+                if (patient.Account?.Gender == null)
+                {
+                    _logger.LogInformation("{MethodName}: Patient {PatientId} has no gender specified, allowing treatment", methodName, patient.Id);
+                    return ValidationResult.Valid();
+                }
+
+                // Female patients (Gender = false) can always receive fertility treatments
+                if (patient.Account.Gender == false)
+                {
+                    _logger.LogInformation("{MethodName}: Female patient {PatientId} is eligible for {TreatmentType} treatment", methodName, patient.Id, treatmentType);
+                    return ValidationResult.Valid();
+                }
+
+                // Male patients (Gender = true) require active relationship for fertility treatments
+                if (patient.Account.Gender == true)
+                {
+                    _logger.LogInformation("{MethodName}: Checking relationship status for male patient {PatientId}", methodName, patient.Id);
+                    
+                    // Load patient relationships
+                    var activeRelationships = await _unitOfWork.Repository<Relationship>()
+                        .GetQueryable()
+                        .Where(r => (r.Patient1Id == patient.Id || r.Patient2Id == patient.Id) 
+                                   && r.IsActive 
+                                   && !r.IsDeleted
+                                   && r.Status == RelationshipStatus.Approved
+                                   && (r.RelationshipType == RelationshipType.Married || r.RelationshipType == RelationshipType.Unmarried))
+                        .ToListAsync();
+
+                    if (!activeRelationships.Any())
+                    {
+                        _logger.LogWarning("{MethodName}: Male patient {PatientId} has no active relationships, cannot receive {TreatmentType} treatment", 
+                            methodName, patient.Id, treatmentType);
+                        return ValidationResult.Invalid(
+                            "Male patients must have an active relationship (married or unmarried) to receive IUI/IVF treatments",
+                            "MALE_REQUIRES_RELATIONSHIP");
+                    }
+
+                    _logger.LogInformation("{MethodName}: Male patient {PatientId} has {RelationshipCount} active relationship(s), eligible for {TreatmentType} treatment", 
+                        methodName, patient.Id, activeRelationships.Count, treatmentType);
+                    return ValidationResult.Valid();
+                }
+
+                return ValidationResult.Valid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{MethodName}: Error validating gender and relationship for patient {PatientId}", methodName, patient.Id);
+                return ValidationResult.Invalid("Error validating patient eligibility", "VALIDATION_ERROR");
+            }
         }
 
         #endregion
@@ -1057,10 +1124,6 @@ namespace FSCMS.Service.Services
         /// - Cycles are created sequentially without overlap
         /// - Each cycle's StartDate = Previous cycle's StartDate + Previous cycle's ExpectedDurationDays
         /// </summary>
-        /// <param name="treatmentId">The treatment ID</param>
-        /// <param name="baselineDate">The baseline start date</param>
-        /// <param name="protocol">The IUI protocol</param>
-        /// <param name="methodName">The calling method name for logging</param>
         /// <returns>List of created treatment cycles</returns>
         private async Task<List<TreatmentCycle>> CreateIUICyclesAsync(Guid treatmentId, DateTime baselineDate, string protocol, string methodName)
         {
@@ -1225,8 +1288,6 @@ namespace FSCMS.Service.Services
         /// Ensures each cycle starts after the previous cycle ends (no overlap).
         /// Business Rule: Minimum ExpectedDurationDays is 1 day (0 is converted to 1).
         /// </summary>
-        /// <param name="baselineDate">The baseline start date</param>
-        /// <param name="stepPlan">List of step plans with CycleNumber, CycleName, StepType, ExpectedDurationDays, and Notes</param>
         /// <returns>List of cycles with calculated ScheduledDate</returns>
         private List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)> 
             CalculateSequentialCycleDates(
@@ -1278,8 +1339,6 @@ namespace FSCMS.Service.Services
         /// - Each cycle's StartDate must be >= previous cycle's EndDate (no overlap)
         /// - All ExpectedDurationDays must be >= 1
         /// </summary>
-        /// <param name="cyclesWithDates">List of cycles with calculated dates</param>
-        /// <param name="methodName">The calling method name for logging</param>
         /// <exception cref="InvalidOperationException">Thrown if validation fails</exception>
         private void ValidateCycleDates(
             List<(int CycleNumber, string CycleName, DateTime ScheduledDate, TreatmentStepType StepType, int ExpectedDurationDays, string Notes)> cyclesWithDates,
@@ -1340,10 +1399,6 @@ namespace FSCMS.Service.Services
         /// - Scheduled: the first step with ScheduledDate >= now (next upcoming step)
         /// - Planned: all remaining steps after the Scheduled step
         /// </summary>
-        /// <param name="scheduledDate">The scheduled date of the cycle step</param>
-        /// <param name="currentIndex">The current index in the step plan</param>
-        /// <param name="scheduledIndex">The index of the first upcoming step (Scheduled status)</param>
-        /// <param name="now">The current UTC time</param>
         /// <returns>The appropriate TreatmentStatus for the cycle</returns>
         private TreatmentStatus DetermineCycleStatus(DateTime scheduledDate, int currentIndex, int scheduledIndex, DateTime now)
         {
@@ -1364,6 +1419,39 @@ namespace FSCMS.Service.Services
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Represents the result of a validation operation.
+    /// </summary>
+    public class ValidationResult
+    {
+        public bool IsValid { get; private set; }
+        public string Message { get; private set; }
+        public string SystemCode { get; private set; }
+
+        private ValidationResult(bool isValid, string message, string systemCode)
+        {
+            IsValid = isValid;
+            Message = message;
+            SystemCode = systemCode;
+        }
+
+        /// <summary>
+        /// Creates a successful validation result.
+        /// </summary>
+        public static ValidationResult Valid()
+        {
+            return new ValidationResult(true, string.Empty, string.Empty);
+        }
+
+        /// <summary>
+        /// Creates a failed validation result with error details.
+        /// </summary>
+        public static ValidationResult Invalid(string message, string systemCode)
+        {
+            return new ValidationResult(false, message, systemCode);
+        }
     }
 }
 
